@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>dis+ Configurador</title>
+<style>
+:root {
+  --bg:      #F4F2EF;
+  --surf:    #FFFFFF;
+  --surf2:   #EDEAE4;
+  --bdr:     #DDD9D1;
+  --bdr-hi:  #2563EB;
+  --txt:     #1C1917;
+  --txt2:    #6B6560;
+  --txt3:    #A09890;
+  --acc:     #2563EB;
+  --acc-dim: #EFF3FF;
+  --acc-dk:  #1D4ED8;
+  --grn:     #16A34A;
+  --grn-dim: #F0FDF4;
+  --red:     #DC2626;
+  --amb:     #D97706;
+  --teal:    #0D9488;
+  --r:  7px;
+  --rl: 12px;
+  --sh:   0 1px 3px rgba(0,0,0,.07);
+  --shl:  0 4px 24px rgba(0,0,0,.11);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);font-size:13.5px;line-height:1.5;min-height:100vh}
+
+/* ── TOPBAR ── */
+.topbar{position:sticky;top:0;z-index:200;height:50px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px}
+.brand img{height:26px;width:auto;display:block}
+.tbr{display:flex;align-items:center;gap:10px}
+.tb-link{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--txt2);text-decoration:none;padding:4px 9px;border-radius:6px;border:1px solid var(--bdr);transition:all .15s;white-space:nowrap}
+.tb-link:hover{color:var(--txt);background:var(--surf2);border-color:#C4BFB6}
+.tb-link.wapp{color:#16A34A;border-color:rgba(22,163,74,.3)}
+.tb-link.wapp:hover{background:var(--grn-dim);border-color:rgba(22,163,74,.5)}
+.tb-sep{width:1px;height:18px;background:var(--bdr)}
+.spill{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--txt2);padding:4px 11px;border-radius:20px;background:var(--surf2);border:1px solid var(--bdr)}
+.sdot{width:6px;height:6px;border-radius:50%;background:var(--txt3)}
+.sdot.on{background:var(--grn);animation:blink 2.5s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.tb-aux{display:flex;align-items:center;gap:6px}
+.btn-tb{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .15s}
+.btn-tb:hover{background:var(--surf);color:var(--txt);border-color:#C4BFB6}
+
+/* ── SHELL ── */
+.shell{display:grid;grid-template-columns:276px 1fr;min-height:calc(100vh - 50px)}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surf);border-right:1px solid var(--bdr);position:sticky;top:50px;height:calc(100vh - 50px);overflow-y:auto;display:flex;flex-direction:column;padding:14px 0;gap:0}
+.sb{padding:0 13px;margin-bottom:2px}
+.sb-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);padding:0 3px;margin-bottom:6px;display:block}
+.sb-step{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc);background:var(--acc-dim);border-radius:4px;padding:2px 7px;margin-bottom:6px;display:inline-block}
+.sb-sep{height:1px;background:var(--bdr);margin:11px 13px}
+.sb-spacer{flex:1}
+.sb-btns{display:flex;flex-direction:column;gap:5px}
+
+/* Dev list */
+.dev-list{display:flex;flex-direction:column;gap:3px}
+.dev-opt{display:flex;align-items:center;gap:9px;padding:9px 10px;border-radius:var(--r);cursor:pointer;border:1.5px solid transparent;transition:all .15s;position:relative}
+.dev-opt:hover:not(.disabled){background:var(--surf2)}
+.dev-opt.active{background:var(--acc-dim);border-color:var(--acc)}
+.dev-opt.disabled{opacity:.42;cursor:default}
+.dev-soon{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--txt3);background:var(--surf2);border:1px solid var(--bdr);border-radius:4px;padding:1px 6px}
+.dev-ico{width:28px;height:28px;border-radius:6px;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.dev-opt.active .dev-ico{background:var(--acc-dim);border-color:var(--acc)}
+.dev-name{font-size:12.5px;font-weight:700}
+.dev-sub{font-size:10.5px;color:var(--txt3)}
+
+/* Conn type selector */
+.conn-type{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.ct-opt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:9px 6px;border-radius:var(--r);cursor:pointer;border:1.5px solid var(--bdr);background:var(--surf2);transition:all .15s;text-align:center}
+.ct-opt:hover:not(.ct-disabled){border-color:var(--acc);background:var(--acc-dim)}
+.ct-opt.active{border-color:var(--acc);background:var(--acc-dim)}
+.ct-opt.ct-disabled{opacity:.38;cursor:not-allowed;pointer-events:none}
+.ios-block{margin-top:7px;font-size:10.5px;color:var(--red);line-height:1.5;padding:7px 9px;background:#FEF2F2;border-radius:var(--r);border:1px solid #FECACA;display:none}
+.ct-ico{font-size:18px;line-height:1}
+.ct-lbl{font-size:11px;font-weight:700;color:var(--txt)}
+.ct-sub{font-size:10px;color:var(--txt3)}
+
+/* SB buttons */
+.sb-btn{width:100%;padding:8px 11px;font:700 12.5px/1 'DM Sans',system-ui,sans-serif;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
+.sb-btn:disabled{opacity:.38;cursor:not-allowed}
+.sb-btn.pri{background:var(--acc);color:#fff;border:1.5px solid var(--acc)}
+.sb-btn.pri:hover:not(:disabled){background:var(--acc-dk);border-color:var(--acc-dk)}
+.sb-btn.pri.danger{background:var(--red);border-color:var(--red)}
+.sb-btn.pri.danger:hover:not(:disabled){background:#B91C1C;border-color:#B91C1C}
+.sb-btn.ghost{background:transparent;color:var(--txt2);border:1.5px solid var(--bdr)}
+.sb-btn.ghost:hover:not(:disabled){background:var(--surf2);color:var(--txt)}
+
+/* ── CONTENT ── */
+.content{padding:18px 20px;display:flex;flex-direction:column;gap:13px;max-width:980px}
+
+/* ── CARDS ── */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden}
+.card-head{padding:9px 14px;border-bottom:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:7px}
+.card-title{font-size:12.5px;font-weight:700;flex:1}
+.card-body{padding:14px}
+.banner{text-align:center;padding:40px 20px;color:var(--txt3)}
+.bico{font-size:28px;margin-bottom:10px}
+.btit{font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:5px}
+.bdsc{font-size:12px}
+
+/* ── FORMS ── */
+.field{margin-bottom:9px}
+.field:last-child{margin-bottom:0}
+.lbl{display:block;font-size:11.5px;font-weight:600;color:var(--txt2);margin-bottom:4px}
+.hint{font-size:11px;color:var(--txt3);margin-top:3px;line-height:1.4}
+.hint.ok{color:var(--grn)}
+.hint.cap{color:var(--grn);font-weight:600}
+select,input[type=number],input[type=text]{width:100%;padding:6px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);font:13px/1.4 'DM Sans',system-ui,sans-serif;color:var(--txt);background:var(--surf);transition:border-color .15s;-webkit-appearance:none;appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23A09890' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;cursor:pointer}
+select:focus,input:focus{outline:none;border-color:var(--bdr-hi);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163,74,.1)}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:5px;padding:5px 11px;border-radius:var(--r);font:700 12.5px/1 'DM Sans',system-ui,sans-serif;cursor:pointer;border:1.5px solid transparent;transition:all .15s}
+.btn:disabled{opacity:.38;cursor:not-allowed}
+.btn.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.btn.pri:hover:not(:disabled){background:var(--acc-dk)}
+.btn.suc{background:var(--grn);color:#fff;border-color:var(--grn)}
+.btn.suc:hover:not(:disabled){background:#15803D}
+.btn.ghost{background:transparent;color:var(--txt2);border-color:var(--bdr)}
+.btn.ghost:hover:not(:disabled){background:var(--surf2);color:var(--txt)}
+.btn.sm{padding:4px 9px;font-size:11.5px}
+.btn.full{width:100%}
+
+/* ── TOGGLE ── */
+.tog-row{display:flex;align-items:center;gap:8px;cursor:pointer}
+.tog{position:relative;width:32px;height:18px;flex-shrink:0}
+.tog input{opacity:0;width:0;height:0}
+.tog-track{position:absolute;inset:0;border-radius:9px;background:var(--bdr);transition:background .2s}
+.tog:has(input:checked) .tog-track{background:var(--grn)}
+.tog-thumb{position:absolute;width:12px;height:12px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tog:has(input:checked) .tog-thumb{left:17px}
+.tog-lbl{font-size:12.5px}
+
+/* ── SEC DISABLED ── */
+.sec-off{pointer-events:none;opacity:.38;user-select:none}
+
+/* ── ARROW ROW ── */
+.arrow-row{display:flex;align-items:flex-start;flex-wrap:wrap}
+.arrow-sel{flex:0 0 240px;min-width:180px}
+.arrow-panel{display:flex;align-items:stretch;flex:1;min-width:0}
+.arrow-div{width:1px;background:var(--bdr);margin:0 17px;align-self:stretch;min-height:36px;flex-shrink:0}
+.arrow-body{flex:1;padding-top:1px;min-width:0}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* ── BTN CARDS ── */
+.btns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px}
+.btn-card{background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:11px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s}
+.btn-card:hover{border-color:#C4BFB6}
+.btn-card-head{display:flex;align-items:center;gap:7px}
+.btn-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.btn-card-title{font-size:12px;font-weight:700}
+.btn-fields{display:flex;flex-direction:column;gap:7px}
+.mods-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.mod-cb{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:600;transition:all .15s}
+.mod-cb input{cursor:pointer;width:13px;height:13px}
+.mod-cb:has(input:checked){background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
+
+/* ── PRESETS ── */
+.presets-outer{display:flex;flex-direction:column;gap:12px}
+.factory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.preset-card{position:relative;padding:12px;text-align:center;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
+.preset-card:hover{border-color:var(--acc);background:var(--acc-dim)}
+.preset-icon{font-size:24px;margin-bottom:4px;display:block}
+.preset-name{font-size:12px;font-weight:700;display:block}
+.preset-sub{font-size:10.5px;color:var(--txt3);margin-top:2px;display:block}
+
+/* Tooltip presets global */
+#globalTip{position:fixed;display:none;background:#1C1917;color:#fff;padding:10px 12px;border-radius:var(--rl);width:230px;font-size:11px;line-height:1.55;text-align:left;box-shadow:var(--shl);z-index:9500;pointer-events:none;white-space:normal;--arrow-left:50%}
+#globalTip::after{content:'';position:absolute;top:100%;left:var(--arrow-left);transform:translateX(-50%);border:6px solid transparent;border-top-color:#1C1917}
+.tip-row{display:flex;align-items:flex-start;gap:5px;padding:2.5px 0;border-bottom:1px solid rgba(255,255,255,.1)}
+.tip-row:last-child{border:none;padding-bottom:0}
+.tip-btn{font-size:11px;min-width:16px;opacity:.75;flex-shrink:0}
+.tip-val{font-size:10.5px}
+
+/* Custom presets */
+.custom-bar{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--acc-dim);border:1.5px dashed #93B4F5;border-radius:var(--rl)}
+.custom-bar-lbl{font-size:12px;font-weight:700;color:var(--acc);flex:1}
+.custom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.custom-card{position:relative;padding:10px 11px;text-align:center;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
+.custom-card:hover{border-color:var(--grn);background:var(--grn-dim)}
+.custom-name{font-size:12px;font-weight:700;word-break:break-word}
+.custom-date{font-size:10.5px;color:var(--txt3);margin-top:2px}
+.custom-del{position:absolute;top:5px;right:7px;background:none;border:none;font-size:13px;color:var(--txt3);cursor:pointer;line-height:1;padding:1px 3px;border-radius:3px;transition:color .15s}
+.custom-del:hover{color:var(--red)}
+.no-custom{font-size:12px;color:var(--txt3)}
+
+/* ── MODALS ── */
+.modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:var(--shl);width:100%;max-width:480px;animation:pop .2s ease}
+@keyframes pop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+.modal-head{padding:13px 15px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
+.modal-title{font-size:14px;font-weight:700;flex:1}
+.modal-x{width:26px;height:26px;border:none;background:transparent;color:var(--txt3);font-size:16px;cursor:pointer;border-radius:5px;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.modal-x:hover{background:var(--surf2);color:var(--txt)}
+.modal-body{padding:15px}
+.modal-foot{padding:9px 15px;border-top:1px solid var(--bdr);display:flex;justify-content:flex-end;gap:7px}
+.cfg-sec{margin-bottom:13px;padding-bottom:13px;border-bottom:1px solid var(--bdr)}
+.cfg-sec:last-child{margin:0;padding:0;border:none}
+.cfg-sec-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:6px}
+.cfg-row{font-size:12.5px;background:var(--surf2);border-radius:var(--r);padding:6px 10px;margin-bottom:5px;line-height:1.5}
+.cfg-row:last-child{margin:0}
+.hl{font-weight:700;color:var(--acc)}
+
+/* ── TOUR ── */
+.tour-bd{position:fixed;inset:0;z-index:8000;display:none}
+.tour-spot{position:fixed;border:2px solid var(--acc);border-radius:var(--rl);box-shadow:0 0 0 9999px rgba(0,0,0,.65),0 0 0 4px rgba(37,99,235,.18);transition:top .3s cubic-bezier(.4,0,.2,1),left .3s cubic-bezier(.4,0,.2,1),width .3s cubic-bezier(.4,0,.2,1),height .3s cubic-bezier(.4,0,.2,1);z-index:8001;pointer-events:none;display:none}
+.tour-tip{position:fixed;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:13px;width:296px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:8002;display:none}
+.tthead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.tbadge{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.tttitle{font-size:13px;font-weight:700;flex:1}
+.ttbody{font-size:12px;color:var(--txt2);line-height:1.55;margin-bottom:12px}
+.ttfoot{display:flex;align-items:center;justify-content:space-between}
+.tprog{font-size:10.5px;color:var(--txt3);font-weight:600}
+.tnav{display:flex;gap:5px}
+.tw-bd{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:8009;display:none}
+.tw{position:fixed;inset:0;z-index:8010;display:none;align-items:center;justify-content:center;padding:20px;pointer-events:none}
+.tw-card{pointer-events:auto;background:var(--surf);border:1px solid var(--bdr);border-radius:16px;padding:30px 26px;max-width:400px;width:100%;text-align:center;box-shadow:var(--shl);animation:pop .3s ease}
+.tw-emoji{font-size:38px;margin-bottom:11px}
+.tw-title{font-size:18px;font-weight:800;margin-bottom:7px}
+.tw-desc{font-size:12.5px;color:var(--txt2);line-height:1.6;margin-bottom:20px}
+.tw-btns{display:flex;gap:8px;justify-content:center}
+
+/* ── TOASTS ── */
+.toasts{position:fixed;top:60px;right:14px;display:flex;flex-direction:column;gap:7px;z-index:9000;pointer-events:none}
+.toast{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:9px 13px;box-shadow:var(--shl);display:flex;align-items:center;gap:9px;min-width:190px;max-width:290px;animation:slideIn .2s ease}
+@keyframes slideIn{from{opacity:0;transform:translateX(14px)}to{opacity:1;transform:translateX(0)}}
+.t-ico{font-size:15px;flex-shrink:0}
+.t-msg{font-size:12.5px}
+
+/* ── LOG ── */
+.log-panel{background:#131210;border-radius:var(--r);padding:10px 12px;max-height:280px;overflow-y:auto;font-family:'SF Mono','Fira Mono',monospace;font-size:11.5px}
+.le{display:flex;gap:9px;padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.le:last-child{border:none}
+.lt{color:#3D3A35;min-width:56px}
+.li{color:#34D399}
+.lo{color:#60A5FA}
+.lw{color:#FBBF24}
+.lm{color:#C8C3BB;flex:1;word-break:break-all}
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="brand">
+    <img src="data:image/png;base64,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" alt="dis+ capacidad">
+  </div>
+  <div class="tbr">
+    <div class="tb-aux">
+      <button class="btn-tb" id="btnLog" onclick="openModal('logModal')">📋 Registro</button>
+      <button class="btn-tb" onclick="restartTour()">❓ Ayuda</button>
+    </div>
+    <div class="tb-sep"></div>
+    <a href="https://www.dismascapacidad.com.ar" target="_blank" class="tb-link">🛒 Tienda</a>
+    <a href="https://wa.me/5493512926315" target="_blank" class="tb-link wapp">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+      Contacto
+    </a>
+    <div class="tb-sep"></div>
+    <div class="spill">
+      <div class="sdot" id="sdot"></div>
+      <span id="stxt">Desconectado</span>
+    </div>
+  </div>
+</div>
+
+<div class="shell">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+
+  <!-- PASO 1: Producto -->
+  <div class="sb">
+    <span class="sb-step">Paso 1</span>
+    <span class="sb-lbl">Seleccionar producto</span>
+    <div class="dev-list" id="devList">
+
+      <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
+        <div class="dev-ico">🎮</div>
+        <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+      </div>
+
+      <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
+        <div class="dev-ico">🔴</div>
+        <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+      </div>
+
+      <div class="dev-opt disabled">
+        <div class="dev-ico">📡</div>
+        <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
+        <span class="dev-soon">Próximamente</span>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="sb-sep"></div>
+
+  <!-- PASO 2: Tipo de conexión -->
+  <div class="sb" id="sbConnType" style="opacity:.38;pointer-events:none">
+    <span class="sb-step">Paso 2</span>
+    <span class="sb-lbl">Tipo de conexión</span>
+    <div class="conn-type">
+      <div class="ct-opt active" id="ct-usb" onclick="selectConnType('usb')">
+        <span class="ct-ico">🔌</span>
+        <span class="ct-lbl">USB</span>
+        <span class="ct-sub">Cable</span>
+      </div>
+      <div class="ct-opt" id="ct-ble" onclick="selectConnType('ble')">
+        <span class="ct-ico">📡</span>
+        <span class="ct-lbl">Bluetooth</span>
+        <span class="ct-sub">BLE</span>
+      </div>
+    </div>
+    <div id="bleHint" style="display:none;margin-top:7px;font-size:10.5px;color:var(--txt3);line-height:1.6;padding:7px 9px;background:var(--surf2);border-radius:var(--r);border:1px solid var(--bdr)">
+      <b style="color:var(--amb)">⚠ Windows:</b> si "disMouse V4" ya está emparejado como mouse, el acceso BLE puede fallar. En ese caso:<br>
+      1. Ir a <b>Configuración → Bluetooth → disMouse V4 → Quitar dispositivo</b><br>
+      2. Volver a conectar desde acá<br><br>
+      El dispositivo puede aparecer <b>sin nombre</b>. Selecciónelo igual — el Registro mostrará el diagnóstico.
+    </div>
+    <div class="ios-block" id="iosBlock">
+      <b>iOS / iPadOS no soportado</b><br>
+      Safari y Chrome en iOS no implementan Web Bluetooth. No es una limitación del configurador — Apple no permite el acceso a BLE desde el navegador.<br><br>
+      Para configurar desde iPhone/iPad, usá <b>cable USB</b> conectando a una PC/Mac.
+    </div>
+  </div>
+
+  <div class="sb-sep"></div>
+
+  <!-- PASO 3: Conectar -->
+  <div class="sb" id="sbConn" style="opacity:.38;pointer-events:none">
+    <span class="sb-step">Paso 3</span>
+    <span class="sb-lbl">Conectar</span>
+    <div class="sb-btns">
+      <button class="sb-btn pri" id="btnConn" onclick="toggleConn()">Conectar</button>
+      <div id="connSub" style="display:none" class="sb-btns">
+        <button class="sb-btn ghost" onclick="pingDevice()">🔄 Probar conexión</button>
+        <button class="sb-btn ghost" onclick="getAllConfig()">📋 Ver configuración</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sb-sep"></div>
+
+  <div class="sb" id="sbSave">
+    <span class="sb-lbl">Guardar</span>
+    <div class="sb-btns">
+      <button class="sb-btn ghost" id="btnSave" onclick="saveConfig()" disabled>💾 Guardar en dispositivo</button>
+      <button class="sb-btn ghost" id="btnReset" onclick="resetDevice()" disabled>🔄 Restaurar por defecto</button>
+    </div>
+  </div>
+
+  <div class="sb-spacer"></div>
+</aside>
+
+<!-- CONTENT -->
+<main class="content">
+
+  <div class="card" id="banner">
+    <div class="banner">
+      <div class="bico" id="bico">👈</div>
+      <div class="btit" id="btit">Seleccione un producto</div>
+      <div class="bdsc" id="bdsc">Elija el dispositivo a configurar en el panel izquierdo.</div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: Flechas (oculta para disButton) -->
+  <div class="card sec-off" id="secArrows">
+    <div class="card-head"><span>⬆️</span><span class="card-title">Modo de Flechas</span></div>
+    <div class="card-body">
+      <div class="arrow-row">
+        <div class="arrow-sel">
+          <div class="field" style="margin:0">
+            <label class="lbl">Las flechas funcionan como:</label>
+            <select id="arrowMode" onchange="onArrowMode()">
+              <option value="1">Mover el cursor del mouse</option>
+              <option value="2">Teclas de flecha del teclado (↑↓←→)</option>
+              <option value="0">Acción individual por cada flecha</option>
+            </select>
+          </div>
+        </div>
+        <div class="arrow-panel">
+          <div class="arrow-div"></div>
+          <div class="arrow-body">
+            <div class="two-col" style="margin-bottom:9px">
+              <div class="field" style="margin:0">
+                <label class="lbl">Orientación</label>
+                <select id="orient">
+                  <option value="0">Normal (0°)</option>
+                  <option value="1">Girado derecha (90°)</option>
+                  <option value="2">Girado izquierda (-90°)</option>
+                  <option value="3">Invertido (180°)</option>
+                </select>
+              </div>
+              <div class="field" style="margin:0" id="velWrap">
+                <label class="lbl">Velocidad del cursor</label>
+                <input type="number" id="vel" min="1" max="50" value="25">
+              </div>
+            </div>
+            <div class="field" style="margin:0 0 9px" id="acelWrap">
+              <label class="tog-row">
+                <span class="tog">
+                  <input type="checkbox" id="acel">
+                  <span class="tog-track"></span>
+                  <span class="tog-thumb"></span>
+                </span>
+                <span class="tog-lbl">Aceleración gradual</span>
+              </label>
+              <div class="hint">El cursor acelera al mantener la flecha presionada.</div>
+            </div>
+            <button class="btn suc sm" onclick="applyArrows()">Aplicar</button>
+          </div>
+        </div>
+      </div>
+      <div id="arrowInd" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--bdr)">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--txt3);margin-bottom:10px">Configuración individual de flechas</div>
+        <div class="btns-grid" id="arrowGrid"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: Botones principales -->
+  <div class="card sec-off" id="secBtns">
+    <div class="card-head"><span>🎯</span><span class="card-title" id="mainTitle">Botones</span></div>
+    <div class="card-body">
+      <div class="btns-grid" id="mainGrid"></div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: Configuraciones rápidas -->
+  <div class="card sec-off" id="secPresets">
+    <div class="card-head"><span>⚡</span><span class="card-title">Configuraciones Rápidas</span></div>
+    <div class="card-body">
+      <div class="presets-outer">
+        <div class="factory-grid" id="factoryGrid">
+          <!-- Se puebla dinámicamente según el producto -->
+        </div>
+        <div class="custom-bar">
+          <span class="custom-bar-lbl">⭐ Mis configuraciones guardadas</span>
+          <button class="btn pri sm" id="btnSaveCustom" onclick="openSaveModal()" disabled>+ Guardar actual</button>
+        </div>
+        <div class="custom-grid" id="customGrid" style="display:none"></div>
+        <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- TOOLTIP GLOBAL -->
+<div id="globalTip"></div>
+
+<!-- TOASTS -->
+<div class="toasts" id="toasts"></div>
+
+<!-- MODAL: LOG -->
+<div class="modal-bd" id="logModal" style="display:none" onclick="closeBd(event,'logModal')">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📋 Registro de actividad</span><button class="modal-x" onclick="closeModal('logModal')">✕</button></div>
+    <div class="modal-body"><div class="log-panel" id="logPanel"></div></div>
+    <div class="modal-foot">
+      <button class="btn ghost sm" onclick="clearLog()">Limpiar</button>
+      <button class="btn pri sm" onclick="closeModal('logModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONFIG -->
+<div class="modal-bd" id="cfgModal" style="display:none" onclick="closeBd(event,'cfgModal')">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📋 Configuración actual</span><button class="modal-x" onclick="closeModal('cfgModal')">✕</button></div>
+    <div class="modal-body" id="cfgDisplay" style="max-height:62vh;overflow-y:auto"></div>
+    <div class="modal-foot"><button class="btn pri sm" onclick="closeModal('cfgModal')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: SAVE CUSTOM -->
+<div class="modal-bd" id="saveModal" style="display:none" onclick="closeBd(event,'saveModal')">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">💾 Guardar configuración</span><button class="modal-x" onclick="closeModal('saveModal')">✕</button></div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="lbl">Nombre de la configuración</label>
+        <input type="text" id="customName" placeholder="Ej: Juan · semana 3, Exploración switch rojo…" maxlength="60">
+        <div class="hint">Aparecerá como configuración rápida en este navegador/dispositivo.</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost sm" onclick="closeModal('saveModal')">Cancelar</button>
+      <button class="btn pri sm" onclick="confirmSave()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOUR -->
+<div class="tour-bd" id="tourBd" onclick="skipTour()"></div>
+<div class="tour-spot" id="tourSpot"></div>
+<div class="tour-tip" id="tourTip">
+  <div class="tthead">
+    <div class="tbadge" id="tBadge">1</div>
+    <div class="tttitle" id="tTitle"></div>
+  </div>
+  <div class="ttbody" id="tBody"></div>
+  <div class="ttfoot">
+    <span class="tprog" id="tProg"></span>
+    <div class="tnav">
+      <button class="btn ghost sm" onclick="skipTour()">Omitir</button>
+      <button class="btn ghost sm" id="tPrev" onclick="prevStep()" style="display:none">Anterior</button>
+      <button class="btn pri sm" id="tNext" onclick="nextStep()">Siguiente</button>
+    </div>
+  </div>
+</div>
+<div class="tw-bd" id="twBd" onclick="skipTour()"></div>
+<div class="tw" id="twCard">
+  <div class="tw-card">
+    <div class="tw-emoji">👋</div>
+    <div class="tw-title">Bienvenido al Configurador dis+</div>
+    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br>¿Primera vez? Le mostramos cómo adaptar el dispositivo a su paciente en pocos pasos.</div>
+    <div class="tw-btns">
+      <button class="btn ghost" onclick="skipTour()">Omitir</button>
+      <button class="btn pri" onclick="startTour()">Comenzar recorrido</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// PERFILES DE PRODUCTOS
+// mainBtns: botones visibles en la UI
+// arrowBtns: flechas (vacío = producto sin flechas)
+// presets: qué presets de fábrica se muestran
+// cardTitle: título de la sección de botones
+// ═══════════════════════════════════════════════════════
+const PRODUCTS = {
+  dismouse: {
+    id: 'dismouse', name: 'disMouse',
+    cardTitle: 'Botones — disMouse',
+    hasArrows: true,
+    mainBtns: [
+      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
+      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
+      {code:'BN', label:'Botón Naranja', color:'#F97316'},
+      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
+    ],
+    arrowBtns: [
+      {code:'FU', label:'Flecha ↑', color:'#EAB308'},
+      {code:'FD', label:'Flecha ↓', color:'#EAB308'},
+      {code:'FL', label:'Flecha ←', color:'#EAB308'},
+      {code:'FR', label:'Flecha →', color:'#EAB308'},
+    ],
+    presets: ['caa','causa','juego','oficina'],
+  },
+  disbutton: {
+    id: 'disbutton', name: 'disButton',
+    cardTitle: 'Configura tu disButton',
+    hasArrows: false,
+    mainBtns: [
+      // Mismo código BR que disMouse — mismo firmware, solo 1 botón expuesto
+      {code:'BR', label:'disButton', color:'#EF4444'},
+    ],
+    arrowBtns: [],
+    presets: ['caa_single','causa_single'],
+  },
+};
+
+// ── ESTADO ──────────────────────────────────────────────
+let prod      = null;
+let connType  = 'usb';  // 'usb' | 'ble'
+let connected = false;
+// USB
+let port = null, reader = null, writer = null;
+// BLE
+let bleDevice = null, bleTxChar = null;
+let devCfg    = mkCfg();
+let capActive = null;
+const capHandlers = {};
+const STORAGE_KEY = 'displus_presets_v1';
+
+function mkCfg() { return {orient:null, vel:null, acel:null, fmode:null, btns:{}}; }
+
+// ── SELECCIÓN DE PRODUCTO ────────────────────────────────
+function selectProd(id) {
+  const p = PRODUCTS[id];
+  if (!p) return;
+  prod = p;
+  document.querySelectorAll('.dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
+  const opt = document.getElementById('opt-' + id);
+  if (opt) opt.classList.add('active');
+
+  // Habilitar paso 2
+  const step2 = document.getElementById('sbConnType');
+  step2.style.opacity = ''; step2.style.pointerEvents = '';
+  // Habilitar paso 3
+  const step3 = document.getElementById('sbConn');
+  step3.style.opacity = ''; step3.style.pointerEvents = '';
+
+  document.getElementById('mainTitle').textContent = p.cardTitle;
+
+  // Mostrar/ocultar sección flechas
+  document.getElementById('secArrows').style.display = p.hasArrows ? '' : 'none';
+
+  setBanner('conn');
+  buildGrid('mainGrid', p.mainBtns);
+  if (p.hasArrows) buildGrid('arrowGrid', p.arrowBtns);
+  buildFactoryPresets(p.presets);
+  addLog('Producto seleccionado: ' + p.name);
+}
+
+// ── SELECCIÓN TIPO CONEXIÓN ──────────────────────────────
+function selectConnType(type) {
+  if (type === 'ble' && isIOS()) return; // bloqueado en iOS
+  connType = type;
+  document.getElementById('ct-usb').classList.toggle('active', type === 'usb');
+  document.getElementById('ct-ble').classList.toggle('active', type === 'ble');
+  document.getElementById('bleHint').style.display = type === 'ble' ? '' : 'none';
+}
+
+// ── BANNER ───────────────────────────────────────────────
+function setBanner(state) {
+  const b = document.getElementById('banner');
+  const i = document.getElementById('bico');
+  const t = document.getElementById('btit');
+  const d = document.getElementById('bdsc');
+  if (state === 'none') {
+    b.style.display=''; i.textContent='👈';
+    t.textContent='Seleccione un producto';
+    d.textContent='Elija el dispositivo a configurar en el panel izquierdo.';
+  } else if (state === 'conn') {
+    b.style.display=''; i.textContent='🔌';
+    t.textContent='Conecte el dispositivo';
+    d.textContent='Elija el tipo de conexión y presione "Conectar".';
+  } else {
+    b.style.display='none';
+  }
+}
+
+// ── HABILITAR / DESHABILITAR ─────────────────────────────
+function setSections(on) {
+  ['secBtns','secPresets'].forEach(id =>
+    document.getElementById(id).classList.toggle('sec-off', !on));
+  // secArrows solo se habilita si el producto tiene flechas
+  if (prod && prod.hasArrows)
+    document.getElementById('secArrows').classList.toggle('sec-off', !on);
+  document.getElementById('btnSave').disabled       = !on;
+  document.getElementById('btnReset').disabled      = !on;
+  document.getElementById('btnSaveCustom').disabled = !on;
+  document.getElementById('connSub').style.display  = on ? 'flex' : 'none';
+}
+
+// ── GRILLAS ───────────────────────────────────────────────
+function buildGrid(containerId, buttons) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = '';
+  buttons.forEach(b => c.appendChild(mkCard(b.code, b.label, b.color)));
+}
+
+function mkCard(code, label, color) {
+  const d = document.createElement('div');
+  d.className = 'btn-card'; d.id = 'card-' + code;
+  d.innerHTML = `
+    <div class="btn-card-head">
+      <div class="btn-dot" style="background:${color}"></div>
+      <div class="btn-card-title">${label}</div>
+    </div>
+    <div class="btn-fields">
+      <div class="field" style="margin:0">
+        <label class="lbl">Funciona como</label>
+        <select id="t_${code}" onchange="onType('${code}')">
+          <option value="K">Teclado</option>
+          <option value="M">Mouse</option>
+          <option value="X">Desactivado</option>
+        </select>
+      </div>
+      <div id="act_${code}">
+        <div class="field" style="margin:0 0 7px">
+          <label class="lbl">Se activa</label>
+          <select id="m_${code}">
+            <option value="P">Al presionar</option>
+            <option value="R">Al soltar</option>
+            <option value="H">Con una pulsación larga (1 seg)</option>
+            <option value="O">Una vez por cada pulsación</option>
+          </select>
+        </div>
+        <div class="field" style="margin:0 0 7px">
+          <label class="lbl">Debounce (ms)</label>
+          <input type="number" id="d_${code}" min="0" max="5000" value="0" step="50">
+        </div>
+        <div id="kb_${code}">
+          <div class="field" style="margin:0 0 7px">
+            <label class="lbl">Tecla</label>
+            <input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
+              onfocus="startCap('${code}')" onblur="stopCap('${code}')">
+            <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
+          </div>
+          <div class="field" style="margin:0 0 7px">
+            <label class="lbl">Modificadores</label>
+            <div class="mods-grid">
+              <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
+              <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
+              <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
+              <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
+            </div>
+          </div>
+        </div>
+        <div id="mo_${code}" style="display:none">
+          <div class="field" style="margin:0 0 7px">
+            <label class="lbl">Acción del mouse</label>
+            <select id="mact_${code}">
+              <option value="1">Clic izquierdo</option>
+              <option value="1D">Doble clic izquierdo</option>
+              <option value="1M">Mantener clic izquierdo (toggle)</option>
+              <option value="2">Clic derecho</option>
+              <option value="4">Clic central</option>
+              <option value="SU">Scroll ↑</option>
+              <option value="SD">Scroll ↓</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <button class="btn suc sm full" onclick="applyBtn('${code}')">Aplicar</button>
+    </div>`;
+  return d;
+}
+
+function onType(code) {
+  const t = document.getElementById('t_' + code).value;
+  document.getElementById('act_' + code).style.display = t === 'X' ? 'none' : '';
+  if (t !== 'X') {
+    document.getElementById('kb_' + code).style.display = t === 'K' ? '' : 'none';
+    document.getElementById('mo_' + code).style.display = t === 'M' ? '' : 'none';
+  }
+}
+
+// ── CAPTURA DE TECLAS ────────────────────────────────────
+const SKEYS = {
+  ' ':'SPACE','Enter':'ENTER','Tab':'TAB','Escape':'ESC',
+  'Backspace':'BACKSPACE','Delete':'DELETE','Insert':'INSERT',
+  'Home':'HOME','End':'END','PageUp':'PAGE_UP','PageDown':'PAGE_DOWN',
+  'ArrowUp':'UP_ARROW','ArrowDown':'DOWN_ARROW',
+  'ArrowLeft':'LEFT_ARROW','ArrowRight':'RIGHT_ARROW',
+  'F1':'F1','F2':'F2','F3':'F3','F4':'F4','F5':'F5','F6':'F6',
+  'F7':'F7','F8':'F8','F9':'F9','F10':'F10','F11':'F11','F12':'F12',
+};
+
+function startCap(code) {
+  capActive = code;
+  const inp = document.getElementById('k_' + code);
+  const hint = document.getElementById('kh_' + code);
+  inp.classList.add('cap-on');
+  hint.textContent = '⌨️ Presione la tecla…'; hint.className = 'hint cap';
+  if (!capHandlers[code]) {
+    capHandlers[code] = e => {
+      if (capActive !== code) return;
+      if (['Control','Shift','Alt','Meta'].includes(e.key)) return;
+      e.preventDefault(); e.stopPropagation();
+      const name = SKEYS[e.key] ?? (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+      inp.value = name; inp.classList.remove('cap-on');
+      hint.textContent = '✓ "' + name + '" capturada'; hint.className = 'hint ok';
+      capActive = null;
+      setTimeout(() => { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }, 2200);
+    };
+    document.addEventListener('keydown', capHandlers[code], true);
+  }
+}
+
+function stopCap(code) {
+  if (capActive !== code) return;
+  capActive = null;
+  const inp = document.getElementById('k_' + code);
+  const hint = document.getElementById('kh_' + code);
+  inp.classList.remove('cap-on');
+  if (hint.classList.contains('cap')) { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }
+}
+
+// ── CONVERSIÓN DE KEYCODES ───────────────────────────────
+function cvKey(k) {
+  const MAP = {
+    'SPACE':' ','ENTER':'176','TAB':'179','ESC':'177','BACKSPACE':'178','DELETE':'212',
+    'INSERT':'209','HOME':'210','END':'213','PAGE_UP':'211','PAGE_DOWN':'214',
+    'UP_ARROW':'218','DOWN_ARROW':'217','LEFT_ARROW':'216','RIGHT_ARROW':'215',
+    'F1':'194','F2':'195','F3':'196','F4':'197','F5':'198','F6':'199',
+    'F7':'200','F8':'201','F9':'202','F10':'203','F11':'204','F12':'205',
+  };
+  return MAP[k.toUpperCase()] ?? k.toLowerCase();
+}
+
+// ── APLICAR BOTÓN ────────────────────────────────────────
+async function applyBtn(code) {
+  const tipo = document.getElementById('t_' + code).value;
+  const modo = document.getElementById('m_' + code).value;
+  const deb  = document.getElementById('d_' + code).value;
+  let accion, mods = '-', flags = '-';
+
+  if (tipo === 'X') {
+    accion = '0';
+  } else if (tipo === 'M') {
+    const sel = document.getElementById('mact_' + code).value;
+    if      (sel === '1D') { accion='1';  flags='D'; }
+    else if (sel === '1M') { accion='1';  flags='M'; }
+    else if (sel === 'SU') { accion='SU'; }
+    else if (sel === 'SD') { accion='SD'; }
+    else                   { accion=sel;  }
+  } else {
+    const raw = (document.getElementById('k_' + code).value || '').trim();
+    accion = raw ? cvKey(raw) : '0';
+    const mc = document.getElementById('mc_' + code).checked;
+    const ms = document.getElementById('ms_' + code).checked;
+    const ma = document.getElementById('ma_' + code).checked;
+    const mg = document.getElementById('mg_' + code).checked;
+    mods = (mc?'C':'') + (ms?'S':'') + (ma?'A':'') + (mg?'G':'') || '-';
+  }
+
+  const ok = await send('CFG:' + code + ':' + tipo + ':' + modo + ':' + deb + ':' + accion + ':' + mods + ':' + flags);
+  if (ok) toast('✅', code + ' configurado');
+}
+
+// ── MODO DE FLECHAS ──────────────────────────────────────
+function onArrowMode() {
+  const m = parseInt(document.getElementById('arrowMode').value);
+  const showCursorCfg = (m === 0 || m === 1);
+  document.getElementById('velWrap').style.display  = showCursorCfg ? '' : 'none';
+  document.getElementById('acelWrap').style.display = showCursorCfg ? '' : 'none';
+  document.getElementById('arrowInd').style.display = m === 0 ? '' : 'none';
+}
+
+async function applyArrows() {
+  const m   = parseInt(document.getElementById('arrowMode').value);
+  const ori = document.getElementById('orient').value;
+  await send('FMODE:' + m);
+  await send('ORIENT:' + ori);
+  if (m === 0 || m === 1) {
+    await send('VEL:' + document.getElementById('vel').value);
+    await send('ACEL:' + (document.getElementById('acel').checked ? '1' : '0'));
+  }
+  toast('✅', 'Flechas configuradas');
+}
+
+// ── PRESETS DE FÁBRICA ───────────────────────────────────
+const _SP  = ' ';
+const _ENT = '176';
+
+const FACTORY_CMDS = {
+  caa: [
+    'CFG:BR:K:P:150:' + _SP  + ':-:-',
+    'CFG:BA:K:P:150:' + _ENT + ':-:-',
+    'CFG:BN:K:R:0:'   + _SP  + ':-:-',
+    'CFG:BC:K:R:0:'   + _ENT + ':-:-',
+    'CFG:FU:X:P:0:0:-:-','CFG:FD:X:P:0:0:-:-',
+    'CFG:FL:X:P:0:0:-:-','CFG:FR:X:P:0:0:-:-','FMODE:0',
+  ],
+  causa: [
+    'CFG:BR:M:P:250:1:-:-','CFG:BA:M:R:0:1:-:-',
+    'CFG:BN:K:P:250:' + _SP + ':-:-',
+    'CFG:BC:K:R:0:'   + _SP + ':-:-',
+    'CFG:FU:X:P:0:0:-:-','CFG:FD:X:P:0:0:-:-',
+    'CFG:FL:X:P:0:0:-:-','CFG:FR:X:P:0:0:-:-','FMODE:0',
+  ],
+  juego: [
+    'CFG:BR:K:P:0:' + _SP  + ':-:-',
+    'CFG:BA:K:P:0:' + _ENT + ':-:-',
+    'FMODE:2','ORIENT:0',
+  ],
+  oficina: [
+    'CFG:BR:M:P:0:1:-:-','CFG:BA:M:P:0:2:-:-',
+    'CFG:BN:M:P:0:SU:-:-','CFG:BC:M:P:0:SD:-:-',
+    'FMODE:1','ORIENT:0','VEL:45','ACEL:1',
+  ],
+  // Presets para disButton (1 botón): solo configura BR
+  caa_single: [
+    'CFG:BR:K:P:150:' + _SP + ':-:-',
+  ],
+  causa_single: [
+    'CFG:BR:M:P:250:1:-:-',
+  ],
+};
+
+const FACTORY_CARDS = {
+  caa:          { icon:'💬', name:'CAA con PDA',    sub:'1 o más pulsadores',   tipId:'tip-caa' },
+  causa:        { icon:'🎯', name:'Causa - Efecto', sub:'Activación por efecto', tipId:'tip-causa' },
+  juego:        { icon:'🕹️', name:'Juego',          sub:'Flechas de dirección', tipId:'tip-juego' },
+  oficina:      { icon:'💼', name:'Oficina',         sub:'Mouse completo',       tipId:'tip-oficina' },
+  caa_single:   { icon:'💬', name:'CAA con PDA',    sub:'Espacio · press · 150ms', tipId:'tip-caa-s' },
+  causa_single: { icon:'🎯', name:'Causa - Efecto', sub:'Clic izq · press · 250ms', tipId:'tip-causa-s' },
+};
+
+const TIP_CONTENT = {
+  'tip-caa': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · 150 ms debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Enter · Press · 150 ms debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Espacio · Release</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Enter · Release</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
+  'tip-causa': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press · 250 ms debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic izq · Release</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Espacio · Press · 250 ms debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Espacio · Release</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
+  'tip-juego': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · sin debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Enter · Press · sin debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠🩵</span><span class="tip-val">Sin cambio</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas → teclas de dirección</span></div>`,
+  'tip-oficina': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press · sin debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press · sin debounce</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Scroll ↑ · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Scroll ↓ · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 45 · aceleración ON</span></div>`,
+  'tip-caa-s': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · 150 ms debounce</span></div>`,
+  'tip-causa-s': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Press · 250 ms debounce</span></div>`,
+};
+
+function buildFactoryPresets(ids) {
+  const grid = document.getElementById('factoryGrid');
+  grid.innerHTML = '';
+  ids.forEach(id => {
+    const c = FACTORY_CARDS[id]; if (!c) return;
+    const div = document.createElement('div');
+    div.className = 'preset-card';
+    div.setAttribute('data-tip-id', c.tipId);
+    div.innerHTML = `<span class="preset-icon">${c.icon}</span><span class="preset-name">${c.name}</span><span class="preset-sub">${c.sub}</span>`;
+    div.addEventListener('click', () => applyPreset(id));
+    grid.appendChild(div);
+  });
+  // Re-inicializar tooltips para las nuevas cards
+  initPresetTooltips();
+}
+
+async function applyPreset(id) {
+  const cmds = FACTORY_CMDS[id]; if (!cmds) return;
+  for (const c of cmds) await send(c);
+  toast('⚡', 'Configuración aplicada');
+}
+
+// ── CUSTOM PRESETS ───────────────────────────────────────
+function loadCustom() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+  catch { return []; }
+}
+function saveCustomList(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+function renderCustom() {
+  const list = loadCustom();
+  const grid = document.getElementById('customGrid');
+  const none = document.getElementById('noCustom');
+  grid.innerHTML = '';
+  if (!list.length) { grid.style.display='none'; none.style.display='block'; return; }
+  grid.style.display = 'grid'; none.style.display = 'none';
+  list.forEach((p, i) => {
+    const card = document.createElement('div');
+    card.className = 'custom-card';
+    card.innerHTML = `
+      <button class="custom-del" title="Eliminar" onclick="delCustom(${i},event)">✕</button>
+      <div style="font-size:20px;margin-bottom:3px">⭐</div>
+      <div class="custom-name">${esc(p.name)}</div>
+      <div class="custom-date">${p.date}</div>`;
+    card.addEventListener('click', () => applyCustom(p));
+    grid.appendChild(card);
+  });
+}
+
+function openSaveModal() {
+  document.getElementById('customName').value = '';
+  openModal('saveModal');
+  setTimeout(() => document.getElementById('customName').focus(), 100);
+}
+
+async function confirmSave() {
+  const name = document.getElementById('customName').value.trim();
+  if (!name) { document.getElementById('customName').focus(); return; }
+  devCfg = mkCfg();
+  await send('GETALL');
+  await new Promise(r => setTimeout(r, 2400));
+  const list = loadCustom();
+  list.push({ name, date: new Date().toLocaleDateString('es-AR'), cfg: JSON.parse(JSON.stringify(devCfg)) });
+  saveCustomList(list);
+  renderCustom();
+  closeModal('saveModal');
+  toast('💾', '"' + name + '" guardada');
+}
+
+async function applyCustom(p) {
+  const cfg = p.cfg; if (!cfg) return;
+  const CODE = {0:'BR',1:'BA',2:'BN',3:'BC',4:'FU',5:'FD',6:'FL',7:'FR'};
+  const TL = {0:'M',1:'K',2:'X'};
+  const ML = {0:'P',1:'R',2:'H'};
+  const cmds = [];
+  for (const [idx, c] of Object.entries(cfg.btns)) {
+    const code = CODE[parseInt(idx)]; if (!code) continue;
+    let ac = String(c.accion);
+    if      (c.accion === 8)  ac = 'SU';
+    else if (c.accion === 16) ac = 'SD';
+    else if (c.tipo === 1 && c.accion > 0 && c.accion < 128) ac = String.fromCharCode(c.accion);
+    const mm = [];
+    if (c.mods & 0x01) mm.push('C'); if (c.mods & 0x02) mm.push('S');
+    if (c.mods & 0x04) mm.push('A'); if (c.mods & 0x08) mm.push('G');
+    const fl = [];
+    if (c.flags & 0x01) fl.push('D'); if (c.flags & 0x02) fl.push('M');
+    cmds.push('CFG:' + code + ':' + (TL[c.tipo]||'X') + ':' + (ML[c.modo]||'P') + ':' + c.debounce + ':' + ac + ':' + (mm.join('')||'- ') + ':' + (fl.join('')||'- '));
+  }
+  if (cfg.fmode  != null) cmds.push('FMODE:'  + cfg.fmode);
+  if (cfg.orient != null) cmds.push('ORIENT:' + cfg.orient);
+  if (cfg.vel    != null) cmds.push('VEL:'    + cfg.vel);
+  if (cfg.acel   != null) cmds.push('ACEL:'   + cfg.acel);
+  for (const c of cmds) await send(c);
+  toast('⭐', '"' + p.name + '" aplicada');
+}
+
+function delCustom(idx, e) {
+  e.stopPropagation();
+  const list = loadCustom();
+  if (!confirm('¿Eliminar "' + (list[idx]?.name||'') + '"?')) return;
+  list.splice(idx,1); saveCustomList(list); renderCustom();
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ── GUARDAR / RESET / PING ───────────────────────────────
+async function saveConfig()  { if (await send('SAVE')) toast('💾','Guardado en dispositivo'); }
+async function resetDevice() {
+  if (!confirm('¿Restaurar todos los valores por defecto?')) return;
+  if (await send('RESET')) toast('🔄','Valores restaurados');
+}
+async function pingDevice() { if (await send('PING')) toast('✅','El dispositivo responde'); }
+
+// ── GETALL + PARSE ───────────────────────────────────────
+async function getAllConfig() {
+  devCfg = mkCfg(); await send('GETALL'); setTimeout(renderCfgModal, 2400);
+}
+
+function parseLine(line) {
+  if      (line.startsWith('ORIENT:')) devCfg.orient = parseInt(line.slice(7));
+  else if (line.startsWith('VEL:'))    devCfg.vel    = parseInt(line.slice(4));
+  else if (line.startsWith('ACEL:'))   devCfg.acel   = parseInt(line.slice(5));
+  else if (line.startsWith('FMODE:'))  devCfg.fmode  = parseInt(line.slice(6));
+  else if (line.startsWith('BTN:')) {
+    const p = line.split(':');
+    devCfg.btns[p[1]] = {tipo:+p[2], modo:+p[3], debounce:+p[4], accion:+p[5], mods:+p[6], flags:+p[7]};
+  }
+}
+
+function renderCfgModal() {
+  const ORI = ['Normal (0°)','Girado derecha','Girado izquierda','Invertido (180°)'];
+  const FM  = {0:'acción individual', 1:'mueven el cursor', 2:'teclas ↑↓←→'};
+  const TN  = {0:'Mouse',1:'Teclado',2:'Desactivado'};
+  const MN  = {0:'al presionar',1:'al soltar',2:'pulsación larga'};
+  const MOU = {1:'clic izq.',2:'clic der.',4:'clic central',8:'scroll ↑',16:'scroll ↓'};
+  const hl  = t => '<span class="hl">' + t + '</span>';
+  let h = '';
+  if (prod && prod.hasArrows) {
+    h += '<div class="cfg-sec"><div class="cfg-sec-title">⬆️ Flechas</div>';
+    h += '<div class="cfg-row">Las flechas ' + hl(FM[devCfg.fmode]||'—') + '. Orientación: ' + hl(ORI[devCfg.orient]||'—') + '.</div>';
+    if (devCfg.fmode===0||devCfg.fmode===1) h += '<div class="cfg-row">Velocidad ' + hl(devCfg.vel||'—') + ', ' + hl(devCfg.acel===1?'con aceleración':'velocidad constante') + '.</div>';
+    h += '</div>';
+  }
+  if (prod) {
+    const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
+    const allBtns = [...prod.mainBtns, ...(prod.hasArrows && devCfg.fmode===0 ? prod.arrowBtns : [])];
+    h += '<div class="cfg-sec"><div class="cfg-sec-title">🎯 Botones</div>';
+    allBtns.forEach(({code,label}) => {
+      const c = devCfg.btns[String(codeToIdx[code])];
+      if (!c) { h += '<div class="cfg-row"><b>' + label + '</b>: sin datos.</div>'; return; }
+      if (c.tipo===2) { h += '<div class="cfg-row"><b>' + label + '</b>: ' + hl('desactivado') + '.</div>'; return; }
+      let row = '<b>' + label + '</b>: ' + hl(TN[c.tipo]) + ', ' + hl(MN[c.modo]);
+      if (c.tipo===0) {
+        const dc=(c.flags&1)?'doble ':''; const mc=(c.flags&2)?' (toggle)':'';
+        row += ' — ' + hl(dc + (MOU[c.accion]||'#'+c.accion) + mc);
+      } else {
+        const ch = c.accion>31&&c.accion<127 ? String.fromCharCode(c.accion) : '#'+c.accion;
+        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push('Win');
+        row += ' — tecla ' + hl(ch) + (mm.length?' + '+hl(mm.join('+')):'');
+      }
+      if (c.debounce>0) row += ', debounce ' + hl(c.debounce+'ms');
+      h += '<div class="cfg-row">' + row + '.</div>';
+    });
+    h += '</div>';
+  }
+  document.getElementById('cfgDisplay').innerHTML = h;
+  openModal('cfgModal');
+}
+
+// ── CONEXIÓN ─────────────────────────────────────────────
+async function toggleConn() { connected ? await disconnect() : await connectDevice(); }
+
+async function connectDevice() {
+  if (connType === 'ble') { await connectBLE(); }
+  else                   { await connectUSB(); }
+}
+
+// USB ─────────────────────────────────────────────────────
+async function connectUSB() {
+  if (!('serial' in navigator)) { toast('❌','Web Serial no disponible. Use Chrome o Edge.'); return; }
+  try {
+    port = await navigator.serial.requestPort();
+    await port.open({baudRate:9600});
+    const dec = new TextDecoderStream();
+    port.readable.pipeTo(dec.writable);
+    reader = dec.readable.getReader();
+    const enc = new TextEncoderStream();
+    enc.readable.pipeTo(port.writable);
+    writer = enc.writable.getWriter();
+    setConnected(true);
+    readLoopUSB();
+  } catch(e) {
+    if (e.name !== 'NotFoundError') { addLog('Error USB: ' + e.message, 'w'); toast('❌', e.message); }
+  }
+}
+
+async function readLoopUSB() {
+  let buf = '';
+  try {
+    while (true) {
+      const {value, done} = await reader.read();
+      if (done) break;
+      buf += value;
+      const lines = buf.split('\n'); buf = lines.pop();
+      for (const line of lines) { const t = line.trim(); if (t) { addLog(t,'in'); parseLine(t); } }
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') return;
+    if (connected) { addLog('Conexión USB interrumpida: ' + e.message, 'w'); await disconnect(true); toast('⚠️', 'El dispositivo USB se desconectó'); }
+  }
+}
+
+// BLE ─────────────────────────────────────────────────────
+// Nordic UART Service (NUS)
+const BLE_SVC  = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const BLE_TX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // escribir
+const BLE_RX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notificaciones
+
+// Detectar iOS/iPadOS (incluye Chrome/otros en iOS, todos usan WKWebView)
+function isIOS() {
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS en modo escritorio
+}
+
+async function connectBLE() {
+  if (isIOS()) {
+    toast('❌', 'BLE no disponible en iOS/iPadOS. Usá USB desde una PC o Mac.');
+    addLog('iOS/iPadOS: Web Bluetooth no está soportado por Apple en ningún navegador.', 'w');
+    addLog('→ Conectá el dispositivo por USB a una computadora para configurarlo.', 'w');
+    return;
+  }
+  if (!('bluetooth' in navigator)) {
+    toast('❌','Web Bluetooth no disponible. Use Chrome en desktop o Android.');
+    addLog('Web Bluetooth requiere Chrome. En Windows puede necesitar habilitar la flag: chrome://flags/#enable-web-bluetooth-new-permissions-backend','w');
+    return;
+  }
+  try {
+    // Mostrar ayuda antes del selector
+    addLog('══ Selector BLE ══════════════════════════════');
+    addLog('El dispositivo puede aparecer sin nombre.');
+    addLog('Seleccione el que corresponda y pruebe.');
+    addLog('Si falla, intente con el otro de la lista.');
+    addLog('══════════════════════════════════════════════');
+
+    bleDevice = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      // Incluir todos los UUIDs posibles: UART (para comandos) + HID estándar
+      // El firmware anuncia HID en advertising pero el servicio UART existe en el GATT
+      optionalServices: [
+        BLE_SVC,                                    // Nordic UART (6e400001-...)
+        '00001812-0000-1000-8000-00805f9b34fb',     // HID over GATT
+        '0000180a-0000-1000-8000-00805f9b34fb',     // Device Information
+        '0000180f-0000-1000-8000-00805f9b34fb',     // Battery
+      ]
+    });
+
+    const devName = bleDevice.name || '(sin nombre — seleccione y pruebe)';
+    addLog('Dispositivo seleccionado: ' + devName);
+    addLog('Conectando vía GATT...');
+
+    bleDevice.addEventListener('gattserverdisconnected', () => {
+      if (connected) {
+        addLog('Dispositivo BLE desconectado','w');
+        disconnect(true);
+        toast('⚠️','El dispositivo Bluetooth se desconectó');
+      }
+    });
+
+    const server = await bleDevice.gatt.connect();
+    addLog('GATT OK. Buscando servicio UART (Nordic NUS)...');
+
+    let service;
+    try {
+      service = await server.getPrimaryService(BLE_SVC);
+    } catch(svcErr) {
+      addLog('⚠ Servicio UART no accesible.', 'w');
+      addLog('  Error: ' + svcErr.name + ' — ' + svcErr.message, 'w');
+      // Intentar listar todos los servicios para diagnóstico
+      try {
+        const svcs = await server.getPrimaryServices();
+        if (svcs.length) {
+          addLog('  Servicios GATT disponibles en este dispositivo:', 'w');
+          svcs.forEach(s => addLog('    · ' + s.uuid, 'w'));
+          const hasUart = svcs.some(s => s.uuid.startsWith('6e400001'));
+          if (hasUart) {
+            addLog('  ✓ El servicio UART SÍ existe — posible conflicto con driver HID del OS.', 'w');
+            addLog('  → En Windows: desemparejá el dispositivo del sistema y volvé a intentar.', 'w');
+            addLog('  → O usá conexión USB para configurar (más simple y confiable).', 'w');
+            toast('❌', 'Conflicto HID/BLE en Windows. Ver Registro.');
+          } else {
+            addLog('  → El servicio UART (6e400001-...) NO aparece en este dispositivo.', 'w');
+            addLog('  → Probablemente seleccionaste el dispositivo incorrecto.', 'w');
+            toast('❌', 'Dispositivo sin UART. Ver Registro.');
+          }
+        } else {
+          addLog('  → No se pudieron leer los servicios (emparejado como HID en el OS).', 'w');
+          addLog('  → Desemparejá "disMouse V4" desde Configuración → Bluetooth del sistema.', 'w');
+          addLog('  → Luego conectá desde acá sin emparejarlo al OS.', 'w');
+          toast('❌', 'Sin acceso GATT. Desemparejá del sistema. Ver Registro.');
+        }
+      } catch(listErr) {
+        addLog('  → No se pudo leer el GATT: ' + listErr.message, 'w');
+        addLog('  → Probable causa: emparejado como HID en Windows.', 'w');
+        addLog('  → Solución: desemparejá el dispositivo del sistema operativo.', 'w');
+        toast('❌', 'Sin acceso GATT. Ver Registro.');
+      }
+      try { bleDevice.gatt.disconnect(); } catch(_){}
+      bleDevice = null;
+      return;
+    }
+
+    addLog('Servicio UART encontrado ✓');
+    addLog('Configurando características RX/TX...');
+
+    // RX: recibir datos del dispositivo vía notificaciones
+    const rxChar = await service.getCharacteristic(BLE_RX);
+    await rxChar.startNotifications();
+    rxChar.addEventListener('characteristicvaluechanged', e => {
+      const line = new TextDecoder().decode(e.target.value).trim();
+      if (line) { addLog(line,'in'); parseLine(line); }
+    });
+
+    // TX: enviar comandos al dispositivo
+    bleTxChar = await service.getCharacteristic(BLE_TX);
+    addLog('RX/TX OK. Listo para enviar comandos.');
+    setConnected(true);
+
+  } catch(e) {
+    if (e.name === 'NotFoundError' || e.name === 'AbortError') return; // usuario canceló
+    addLog('Error BLE [' + e.name + ']: ' + e.message, 'w');
+    if (e.name === 'SecurityError') {
+      addLog('→ Causa probable: el dispositivo está emparejado al OS como HID.', 'w');
+      addLog('  Chrome no puede acceder a dispositivos HID vía GATT en Windows.', 'w');
+      addLog('  Solución: desemparejar el dispositivo del OS y volver a intentar.', 'w');
+    }
+    toast('❌', e.message || e.name);
+    bleDevice = null; bleTxChar = null;
+  }
+}
+
+// Desconectar ─────────────────────────────────────────────
+async function disconnect(physical = false) {
+  const was = connected; connected = false;
+  // USB
+  try { reader && await reader.cancel().catch(()=>{}); } catch(_){}
+  try { writer && await writer.close().catch(()=>{}); } catch(_){}
+  try { port   && await port.close().catch(()=>{}); }   catch(_){}
+  reader = null; writer = null; port = null;
+  // BLE
+  try { bleDevice && bleDevice.gatt.connected && bleDevice.gatt.disconnect(); } catch(_){}
+  bleDevice = null; bleTxChar = null;
+  if (was) setConnected(false, physical);
+}
+
+// Enviar ──────────────────────────────────────────────────
+async function send(cmd) {
+  if (!connected) { toast('❌','Sin conexión activa'); return false; }
+  try {
+    if (connType === 'usb' && writer) {
+      await writer.write(cmd + '\n');
+    } else if (connType === 'ble' && bleTxChar) {
+      // BLE: enviar en chunks de 20 bytes (MTU mínimo garantizado)
+      const enc = new TextEncoder().encode(cmd + '\n');
+      for (let i = 0; i < enc.length; i += 20) {
+        await bleTxChar.writeValue(enc.slice(i, i + 20));
+      }
+    } else { return false; }
+    addLog(cmd, 'out');
+    await new Promise(r => setTimeout(r, 90));
+    return true;
+  } catch(e) {
+    addLog('Error al enviar: ' + e.message, 'w');
+    await disconnect(true);
+    toast('⚠️', 'El dispositivo se desconectó');
+    return false;
+  }
+}
+
+function setConnected(val, physical = false) {
+  connected = val;
+  document.getElementById('sdot').className = 'sdot' + (val ? ' on' : '');
+  document.getElementById('stxt').textContent = val ? 'Conectado' : 'Desconectado';
+  const btn = document.getElementById('btnConn');
+  btn.textContent = val ? 'Desconectar' : 'Conectar';
+  btn.className = 'sb-btn pri' + (val ? ' danger' : '');
+  setSections(val);
+  setBanner(val ? 'ok' : (prod ? 'conn' : 'none'));
+  if (val) { addLog('Conectado (' + connType.toUpperCase() + '): ' + (prod ? prod.name : '—')); onArrowMode(); }
+  else addLog(physical ? 'Desconexión física detectada' : 'Desconectado', physical ? 'w' : '');
+}
+
+// ── MODALS ────────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).style.display='flex'; }
+function closeModal(id) { document.getElementById(id).style.display='none'; }
+function closeBd(e,id)  { if (e.target===document.getElementById(id)) closeModal(id); }
+
+// ── LOG ───────────────────────────────────────────────────
+function addLog(msg, dir='') {
+  const p = document.getElementById('logPanel');
+  const n = new Date();
+  const ts = [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
+  const sym = dir==='out'?'↗':dir==='in'?'↙':dir==='w'?'⚠':'·';
+  const cls = dir==='out'?'lo':dir==='in'?'li':dir==='w'?'lw':'';
+  const e = document.createElement('div'); e.className='le';
+  e.innerHTML='<span class="lt">'+ts+'</span><span class="'+cls+'">'+sym+'</span><span class="lm">'+msg+'</span>';
+  p.appendChild(e); p.scrollTop = p.scrollHeight;
+}
+function clearLog() { document.getElementById('logPanel').innerHTML=''; }
+
+// ── TOASTS ────────────────────────────────────────────────
+function toast(ico, msg) {
+  const c = document.getElementById('toasts');
+  const t = document.createElement('div'); t.className='toast';
+  t.innerHTML='<span class="t-ico">'+ico+'</span><span class="t-msg">'+msg+'</span>';
+  c.appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),320); }, 3200);
+}
+
+// ── TOUR ─────────────────────────────────────────────────
+let tStep=0, tActive=false;
+const TOUR = [
+  {sel:'#devList', pos:'right', title:'Paso 1: Seleccione el producto',
+   body:'Elija el dispositivo dis+ que quiere configurar. disMouse tiene 9 botones más flechas; disButton expone un único botón.'},
+  {sel:'#sbConnType', pos:'right', title:'Paso 2: Tipo de conexión',
+   body:'Elija USB (cable) o Bluetooth. Ambas opciones están disponibles según el hardware del dispositivo.'},
+  {sel:'#sbConn', pos:'right', title:'Paso 3: Conectar',
+   body:'Presione "Conectar". En USB, el navegador le mostrará un selector de puertos. En Bluetooth, buscará dispositivos cercanos.'},
+  {sel:'#secArrows', pos:'left', title:'Modo de las flechas',
+   body:'(Solo disMouse) Configure cómo actúan las cuatro flechas: cursor del mouse, teclas de dirección, o acción individual por flecha.'},
+  {sel:'#secBtns', pos:'left', title:'Configure cada botón',
+   body:'Cada botón puede emular teclado, mouse (clic, doble clic, scroll ↑↓) o desactivarse. Haga clic en el campo de tecla y presione la tecla física.'},
+  {sel:'#secPresets', pos:'left', title:'Configuraciones rápidas',
+   body:'Presets diseñados para contextos de rehabilitación. Pase el cursor sobre cada uno para ver el detalle. Guarde sus propias configuraciones con nombre.'},
+  {sel:'#sbSave', pos:'right', title:'Guardar los cambios',
+   body:'Use "Guardar en dispositivo" para que la configuración persista al desconectar el cable o apagar el dispositivo.'},
+];
+
+function showWelcome() {
+  if (localStorage.getItem('displus_tour') === '2') return;
+  document.getElementById('twBd').style.display='block';
+  document.getElementById('twCard').style.display='flex';
+}
+function startTour() {
+  document.getElementById('twBd').style.display='none';
+  document.getElementById('twCard').style.display='none';
+  tStep=0; tActive=true;
+  document.getElementById('tourBd').style.display='block';
+  renderStep();
+}
+function skipTour()    { endTour(); localStorage.setItem('displus_tour','2'); }
+function restartTour() {
+  endTour();
+  setTimeout(()=>{ document.getElementById('twBd').style.display='block'; document.getElementById('twCard').style.display='flex'; }, 50);
+}
+function nextStep() {
+  // Paso 4 (flechas) solo aplica a disMouse
+  if (tStep === 3 && prod && !prod.hasArrows) { tStep++; }
+  if (tStep < TOUR.length-1) { tStep++; renderStep(); }
+  else { endTour(); localStorage.setItem('displus_tour','2'); toast('🎉','¡Recorrido completado!'); }
+}
+function prevStep() { if (tStep>0) { tStep--; renderStep(); } }
+
+function renderStep() {
+  const s = TOUR[tStep];
+  // Si este paso apunta a secArrows y el producto no tiene flechas, saltar
+  if (s.sel === '#secArrows' && prod && !prod.hasArrows) { nextStep(); return; }
+  const el = document.querySelector(s.sel);
+  document.getElementById('tBadge').textContent = tStep+1;
+  document.getElementById('tTitle').textContent = s.title;
+  document.getElementById('tBody').textContent  = s.body;
+  document.getElementById('tProg').textContent  = (tStep+1) + ' de ' + TOUR.length;
+  document.getElementById('tPrev').style.display = tStep>0?'':' none';
+  document.getElementById('tNext').textContent   = tStep===TOUR.length-1?'Finalizar':'Siguiente';
+  const spot = document.getElementById('tourSpot');
+  const tip  = document.getElementById('tourTip');
+  if (!el) { spot.style.display='none'; tip.style.display='none'; return; }
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  setTimeout(() => {
+    const r = el.getBoundingClientRect(); const p=6;
+    spot.style.cssText='display:block;top:'+(r.top-p)+'px;left:'+(r.left-p)+'px;width:'+(r.width+p*2)+'px;height:'+(r.height+p*2)+'px';
+    tip.style.display='block';
+    requestAnimationFrame(() => placeTip(tip, el.getBoundingClientRect(), s.pos));
+  }, 380);
+}
+
+function placeTip(tip, r, pref) {
+  const w=296, h=tip.offsetHeight, g=14, m=12;
+  const vw=innerWidth, vh=innerHeight;
+  for (const pos of [...new Set([pref,'right','left','bottom','top'])]) {
+    let l,t;
+    if(pos==='right'){l=r.right+g;t=r.top;}
+    else if(pos==='left'){l=r.left-w-g;t=r.top;}
+    else if(pos==='bottom'){l=r.left+r.width/2-w/2;t=r.bottom+g;}
+    else{l=r.left+r.width/2-w/2;t=r.top-h-g;}
+    if(l>=m&&l+w<=vw-m&&t>=m&&t+h<=vh-m){tip.style.left=l+'px';tip.style.top=t+'px';return;}
+  }
+  let l=pref==='right'?r.right+g:pref==='left'?r.left-w-g:r.left+r.width/2-w/2;
+  let t=(pref==='bottom'||pref==='right'||pref==='left')?r.top:r.top-h-g;
+  tip.style.left=Math.max(m,Math.min(l,vw-w-m))+'px';
+  tip.style.top=Math.max(m,Math.min(t,vh-h-m))+'px';
+}
+
+function endTour() {
+  tActive=false;
+  ['tourBd','tourSpot','tourTip','twBd','twCard'].forEach(id=>document.getElementById(id).style.display='none');
+}
+window.addEventListener('resize', ()=>{ if (tActive) renderStep(); });
+
+// ── TOOLTIP GLOBAL DE PRESETS ────────────────────────────
+// Llamado desde buildFactoryPresets tras crear las cards.
+// Las cards ya tienen listener de click para applyPreset;
+// aquí solo agregamos hover para el tooltip global.
+function initPresetTooltips() {
+  const gt = document.getElementById('globalTip');
+  let hideTimer = null;
+
+  document.querySelectorAll('.preset-card[data-tip-id]').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      clearTimeout(hideTimer);
+      const id = card.getAttribute('data-tip-id');
+      const html = TIP_CONTENT[id];
+      if (!html) return;
+      gt.innerHTML = html;
+      gt.style.display = 'block';
+      positionTip(card);
+    });
+    card.addEventListener('mousemove', () => positionTip(card));
+    card.addEventListener('mouseleave', () => {
+      hideTimer = setTimeout(() => { gt.style.display = 'none'; }, 80);
+    });
+  });
+
+  function positionTip(card) {
+    const r=card.getBoundingClientRect(), tw=gt.offsetWidth;
+    const vw=window.innerWidth, margin=10;
+    let left=r.left+r.width/2-tw/2, top=r.top-gt.offsetHeight-10;
+    if (top < margin) top = r.bottom + 10;
+    left = Math.max(margin, Math.min(left, vw-tw-margin));
+    gt.style.left=left+'px'; gt.style.top=top+'px';
+    const al=r.left+r.width/2-left;
+    gt.style.setProperty('--arrow-left', Math.max(16,Math.min(al,tw-16))+'px');
+  }
+}
+
+// ── INIT ─────────────────────────────────────────────────
+function init() {
+  const def = PRODUCTS['dismouse'];
+  buildGrid('mainGrid',  def.mainBtns);
+  buildGrid('arrowGrid', def.arrowBtns);
+  buildFactoryPresets(def.presets);
+  setSections(false);
+  setBanner('none');
+  onArrowMode();
+  renderCustom();
+  addLog('Configurador dis+ R014. Firmware R009 compatible.');
+  // Bloquear BLE en iOS — Web Bluetooth no disponible en ningún browser iOS
+  if (isIOS()) {
+    const ctBle = document.getElementById('ct-ble');
+    ctBle.classList.add('ct-disabled');
+    ctBle.title = 'No disponible en iOS/iPadOS';
+    ctBle.querySelector('.ct-sub').textContent = 'No disponible';
+    document.getElementById('iosBlock').style.display = '';
+    addLog('iOS/iPadOS detectado — opción BLE deshabilitada.', 'w');
+  }
+  setTimeout(showWelcome, 800);
+}
+
+init();
+</script>
+</body>
+</html>
