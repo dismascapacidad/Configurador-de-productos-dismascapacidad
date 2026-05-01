@@ -785,11 +785,11 @@ function stopCap(code) {
 // ── CONVERSIÓN DE KEYCODES ───────────────────────────────
 function cvKey(k) {
   const MAP = {
-    'SPACE':' ','ENTER':'176','TAB':'179','ESC':'177','BACKSPACE':'178','DELETE':'212',
-    'INSERT':'209','HOME':'210','END':'213','PAGE_UP':'211','PAGE_DOWN':'214',
-    'UP_ARROW':'218','DOWN_ARROW':'217','LEFT_ARROW':'216','RIGHT_ARROW':'215',
-    'F1':'194','F2':'195','F3':'196','F4':'197','F5':'198','F6':'199',
-    'F7':'200','F8':'201','F9':'202','F10':'203','F11':'204','F12':'205',
+    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
+    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
+    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
+    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
+    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
   };
   return MAP[k.toUpperCase()] ?? k.toLowerCase();
 }
