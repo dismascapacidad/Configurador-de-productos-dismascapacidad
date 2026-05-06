@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>dis+ Configurador</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
   --bg:      #F4F2EF;
@@ -244,6 +245,9 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .lo{color:#60A5FA}
 .lw{color:#FBBF24}
 .lm{color:#C8C3BB;flex:1;word-break:break-all}
+/* AUTH */
+#btnAuth{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.auth-info{font-size:12px;color:var(--txt2);margin-bottom:14px;word-break:break-all;line-height:1.5}
 </style>
 </head>
 <body>
@@ -257,6 +261,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="tb-aux">
       <button class="btn-tb" id="btnLog" onclick="openModal('logModal')">📋 Registro</button>
       <button class="btn-tb" onclick="restartTour()">❓ Ayuda</button>
+      <button class="btn-tb" id="btnAuth" onclick="openAuthModal()">👤 Cuenta</button>
     </div>
     <div class="tb-sep"></div>
     <a href="https://www.dismascapacidad.com.ar" target="_blank" class="tb-link">🛒 Tienda</a>
@@ -501,6 +506,14 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   </div>
 </div>
 
+<!-- MODAL: AUTH -->
+<div class="modal-bd" id="authModal" style="display:none" onclick="closeBd(event,'authModal')">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="authModalTitle">Cuenta</span><button class="modal-x" onclick="closeModal('authModal')">✕</button></div>
+    <div class="modal-body" id="authModalBody"></div>
+  </div>
+</div>
+
 <!-- TOUR -->
 <div class="tour-bd" id="tourBd" onclick="skipTour()"></div>
 <div class="tour-spot" id="tourSpot"></div>
@@ -533,6 +546,80 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 </div>
 
 <script>
+// ═══════════════════════════════════════════════════════
+// SUPABASE AUTH
+// ═══════════════════════════════════════════════════════
+const SUPA_URL  = 'https://lhpewyblvjijpmcxzcod.supabase.co';
+const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxocGV3eWJsdmppanBtY3h6Y29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzYzNDMsImV4cCI6MjA5MzYxMjM0M30.K5LKmwNOj0gI9UbzxAmozTu3X2eyvP6H2wcFt-s68lE';
+const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
+let currentUser = null;
+
+function updateAuthBtn() {
+  const btn = document.getElementById('btnAuth');
+  if (!btn) return;
+  btn.textContent = currentUser ? '👤 ' + currentUser.email.split('@')[0] : '👤 Cuenta';
+}
+
+function openAuthModal() {
+  renderAuthModal();
+  openModal('authModal');
+}
+
+function renderAuthModal() {
+  const body  = document.getElementById('authModalBody');
+  const title = document.getElementById('authModalTitle');
+  if (currentUser) {
+    title.textContent = 'Mi cuenta';
+    body.innerHTML = `
+      <p class="auth-info">✅ Sesión iniciada como:<br><strong>${esc(currentUser.email)}</strong></p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn pri sm" onclick="signOut()">Cerrar sesión</button>
+      </div>`;
+  } else {
+    title.textContent = 'Iniciar sesión';
+    body.innerHTML = `
+      <p class="auth-info">Ingresá tu email y te enviamos un enlace de acceso. Sin contraseña.</p>
+      <div class="field">
+        <label class="lbl">Email</label>
+        <input type="email" id="authEmail" placeholder="tu@email.com" autocomplete="email">
+      </div>
+      <div class="modal-foot" style="padding:0;border:none;margin-top:4px">
+        <button class="btn pri sm" onclick="sendMagicLink()">Enviar enlace</button>
+      </div>`;
+    setTimeout(() => document.getElementById('authEmail')?.focus(), 50);
+  }
+}
+
+async function sendMagicLink() {
+  const input = document.getElementById('authEmail');
+  const email = input?.value?.trim();
+  if (!email) { toast('⚠️', 'Ingresá un email válido'); return; }
+  const btn = document.querySelector('#authModalBody .btn.pri');
+  btn.disabled = true; btn.textContent = 'Enviando…';
+  const { error } = await supa.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href.split('?')[0].split('#')[0] }
+  });
+  if (error) {
+    toast('❌', 'Error: ' + error.message);
+    btn.disabled = false; btn.textContent = 'Enviar enlace';
+  } else {
+    document.getElementById('authModalTitle').textContent = '📬 Revisá tu correo';
+    document.getElementById('authModalBody').innerHTML = `
+      <p class="auth-info" style="text-align:center;padding:8px 0">
+        Te enviamos un enlace a <strong>${esc(email)}</strong>.<br>
+        Hacé clic en ese enlace para ingresar.<br><br>
+        <span style="font-size:11px;color:var(--txt3)">Podés cerrar este panel.</span>
+      </p>`;
+  }
+}
+
+async function signOut() {
+  await supa.auth.signOut();
+  closeModal('authModal');
+  toast('👋', 'Sesión cerrada');
+}
+
 // ═══════════════════════════════════════════════════════
 // PERFILES DE PRODUCTOS
 // mainBtns: botones visibles en la UI
@@ -1490,6 +1577,16 @@ function init() {
     addLog('iOS/iPadOS detectado — opción BLE deshabilitada.', 'w');
   }
   setTimeout(showWelcome, 800);
+
+  // Supabase: recuperar sesión activa y escuchar cambios
+  supa.auth.getSession().then(({ data }) => {
+    currentUser = data.session?.user ?? null;
+    updateAuthBtn();
+  });
+  supa.auth.onAuthStateChange((_event, session) => {
+    currentUser = session?.user ?? null;
+    updateAuthBtn();
+  });
 }
 
 init();
