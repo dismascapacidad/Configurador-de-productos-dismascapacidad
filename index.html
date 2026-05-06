@@ -727,10 +727,8 @@ async function sendResetLink() {
 
 async function signOut() {
   await supa.auth.signOut();
+  // La limpieza de localStorage y renderCustom() la maneja onAuthStateChange(SIGNED_OUT)
   closeModal('authModal');
-  // Limpiar presets locales para no dejar datos del usuario en el navegador
-  localStorage.removeItem(STORAGE_KEY);
-  renderCustom();
   toast('👋', 'Sesión cerrada. Tus configuraciones quedan guardadas en tu cuenta.');
 }
 
@@ -1763,18 +1761,20 @@ function init() {
   setTimeout(showWelcome, 800);
 
   // Supabase: recuperar sesión activa y escuchar cambios
-  supa.auth.getSession().then(({ data }) => {
-    currentUser = data.session?.user ?? null;
-    updateAuthBtn();
-    // Si hay sesión al cargar la página (ej: volvió de un magic link o ya estaba logueado)
-    if (currentUser) handleLoginSync();
-  });
+  // Usamos solo onAuthStateChange — incluye INITIAL_SESSION en v2, evita doble llamada
   supa.auth.onAuthStateChange((event, session) => {
     const prevUser = currentUser;
     currentUser = session?.user ?? null;
     updateAuthBtn();
-    // Solo actuar en cambios reales de sesión, no en el estado inicial
-    if (event === 'SIGNED_IN' && !prevUser) handleLoginSync();
+
+    if (event === 'SIGNED_OUT') {
+      // Limpiar presets locales para no dejar datos del usuario en el navegador
+      localStorage.removeItem('displus_presets_v1');
+      renderCustom();
+    } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser && !prevUser) {
+      // Login nuevo (no recarga con sesión ya activa desde antes)
+      handleLoginSync();
+    }
   });
 }
 
