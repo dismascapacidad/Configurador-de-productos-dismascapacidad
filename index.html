@@ -513,6 +513,14 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   </div>
 </div>
 
+<!-- MODAL: IMPORT PRESETS -->
+<div class="modal-bd" id="importModal" style="display:none">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">☁️ Configuraciones locales</span></div>
+    <div class="modal-body" id="importModalBody"></div>
+  </div>
+</div>
+
 <!-- MODAL: AUTH -->
 <div class="modal-bd" id="authModal" style="display:none" onclick="closeBd(event,'authModal')">
   <div class="modal">
@@ -720,7 +728,77 @@ async function sendResetLink() {
 async function signOut() {
   await supa.auth.signOut();
   closeModal('authModal');
-  toast('👋', 'Sesión cerrada');
+  // Limpiar presets locales para no dejar datos del usuario en el navegador
+  localStorage.removeItem(STORAGE_KEY);
+  renderCustom();
+  toast('👋', 'Sesión cerrada. Tus configuraciones quedan guardadas en tu cuenta.');
+}
+
+// ── SYNC PRESETS ─────────────────────────────────────────
+async function fetchSupaPresets() {
+  const { data, error } = await supa.from('presets')
+    .select('name, date, cfg')
+    .order('created_at', { ascending: true });
+  if (error) { addLog('Error al leer presets de la nube: ' + error.message, 'w'); return []; }
+  return data || [];
+}
+
+async function pushAllPresetsToSupa(list) {
+  // Reemplaza todos los presets del usuario en Supabase con la lista actual
+  const { error: delErr } = await supa.from('presets').delete().eq('user_id', currentUser.id);
+  if (delErr) { addLog('Error al sincronizar: ' + delErr.message, 'w'); return; }
+  if (list.length === 0) return;
+  const rows = list.map(p => ({ user_id: currentUser.id, name: p.name, date: p.date, cfg: p.cfg }));
+  const { error: insErr } = await supa.from('presets').insert(rows);
+  if (insErr) addLog('Error al guardar en la nube: ' + insErr.message, 'w');
+}
+
+function showImportDialog(localPresets, supaPresets) {
+  const body = document.getElementById('importModalBody');
+  const localCount = localPresets.length;
+  const supaCount  = supaPresets.length;
+  body.innerHTML = `
+    <p class="auth-info">
+      Tenés <strong>${localCount} configuración${localCount !== 1 ? 'es' : ''}</strong>
+      guardada${localCount !== 1 ? 's' : ''} en este navegador.<br>
+      ${supaCount > 0
+        ? `Tu cuenta ya tiene <strong>${supaCount} configuración${supaCount !== 1 ? 'es' : ''}</strong>.`
+        : 'Tu cuenta todavía no tiene configuraciones guardadas.'}
+    </p>
+    <p class="auth-info">¿Qué querés hacer con las configuraciones locales?</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <button class="btn pri sm" onclick="importChoice('merge')">
+        Agregar las locales a mi cuenta
+      </button>
+      <button class="btn ghost sm" onclick="importChoice('cloud')">
+        Descartar las locales, usar solo las de mi cuenta
+      </button>
+    </div>`;
+  openModal('importModal');
+}
+
+async function importChoice(choice) {
+  closeModal('importModal');
+  const localPresets = loadCustom();
+  if (choice === 'merge') {
+    // Combinar: cloud + local (sin duplicados por nombre)
+    const supaPresets  = await fetchSupaPresets();
+    const supaNames    = new Set(supaPresets.map(p => p.name));
+    const newOnes      = localPresets.filter(p => !supaNames.has(p.name));
+    const merged       = [...supaPresets, ...newOnes];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    await pushAllPresetsToSupa(merged);
+    renderCustom();
+    toast('☁️', `${merged.length} configuración${merged.length !== 1 ? 'es' : ''} en tu cuenta`);
+  } else {
+    // Usar solo las de la nube
+    const supaPresets = await fetchSupaPresets();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    renderCustom();
+    toast('☁️', supaPresets.length > 0
+      ? `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
+      : 'No tenés configuraciones guardadas en tu cuenta todavía');
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1140,7 +1218,10 @@ function loadCustom() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
   catch { return []; }
 }
-function saveCustomList(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+function saveCustomList(list) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+  if (currentUser) pushAllPresetsToSupa(list); // sync en background, sin bloquear UI
+}
 
 function renderCustom() {
   const list = loadCustom();
@@ -1685,11 +1766,31 @@ function init() {
   supa.auth.getSession().then(({ data }) => {
     currentUser = data.session?.user ?? null;
     updateAuthBtn();
+    // Si hay sesión al cargar la página (ej: volvió de un magic link o ya estaba logueado)
+    if (currentUser) handleLoginSync();
   });
-  supa.auth.onAuthStateChange((_event, session) => {
+  supa.auth.onAuthStateChange((event, session) => {
+    const prevUser = currentUser;
     currentUser = session?.user ?? null;
     updateAuthBtn();
+    // Solo actuar en cambios reales de sesión, no en el estado inicial
+    if (event === 'SIGNED_IN' && !prevUser) handleLoginSync();
   });
+}
+
+async function handleLoginSync() {
+  const localPresets = loadCustom();
+  const supaPresets  = await fetchSupaPresets();
+  if (localPresets.length > 0) {
+    // Hay presets locales: preguntar qué hacer
+    showImportDialog(localPresets, supaPresets);
+  } else {
+    // Sin presets locales: cargar los de la nube directamente
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    renderCustom();
+    if (supaPresets.length > 0)
+      toast('☁️', `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`);
+  }
 }
 
 init();
