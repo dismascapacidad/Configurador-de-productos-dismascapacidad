@@ -77,10 +77,16 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .drw-step{margin-bottom:14px}
 .drw-step-num{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc);background:var(--acc-dim);border-radius:4px;padding:2px 7px;margin-bottom:5px;display:inline-block}
 .drw-step-lbl{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:6px;display:block}
-.drw-sep{height:1px;background:var(--bdr);margin:0 16px;flex-shrink:0}
-.drw-nav{padding:12px 16px;display:flex;flex-direction:column;gap:2px;margin-top:auto}
-.drw-nav a,.drw-nav button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--txt2);border:none;background:none;cursor:pointer;text-decoration:none;width:100%;text-align:left}
-.drw-nav a:hover,.drw-nav button:hover{background:var(--surf2);color:var(--txt)}
+.drw-sep{height:1px;background:var(--bdr);margin:0;flex-shrink:0}
+/* Menú del drawer */
+.drw-menu{display:flex;flex-direction:column;flex:1}
+.drw-menu-group{padding:6px 8px}
+.drw-menu-sep{height:1px;background:var(--bdr);flex-shrink:0}
+.drw-item{display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--txt);border:none;background:none;cursor:pointer;text-decoration:none;width:100%;text-align:left;transition:background .12s}
+.drw-item:hover:not(:disabled){background:var(--surf2)}
+.drw-item:disabled{opacity:.35;cursor:not-allowed}
+.drw-item-ico{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.drw-item-lbl{font-size:13px;font-weight:500}
 
 /* ── PAGE WRAP ── */
 .page-wrap{max-width:1100px;margin:0 auto;padding:24px}
@@ -222,6 +228,11 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 /* ── MODALS ── */
 .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px}
 .modal{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:var(--shl);width:100%;max-width:480px;animation:pop .2s ease}
+.modal-wide{max-width:720px}
+.presets-modal-section{margin-bottom:20px}
+.presets-modal-section:last-child{margin-bottom:0}
+.presets-modal-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
+.presets-modal-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 @keyframes pop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 .modal-head{padding:13px 15px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
 .modal-title{font-size:14px;font-weight:700;flex:1}
@@ -310,9 +321,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <span id="sbDevName">disMouse</span>
     <span id="sbConnType2" class="sb-conn-badge">USB</span>
   </div>
-  <div class="sb-actions">
-    <button id="btnReset" disabled onclick="resetDevice()">↺ Cargar configuración de fábrica</button>
-  </div>
+  <button id="btnReset" disabled onclick="resetDevice()" style="display:none"></button><!-- mantenido por compatibilidad JS -->
 </div>
 
 <!-- DRAWER OVERLAY + DRAWER -->
@@ -395,27 +404,47 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
   <div class="drw-sep"></div>
 
-  <!-- PRESETS -->
-  <div class="drw-section" id="secPresets">
-    <div class="drw-section-lbl">⚡ Configuraciones rápidas</div>
-    <div class="factory-grid" id="factoryGrid"></div>
-    <div class="custom-bar">
-      <span class="custom-bar-lbl">⭐ Mis configuraciones</span>
-      <button class="btn pri sm" id="btnSaveCustom" onclick="openSaveModal()" disabled>+ Guardar actual</button>
+  <!-- MENÚ PRINCIPAL -->
+  <nav class="drw-menu">
+
+    <div class="drw-menu-group">
+      <button class="drw-item" id="drwBtnPresets" onclick="openModal('presetsModal');closeDrawer()" disabled>
+        <span class="drw-item-ico">⚡</span>
+        <span class="drw-item-lbl">Configuraciones rápidas</span>
+      </button>
+      <button class="drw-item" id="drwBtnCfg" onclick="getAllConfig();closeDrawer()" disabled>
+        <span class="drw-item-ico">📋</span>
+        <span class="drw-item-lbl">Leer configuración actual</span>
+      </button>
+      <button class="drw-item" id="drwBtnReset" onclick="resetDevice();closeDrawer()" disabled>
+        <span class="drw-item-ico">↺</span>
+        <span class="drw-item-lbl">Cargar configuración de fábrica</span>
+      </button>
     </div>
-    <div class="custom-grid" id="customGrid" style="display:none"></div>
-    <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
-  </div>
 
-  <div class="drw-sep"></div>
+    <div class="drw-menu-sep"></div>
 
-  <!-- NAV SECUNDARIA -->
-  <div class="drw-nav">
-    <button onclick="openModal('logModal')">📋 Registro de actividad</button>
-    <button onclick="restartTour()">❓ Ayuda</button>
-    <a href="https://www.dismascapacidad.com.ar" target="_blank">🛒 Tienda</a>
-    <a href="https://wa.me/5493512926315" target="_blank">💬 Contacto WhatsApp</a>
-  </div>
+    <div class="drw-menu-group">
+      <button class="drw-item" onclick="openModal('logModal');closeDrawer()">
+        <span class="drw-item-ico">🗒️</span>
+        <span class="drw-item-lbl">Registro de actividad</span>
+      </button>
+    </div>
+
+    <div class="drw-menu-sep"></div>
+
+    <div class="drw-menu-group">
+      <a class="drw-item" href="https://www.dismascapacidad.com.ar" target="_blank">
+        <span class="drw-item-ico">🛒</span>
+        <span class="drw-item-lbl">Tienda</span>
+      </a>
+      <a class="drw-item" href="https://wa.me/5493512926315" target="_blank">
+        <span class="drw-item-ico">💬</span>
+        <span class="drw-item-lbl">Contacto WhatsApp</span>
+      </a>
+    </div>
+
+  </nav>
 
 </nav>
 
@@ -518,6 +547,30 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="modal-head"><span class="modal-title">📋 Configuración actual</span><button class="modal-x" onclick="closeModal('cfgModal')">✕</button></div>
     <div class="modal-body" id="cfgDisplay" style="max-height:62vh;overflow-y:auto"></div>
     <div class="modal-foot"><button class="btn pri sm" onclick="closeModal('cfgModal')">Cerrar</button></div>
+  </div>
+</div>
+
+<!-- MODAL: PRESETS -->
+<div class="modal-bd" id="presetsModal" style="display:none" onclick="closeBd(event,'presetsModal')">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <span class="modal-title">⚡ Configuraciones rápidas</span>
+      <button class="modal-x" onclick="closeModal('presetsModal')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+      <div class="presets-modal-section">
+        <div class="presets-modal-lbl">Presets de fábrica</div>
+        <div class="factory-grid" id="factoryGrid"></div>
+      </div>
+      <div class="presets-modal-section">
+        <div class="presets-modal-bar">
+          <span class="presets-modal-lbl">⭐ Mis configuraciones</span>
+          <button class="btn pri sm" id="btnSaveCustom" onclick="closeModal('presetsModal');openSaveModal()" disabled>+ Guardar actual</button>
+        </div>
+        <div class="custom-grid" id="customGrid" style="display:none"></div>
+        <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -930,9 +983,17 @@ function setSections(on) {
     document.getElementById('secArrows').classList.toggle('sec-off', !on);
   const btnSave = document.getElementById('btnSave');
   if (btnSave) btnSave.disabled = !on;
-  document.getElementById('btnReset').disabled      = !on;
+  const btnReset = document.getElementById('btnReset');
+  if (btnReset) btnReset.disabled = !on;
   document.getElementById('btnSaveCustom').disabled = !on;
   document.getElementById('connSub').style.display  = on ? 'flex' : 'none';
+  // Botones del menú lateral
+  const drwPresets = document.getElementById('drwBtnPresets');
+  const drwCfg     = document.getElementById('drwBtnCfg');
+  const drwReset   = document.getElementById('drwBtnReset');
+  if (drwPresets) drwPresets.disabled = !on;
+  if (drwCfg)     drwCfg.disabled     = !on;
+  if (drwReset)   drwReset.disabled   = !on;
 }
 
 // ── GRILLAS ───────────────────────────────────────────────
@@ -1256,7 +1317,7 @@ async function applyPreset(id) {
   const cmds = FACTORY_CMDS[id]; if (!cmds) return;
   for (const c of cmds) await send(c);
   toast('⚡', 'Configuración aplicada');
-  closeDrawer();
+  closeModal('presetsModal');
 }
 
 // ── CUSTOM PRESETS ───────────────────────────────────────
@@ -1334,7 +1395,7 @@ async function applyCustom(p) {
   if (cfg.acel   != null) cmds.push('ACEL:'   + cfg.acel);
   for (const c of cmds) await send(c);
   toast('⭐', '"' + p.name + '" aplicada');
-  closeDrawer();
+  closeModal('presetsModal');
 }
 
 function delCustom(idx, e) {
