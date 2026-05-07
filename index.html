@@ -7,10 +7,10 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 :root {
-  --bg:      #F4F2EF;
+  --bg:      #ECEEF2;
   --surf:    #FFFFFF;
-  --surf2:   #EDEAE4;
-  --bdr:     #DDD9D1;
+  --surf2:   #F0F1F5;
+  --bdr:     #D8DAE2;
   --bdr-hi:  #2563EB;
   --txt:     #1C1917;
   --txt2:    #6B6560;
@@ -23,43 +23,52 @@
   --red:     #DC2626;
   --amb:     #D97706;
   --teal:    #0D9488;
+  --hdr:     #1A1F2E;
+  --hdr2:    #252B3B;
+  --hdr-txt: rgba(255,255,255,.9);
+  --hdr-sub: rgba(255,255,255,.5);
+  --hdr-bdr: rgba(255,255,255,.1);
   --r:  7px;
   --rl: 12px;
-  --sh:   0 1px 3px rgba(0,0,0,.07);
-  --shl:  0 4px 24px rgba(0,0,0,.11);
+  --sh:   0 1px 4px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+  --shl:  0 4px 24px rgba(0,0,0,.13);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);font-size:13.5px;line-height:1.5;min-height:100vh}
+/* DM Sans desde Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
 
 /* ── TOPBAR ── */
-.topbar{position:sticky;top:0;z-index:200;height:50px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px}
-.brand img{height:26px;width:auto;display:block}
-.tbr{display:flex;align-items:center;gap:10px}
-.spill{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--txt2);padding:4px 11px;border-radius:20px;background:var(--surf2);border:1px solid var(--bdr)}
-.sdot{width:6px;height:6px;border-radius:50%;background:var(--txt3)}
-.sdot.on{background:var(--grn);animation:blink 2.5s infinite}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.topbar{position:sticky;top:0;z-index:200;height:54px;background:var(--hdr);display:flex;align-items:center;padding:0 16px;gap:10px;box-shadow:0 2px 12px rgba(0,0,0,.25)}
+.brand img{height:24px;width:auto;display:block;filter:brightness(0) invert(1)}
 .tb-spacer{flex:1}
-.btn-tb{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .15s}
-.btn-tb:hover{background:var(--surf);color:var(--txt);border-color:#C4BFB6}
-.btn-burger{background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:6px;color:var(--txt2);font-size:20px;line-height:1;flex-shrink:0}
-.btn-burger:hover{background:var(--surf2);color:var(--txt)}
+.spill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--hdr-sub);padding:3px 10px;border-radius:20px;background:rgba(255,255,255,.08);border:1px solid var(--hdr-bdr)}
+.sdot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.3)}
+.sdot.on{background:#34D399;animation:blink 2.5s infinite;box-shadow:0 0 6px #34D399}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.45}}
+.btn-tb{font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:6px;cursor:pointer;border:1px solid var(--hdr-bdr);background:rgba(255,255,255,.1);color:var(--hdr-txt);transition:all .15s}
+.btn-tb:hover{background:rgba(255,255,255,.18);border-color:rgba(255,255,255,.2)}
+.btn-burger{background:none;border:none;cursor:pointer;padding:7px 9px;border-radius:7px;color:var(--hdr-txt);font-size:20px;line-height:1;flex-shrink:0;transition:background .15s}
+.btn-burger:hover{background:rgba(255,255,255,.12)}
 
 /* ── STATUS BAR ── */
-.status-bar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:50px;z-index:100}
-.sb-device{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
-.sb-conn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--acc-dim);color:var(--acc)}
+.status-bar{background:var(--hdr2);border-bottom:none;padding:7px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:54px;z-index:100;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.sb-device{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--hdr-txt)}
+.sb-conn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(37,99,235,.4);color:#93B4FA;border:1px solid rgba(37,99,235,.5)}
 .sb-actions{display:flex;gap:7px}
-.sb-actions button{font-size:12px;font-weight:600;padding:5px 11px;border-radius:var(--r);cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .15s}
-.sb-actions button:hover:not(:disabled){background:var(--surf);color:var(--txt)}
-.sb-actions button:disabled{opacity:.38;cursor:not-allowed}
+.sb-actions button{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:var(--r);cursor:pointer;border:1px solid var(--hdr-bdr);background:rgba(255,255,255,.1);color:var(--hdr-txt);transition:all .15s}
+.sb-actions button:hover:not(:disabled){background:rgba(255,255,255,.18)}
+.sb-actions button:disabled{opacity:.35;cursor:not-allowed}
 
 /* ── DRAWER ── */
-.drw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:400;display:none}
+.drw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:400;display:none}
 .drw-overlay.open{display:block}
-.drawer{position:fixed;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.12)}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.2)}
 .drawer.open{transform:translateX(0)}
-.drw-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.drw-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:54px;background:var(--hdr);border-bottom:none;flex-shrink:0}
+.drw-head span{color:var(--hdr-txt);font-size:13px;font-weight:700}
+.drw-head .modal-x{color:rgba(255,255,255,.6)}
+.drw-head .modal-x:hover{background:rgba(255,255,255,.12);color:white}
 .drw-section{padding:14px 16px}
 .drw-section-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
 .drw-step{margin-bottom:14px}
@@ -71,10 +80,10 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .drw-nav a:hover,.drw-nav button:hover{background:var(--surf2);color:var(--txt)}
 
 /* ── PAGE WRAP ── */
-.page-wrap{max-width:1100px;margin:0 auto;padding:18px 20px}
+.page-wrap{max-width:1100px;margin:0 auto;padding:22px 24px}
 
 /* ── CONTENT ── */
-.content{display:flex;flex-direction:column;gap:13px}
+.content{display:flex;flex-direction:column;gap:14px}
 
 /* Dev list */
 .dev-list{display:flex;flex-direction:column;gap:3px}
@@ -100,18 +109,17 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .ct-sub{font-size:10px;color:var(--txt3)}
 
 
-/* ── CONTENT ── */
-.content{padding:18px 20px;display:flex;flex-direction:column;gap:13px;max-width:980px}
+/* (legacy content rule removed — see page-wrap) */
 
 /* ── CARDS ── */
 .card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);box-shadow:var(--sh);overflow:hidden}
-.card-head{padding:9px 14px;border-bottom:1px solid var(--bdr);background:var(--surf2);display:flex;align-items:center;gap:7px}
-.card-title{font-size:12.5px;font-weight:700;flex:1}
-.card-body{padding:14px}
-.banner{text-align:center;padding:40px 20px;color:var(--txt3)}
-.bico{font-size:28px;margin-bottom:10px}
-.btit{font-size:14px;font-weight:700;color:var(--txt2);margin-bottom:5px}
-.bdsc{font-size:12px}
+.card-head{padding:10px 16px;border-bottom:1px solid var(--bdr);background:var(--surf);display:flex;align-items:center;gap:8px}
+.card-title{font-size:13px;font-weight:700;flex:1}
+.card-body{padding:16px}
+.banner{text-align:center;padding:48px 20px;color:var(--txt3)}
+.bico{font-size:32px;margin-bottom:12px}
+.btit{font-size:15px;font-weight:700;color:var(--txt2);margin-bottom:6px}
+.bdsc{font-size:12.5px}
 
 /* ── FORMS ── */
 .field{margin-bottom:9px}
@@ -159,17 +167,25 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
 /* ── BTN CARDS ── */
-.btns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(196px,1fr));gap:10px}
-.btn-card{background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:11px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s}
-.btn-card:hover{border-color:#C4BFB6}
+.btns-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.btn-card{background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:11px 12px;display:flex;flex-direction:column;gap:8px;transition:border-color .15s;box-shadow:var(--sh)}
+.btn-card:hover{border-color:#B8BCCA}
 .btn-card-head{display:flex;align-items:center;gap:7px}
 .btn-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
-.btn-card-title{font-size:12px;font-weight:700}
+.btn-card-title{font-size:12px;font-weight:700;flex:1}
+.btn-summary{font-size:11px;color:var(--txt3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
 .btn-fields{display:flex;flex-direction:column;gap:7px}
 .mods-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
-.mod-cb{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:600;transition:all .15s}
+.mod-cb{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:600;transition:all .15s}
 .mod-cb input{cursor:pointer;width:13px;height:13px}
 .mod-cb:has(input:checked){background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
+/* Advanced toggle */
+.btn-adv-toggle{font-size:11px;color:var(--txt3);cursor:pointer;background:none;border:none;padding:0;text-align:left;display:flex;align-items:center;gap:4px;transition:color .15s;font-weight:600}
+.btn-adv-toggle:hover{color:var(--acc)}
+.btn-adv-toggle::before{content:'▶';font-size:8px;transition:transform .2s;display:inline-block}
+.btn-adv-toggle.open::before{transform:rotate(90deg)}
+.btn-adv{display:none;border-top:1px solid var(--bdr);margin-top:4px;padding-top:9px}
+.btn-adv.open{display:flex;flex-direction:column;gap:7px}
 
 /* ── PRESETS ── */
 .presets-outer{display:flex;flex-direction:column;gap:12px}
@@ -952,6 +968,7 @@ function mkCard(code, label, color) {
     <div class="btn-card-head">
       <div class="btn-dot" style="background:${color}"></div>
       <div class="btn-card-title">${label}</div>
+      <div class="btn-summary" id="sum_${code}">—</div>
     </div>
     <div class="btn-fields">
       <div class="field" style="margin:0">
@@ -963,38 +980,16 @@ function mkCard(code, label, color) {
         </select>
       </div>
       <div id="act_${code}">
-        <div class="field" style="margin:0 0 7px">
-          <label class="lbl">Se activa</label>
-          <select id="m_${code}">
-            <option value="P">Al presionar</option>
-            <option value="R">Al soltar</option>
-            <option value="H">Con una pulsación larga (1 seg)</option>
-            <option value="O">Una vez por cada pulsación</option>
-          </select>
-        </div>
-        <div class="field" style="margin:0 0 7px">
-          <label class="lbl">Debounce (ms)</label>
-          <input type="number" id="d_${code}" min="0" max="5000" value="0" step="50">
-        </div>
         <div id="kb_${code}">
-          <div class="field" style="margin:0 0 7px">
+          <div class="field" style="margin:0">
             <label class="lbl">Tecla</label>
             <input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
               onfocus="startCap('${code}')" onblur="stopCap('${code}')">
             <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
           </div>
-          <div class="field" style="margin:0 0 7px">
-            <label class="lbl">Modificadores</label>
-            <div class="mods-grid">
-              <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
-              <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
-              <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
-              <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
-            </div>
-          </div>
         </div>
         <div id="mo_${code}" style="display:none">
-          <div class="field" style="margin:0 0 7px">
+          <div class="field" style="margin:0">
             <label class="lbl">Acción del mouse</label>
             <select id="mact_${code}">
               <option value="1">Clic izquierdo</option>
@@ -1007,10 +1002,63 @@ function mkCard(code, label, color) {
             </select>
           </div>
         </div>
+        <!-- AVANZADO -->
+        <button class="btn-adv-toggle" id="advtog_${code}" onclick="toggleAdv('${code}')">Avanzado</button>
+        <div class="btn-adv" id="adv_${code}">
+          <div class="field" style="margin:0">
+            <label class="lbl">Se activa</label>
+            <select id="m_${code}">
+              <option value="P">Al presionar</option>
+              <option value="R">Al soltar</option>
+              <option value="H">Pulsación larga (1 seg)</option>
+              <option value="O">Una vez por pulsación</option>
+            </select>
+          </div>
+          <div class="field" style="margin:0">
+            <label class="lbl">Debounce (ms)</label>
+            <input type="number" id="d_${code}" min="0" max="5000" value="0" step="50">
+          </div>
+          <div id="kb_mods_${code}">
+            <div class="field" style="margin:0">
+              <label class="lbl">Modificadores</label>
+              <div class="mods-grid">
+                <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
+                <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
+                <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
+                <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <button class="btn suc sm full" onclick="applyBtn('${code}')">Aplicar</button>
     </div>`;
   return d;
+}
+
+function toggleAdv(code) {
+  const adv = document.getElementById('adv_' + code);
+  const tog = document.getElementById('advtog_' + code);
+  if (!adv) return;
+  const open = adv.classList.toggle('open');
+  tog.classList.toggle('open', open);
+}
+
+function updateSummary(code) {
+  const el = document.getElementById('sum_' + code);
+  if (!el) return;
+  const t = document.getElementById('t_' + code)?.value;
+  if (t === 'X') { el.textContent = 'Desactivado'; return; }
+  if (t === 'M') {
+    const txt = document.getElementById('mact_' + code)?.selectedOptions[0]?.text || '';
+    el.textContent = txt;
+    return;
+  }
+  const k = document.getElementById('k_' + code)?.value || '';
+  const mods = ['mc','ms','ma','mg'].filter(p => document.getElementById(p+'_'+code)?.checked)
+    .map(p => ({mc:'Ctrl',ms:'Shift',ma:'Alt',mg:'Win'}[p]));
+  const parts = [...mods, k].filter(Boolean);
+  el.textContent = parts.length ? parts.join('+') : 'sin tecla';
 }
 
 function onType(code) {
@@ -1019,6 +1067,8 @@ function onType(code) {
   if (t !== 'X') {
     document.getElementById('kb_' + code).style.display = t === 'K' ? '' : 'none';
     document.getElementById('mo_' + code).style.display = t === 'M' ? '' : 'none';
+    const mods = document.getElementById('kb_mods_' + code);
+    if (mods) mods.style.display = t === 'K' ? '' : 'none';
   }
 }
 
@@ -1102,7 +1152,7 @@ async function applyBtn(code) {
   }
 
   const ok = await send('CFG:' + code + ':' + tipo + ':' + modo + ':' + deb + ':' + accion + ':' + mods + ':' + flags);
-  if (ok) toast('✅', code + ' configurado');
+  if (ok) { toast('✅', code + ' configurado'); updateSummary(code); }
 }
 
 // ── MODO DE FLECHAS ──────────────────────────────────────
