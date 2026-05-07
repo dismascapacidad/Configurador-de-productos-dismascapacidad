@@ -293,6 +293,25 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .auth-links{display:flex;justify-content:space-between;margin-top:12px}
 .auth-links a{font-size:12px;color:var(--acc);cursor:pointer;text-decoration:underline}
 
+/* ── CONNECT QUICK BUTTON ── */
+.btn-conn-quick{font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;cursor:pointer;border:none;background:var(--acc);color:#fff;transition:all .15s;white-space:nowrap;flex-shrink:0}
+.btn-conn-quick:hover{background:var(--acc-dk)}
+.btn-conn-quick.connected{background:transparent;color:var(--txt3);border:1px solid var(--bdr);font-weight:600;padding:5px 13px}
+.btn-conn-quick.connected:hover{background:var(--surf2);color:var(--txt)}
+
+/* ── CONN MODAL ── */
+.conn-steps{display:flex;flex-direction:column;gap:16px}
+.conn-step{border:1.5px solid var(--bdr);border-radius:var(--rl);overflow:hidden;transition:border-color .2s}
+.conn-step.active{border-color:var(--acc)}
+.conn-step-head{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--surf2)}
+.conn-step.active .conn-step-head{background:var(--acc-dim)}
+.conn-step-num{width:22px;height:22px;border-radius:50%;background:var(--bdr);color:var(--txt3);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.conn-step.active .conn-step-num{background:var(--acc);color:#fff}
+.conn-step-lbl{font-size:13px;font-weight:700;flex:1;color:var(--txt2)}
+.conn-step.active .conn-step-lbl{color:var(--txt)}
+.conn-step-body{padding:12px 14px;display:none}
+.conn-step.active .conn-step-body{display:block}
+
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .drawer { width: 85vw; }
@@ -313,6 +332,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="sdot" id="sdot"></div>
     <span id="stxt">Desconectado</span>
   </div>
+  <button class="btn-conn-quick" id="btnConnQuick" onclick="openConnModal()">Conectar →</button>
   <button class="btn-tb" id="btnAuth" onclick="openAuthModal()">👤 Cuenta</button>
 </div>
 <!-- STATUS BAR (también dentro de app-shell) -->
@@ -569,6 +589,90 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         </div>
         <div class="custom-grid" id="customGrid" style="display:none"></div>
         <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: CONECTAR (wizard) -->
+<div class="modal-bd" id="connModal" style="display:none" onclick="closeBd(event,'connModal')">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-head">
+      <span class="modal-title">Conectar dispositivo</span>
+      <button class="modal-x" onclick="closeModal('connModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="conn-steps">
+
+        <!-- Paso 1: Producto -->
+        <div class="conn-step active" id="cstep1">
+          <div class="conn-step-head">
+            <div class="conn-step-num">1</div>
+            <span class="conn-step-lbl">Seleccionar producto</span>
+          </div>
+          <div class="conn-step-body">
+            <div class="dev-list" id="devListModal">
+              <div class="dev-opt" id="opt-dismouse-m" onclick="selectProd('dismouse')">
+                <div class="dev-ico">🎮</div>
+                <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+              </div>
+              <div class="dev-opt" id="opt-disbutton-m" onclick="selectProd('disbutton')">
+                <div class="dev-ico">🔴</div>
+                <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+              </div>
+              <div class="dev-opt disabled">
+                <div class="dev-ico">📡</div>
+                <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
+                <span class="dev-soon">Próximamente</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 2: Tipo de conexión -->
+        <div class="conn-step" id="cstep2" style="opacity:.4;pointer-events:none">
+          <div class="conn-step-head">
+            <div class="conn-step-num">2</div>
+            <span class="conn-step-lbl">Tipo de conexión</span>
+          </div>
+          <div class="conn-step-body">
+            <div class="conn-type">
+              <div class="ct-opt active" id="ct-usb-m" onclick="selectConnType('usb')">
+                <span class="ct-ico">🔌</span>
+                <span class="ct-lbl">USB</span>
+                <span class="ct-sub">Cable</span>
+              </div>
+              <div class="ct-opt" id="ct-ble-m" onclick="selectConnType('ble')">
+                <span class="ct-ico">📡</span>
+                <span class="ct-lbl">Bluetooth</span>
+                <span class="ct-sub">BLE</span>
+              </div>
+            </div>
+            <div id="bleHintM" style="display:none;margin-top:7px;font-size:10.5px;color:var(--txt3);line-height:1.6;padding:7px 9px;background:var(--surf2);border-radius:var(--r);border:1px solid var(--bdr)">
+              <b style="color:var(--amb)">⚠ Windows:</b> si "disMouse V4" ya está emparejado como mouse, el acceso BLE puede fallar. Quitá el emparejamiento antes.
+            </div>
+            <div class="ios-block" id="iosBlockM">
+              <b>iOS / iPadOS no soportado</b><br>
+              Safari y Chrome en iOS no implementan Web Bluetooth. Usá cable USB conectando a una PC/Mac.
+            </div>
+          </div>
+        </div>
+
+        <!-- Paso 3: Conectar -->
+        <div class="conn-step" id="cstep3" style="opacity:.4;pointer-events:none">
+          <div class="conn-step-head">
+            <div class="conn-step-num">3</div>
+            <span class="conn-step-lbl">Conectar</span>
+          </div>
+          <div class="conn-step-body">
+            <button class="btn pri sm" id="btnConnM" onclick="toggleConn()" style="width:100%">Conectar</button>
+            <div id="connSubM" style="display:none;flex-direction:column;gap:5px;margin-top:8px">
+              <button class="btn ghost sm" onclick="pingDevice()" style="width:100%">🔄 Probar conexión</button>
+              <button class="btn ghost sm" onclick="getAllConfig();closeModal('connModal')" style="width:100%">📋 Leer configuración actual</button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
@@ -940,13 +1044,18 @@ function selectProd(id) {
   document.querySelectorAll('.dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
   const opt = document.getElementById('opt-' + id);
   if (opt) opt.classList.add('active');
+  // También activar la copia en el modal de conexión
+  const optM = document.getElementById('opt-' + id + '-m');
+  if (optM) optM.classList.add('active');
 
-  // Habilitar paso 2
+  // Habilitar paso 2 (drawer)
   const step2 = document.getElementById('sbConnType');
-  step2.style.opacity = ''; step2.style.pointerEvents = '';
-  // Habilitar paso 3
+  if (step2) { step2.style.opacity = ''; step2.style.pointerEvents = ''; }
+  // Habilitar paso 3 (drawer)
   const step3 = document.getElementById('sbConn');
-  step3.style.opacity = ''; step3.style.pointerEvents = '';
+  if (step3) { step3.style.opacity = ''; step3.style.pointerEvents = ''; }
+  // Habilitar pasos en connModal
+  _connStepEnable(2); _connStepEnable(3);
 
   document.getElementById('mainTitle').textContent = p.cardTitle;
 
@@ -964,9 +1073,20 @@ function selectProd(id) {
 function selectConnType(type) {
   if (type === 'ble' && isIOS()) return; // bloqueado en iOS
   connType = type;
-  document.getElementById('ct-usb').classList.toggle('active', type === 'usb');
-  document.getElementById('ct-ble').classList.toggle('active', type === 'ble');
-  document.getElementById('bleHint').style.display = type === 'ble' ? '' : 'none';
+  // Sincronizar en drawer
+  const usbEl = document.getElementById('ct-usb');
+  const bleEl = document.getElementById('ct-ble');
+  if (usbEl) usbEl.classList.toggle('active', type === 'usb');
+  if (bleEl) bleEl.classList.toggle('active', type === 'ble');
+  const bh = document.getElementById('bleHint');
+  if (bh) bh.style.display = type === 'ble' ? '' : 'none';
+  // Sincronizar en modal
+  const usbM = document.getElementById('ct-usb-m');
+  const bleM = document.getElementById('ct-ble-m');
+  if (usbM) usbM.classList.toggle('active', type === 'usb');
+  if (bleM) bleM.classList.toggle('active', type === 'ble');
+  const bhM = document.getElementById('bleHintM');
+  if (bhM) bhM.style.display = type === 'ble' ? '' : 'none';
 }
 
 // ── BANNER ───────────────────────────────────────────────
@@ -1419,7 +1539,7 @@ async function pingDevice() { if (await send('PING')) toast('✅','El dispositiv
 
 // ── GETALL + PARSE ───────────────────────────────────────
 async function getAllConfig() {
-  devCfg = mkCfg(); await send('GETALL'); setTimeout(renderCfgModal, 2400);
+  devCfg = mkCfg(); await send('GETALL'); setTimeout(applyDevCfgToCards, 2400);
 }
 
 function parseLine(line) {
@@ -1703,7 +1823,22 @@ function setConnected(val, physical = false) {
   // Drawer: hide setup when connected
   const setup = document.getElementById('drwSetup');
   if (setup) setup.style.display = val ? 'none' : '';
-  if (val) closeDrawer();
+  if (val) { closeDrawer(); closeModal('connModal'); }
+  // Botón Conectar rápido en topbar
+  const cq = document.getElementById('btnConnQuick');
+  if (cq) {
+    cq.textContent = val ? 'Conectado ✓' : 'Conectar →';
+    cq.className = 'btn-conn-quick' + (val ? ' connected' : '');
+  }
+  // Actualizar botón dentro del connModal si está abierto
+  const btnM = document.getElementById('btnConnM');
+  if (btnM) {
+    btnM.textContent = val ? 'Desconectar' : 'Conectar';
+    btnM.className = 'btn sm' + (val ? ' ghost' : ' pri');
+    btnM.style.width = '100%';
+  }
+  const subM = document.getElementById('connSubM');
+  if (subM) subM.style.display = val ? 'flex' : 'none';
   if (val) { addLog('Conectado (' + connType.toUpperCase() + '): ' + (prod ? prod.name : '—')); onArrowMode(); }
   else addLog(physical ? 'Desconexión física detectada' : 'Desconectado', physical ? 'w' : '');
 }
@@ -1874,6 +2009,166 @@ function closeDrawer() {
 }
 function toggleDrawer() {
   document.getElementById('drawer').classList.contains('open') ? closeDrawer() : openDrawer();
+}
+
+// ── CONN MODAL ───────────────────────────────────────────
+function openConnModal() {
+  // Sincronizar estado de producto seleccionado con los opts del modal
+  document.querySelectorAll('#devListModal .dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
+  if (prod) {
+    const id = 'opt-' + (prod.id || (prod.name.toLowerCase().includes('button') ? 'disbutton' : 'dismouse')) + '-m';
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    // Habilitar pasos 2 y 3
+    _connStepEnable(2); _connStepEnable(3);
+  } else {
+    _connStepDisable(2); _connStepDisable(3);
+  }
+  // Sincronizar tipo de conexión
+  ['usb','ble'].forEach(t => {
+    const el = document.getElementById('ct-'+t+'-m');
+    if (el) el.classList.toggle('active', connType === t);
+  });
+  // Si hay BLE: mostrar hints
+  if (isIOS()) {
+    const ib = document.getElementById('iosBlockM');
+    if (ib) ib.style.display = '';
+    const ctb = document.getElementById('ct-ble-m');
+    if (ctb) { ctb.classList.add('ct-disabled'); ctb.querySelector('.ct-sub').textContent='No disponible'; }
+  }
+  // btnConn del modal
+  const btnM = document.getElementById('btnConnM');
+  if (btnM) {
+    btnM.textContent = connected ? 'Desconectar' : 'Conectar';
+    btnM.className = 'btn sm' + (connected ? ' ghost' : ' pri');
+    btnM.style.width = '100%';
+  }
+  const sub = document.getElementById('connSubM');
+  if (sub) sub.style.display = connected ? 'flex' : 'none';
+  openModal('connModal');
+}
+
+function _connStepEnable(n) {
+  const el = document.getElementById('cstep' + n);
+  if (!el) return;
+  el.style.opacity = '';
+  el.style.pointerEvents = '';
+  el.classList.add('active');
+}
+function _connStepDisable(n) {
+  const el = document.getElementById('cstep' + n);
+  if (!el) return;
+  el.style.opacity = '.4';
+  el.style.pointerEvents = 'none';
+  el.classList.remove('active');
+}
+
+// ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
+// Mapa inverso de código numérico → nombre de tecla para updateSummary
+const REV_KEY = (() => {
+  const fwd = {
+    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
+    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
+    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
+    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
+    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
+  };
+  const rev = {};
+  for (const [name, code] of Object.entries(fwd)) rev[String(code)] = name;
+  return rev;
+})();
+
+function applyDevCfgToCards() {
+  if (!prod) return;
+  const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
+  const allBtns = [...prod.mainBtns, ...(prod.hasArrows ? prod.arrowBtns : [])];
+
+  // Mapa modo numérico → selector value
+  const MODO_MAP = {0:'P', 1:'R', 2:'H', 3:'O'};
+  // Mapa mods bitmask → checkboxes
+  const MODS_BITS = [{bit:1,id:'mc'},{bit:2,id:'ms'},{bit:4,id:'ma'},{bit:8,id:'mg'}];
+
+  allBtns.forEach(({code}) => {
+    const idx = String(codeToIdx[code]);
+    const c = devCfg.btns[idx];
+    if (!c) return;
+
+    const tSel = document.getElementById('t_' + code);
+    const mSel = document.getElementById('m_' + code);
+    const dInp = document.getElementById('d_' + code);
+    if (!tSel) return;
+
+    // Tipo
+    if (c.tipo === 2) {
+      tSel.value = 'X';
+    } else if (c.tipo === 0) {
+      tSel.value = 'M';
+    } else {
+      tSel.value = 'K';
+    }
+    onType(code);
+
+    // Modo de activación
+    if (mSel) mSel.value = MODO_MAP[c.modo] ?? 'P';
+
+    // Debounce
+    if (dInp) dInp.value = c.debounce ?? 0;
+
+    if (c.tipo === 0) {
+      // Mouse
+      const mActSel = document.getElementById('mact_' + code);
+      if (mActSel) {
+        const hasDouble = (c.flags & 1);
+        const hasToggle = (c.flags & 2);
+        if (c.accion === 8 || c.accion === 16) {
+          mActSel.value = c.accion === 8 ? 'SU' : 'SD';
+        } else if (hasDouble && c.accion === 1) {
+          mActSel.value = '1D';
+        } else if (hasToggle && c.accion === 1) {
+          mActSel.value = '1M';
+        } else {
+          mActSel.value = String(c.accion);
+        }
+      }
+    } else if (c.tipo === 1) {
+      // Teclado
+      const kInp = document.getElementById('k_' + code);
+      if (kInp) {
+        const accion = String(c.accion);
+        if (REV_KEY[accion]) {
+          kInp.value = REV_KEY[accion];
+        } else if (c.accion > 31 && c.accion < 127) {
+          kInp.value = String.fromCharCode(c.accion);
+        } else if (c.accion > 0) {
+          kInp.value = '#' + c.accion;
+        } else {
+          kInp.value = '';
+        }
+      }
+      // Modificadores
+      MODS_BITS.forEach(({bit, id}) => {
+        const cb = document.getElementById(id + '_' + code);
+        if (cb) cb.checked = !!(c.mods & bit);
+      });
+    }
+
+    updateSummary(code);
+  });
+
+  // Flechas: aplicar si el producto las tiene
+  if (prod.hasArrows) {
+    const amSel = document.getElementById('arrowMode');
+    const oriSel = document.getElementById('orient');
+    const velInp = document.getElementById('vel');
+    const acelCb = document.getElementById('acel');
+    if (amSel && devCfg.fmode != null)  amSel.value = String(devCfg.fmode);
+    if (oriSel && devCfg.orient != null) oriSel.value = String(devCfg.orient);
+    if (velInp && devCfg.vel != null)    velInp.value = devCfg.vel;
+    if (acelCb && devCfg.acel != null)   acelCb.checked = devCfg.acel === 1;
+    onArrowMode();
+  }
+
+  toast('✅', 'Configuración cargada en las tarjetas');
 }
 
 // ── INIT ─────────────────────────────────────────────────
