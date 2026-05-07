@@ -1341,7 +1341,7 @@ async function applyArrows() {
 
 // ── PRESETS DE FÁBRICA ───────────────────────────────────
 const _SP  = ' ';
-const _ENT = '176';
+const _ENT = '215'; // ENTER — código correcto para firmware R009+ (era '176' antes)
 
 const FACTORY_CMDS = {
   caa: [
@@ -2066,6 +2066,7 @@ function _connStepDisable(n) {
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
 // Mapa inverso de código numérico → nombre de tecla para updateSummary
 const REV_KEY = (() => {
+  // Códigos actuales (firmware R009+)
   const fwd = {
     'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
     'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
@@ -2075,6 +2076,19 @@ const REV_KEY = (() => {
   };
   const rev = {};
   for (const [name, code] of Object.entries(fwd)) rev[String(code)] = name;
+  // ASCII espacio (32) → 'SPACE'
+  rev['32'] = 'SPACE';
+  // Códigos legacy (firmware anterior / presets de fábrica viejos)
+  const legacy = {
+    'ENTER':'176','TAB':'179','ESC':'177','BACKSPACE':'178','DELETE':'212',
+    'INSERT':'209','HOME':'210','END':'213','PAGE_UP':'211','PAGE_DOWN':'214',
+    'UP_ARROW':'218','DOWN_ARROW':'217','LEFT_ARROW':'216','RIGHT_ARROW':'215',
+    'F1':'194','F2':'195','F3':'196','F4':'197','F5':'198','F6':'199',
+    'F7':'200','F8':'201','F9':'202','F10':'203','F11':'204','F12':'205',
+  };
+  for (const [name, code] of Object.entries(legacy)) {
+    if (!rev[String(code)]) rev[String(code)] = name; // no sobreescribir si ya existe
+  }
   return rev;
 })();
 
