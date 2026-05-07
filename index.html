@@ -35,30 +35,46 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .topbar{position:sticky;top:0;z-index:200;height:50px;background:var(--surf);border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;padding:0 18px;gap:12px}
 .brand img{height:26px;width:auto;display:block}
 .tbr{display:flex;align-items:center;gap:10px}
-.tb-link{display:flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--txt2);text-decoration:none;padding:4px 9px;border-radius:6px;border:1px solid var(--bdr);transition:all .15s;white-space:nowrap}
-.tb-link:hover{color:var(--txt);background:var(--surf2);border-color:#C4BFB6}
-.tb-link.wapp{color:#16A34A;border-color:rgba(22,163,74,.3)}
-.tb-link.wapp:hover{background:var(--grn-dim);border-color:rgba(22,163,74,.5)}
-.tb-sep{width:1px;height:18px;background:var(--bdr)}
 .spill{display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--txt2);padding:4px 11px;border-radius:20px;background:var(--surf2);border:1px solid var(--bdr)}
 .sdot{width:6px;height:6px;border-radius:50%;background:var(--txt3)}
 .sdot.on{background:var(--grn);animation:blink 2.5s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
-.tb-aux{display:flex;align-items:center;gap:6px}
+.tb-spacer{flex:1}
 .btn-tb{font-size:11.5px;font-weight:600;padding:4px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .15s}
 .btn-tb:hover{background:var(--surf);color:var(--txt);border-color:#C4BFB6}
+.btn-burger{background:none;border:none;cursor:pointer;padding:6px 8px;border-radius:6px;color:var(--txt2);font-size:20px;line-height:1;flex-shrink:0}
+.btn-burger:hover{background:var(--surf2);color:var(--txt)}
 
-/* ── SHELL ── */
-.shell{display:grid;grid-template-columns:276px 1fr;min-height:calc(100vh - 50px)}
+/* ── STATUS BAR ── */
+.status-bar{background:var(--surf);border-bottom:1px solid var(--bdr);padding:8px 20px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:50px;z-index:100}
+.sb-device{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px}
+.sb-conn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--acc-dim);color:var(--acc)}
+.sb-actions{display:flex;gap:7px}
+.sb-actions button{font-size:12px;font-weight:600;padding:5px 11px;border-radius:var(--r);cursor:pointer;border:1px solid var(--bdr);background:var(--surf2);color:var(--txt2);transition:all .15s}
+.sb-actions button:hover:not(:disabled){background:var(--surf);color:var(--txt)}
+.sb-actions button:disabled{opacity:.38;cursor:not-allowed}
 
-/* ── SIDEBAR ── */
-.sidebar{background:var(--surf);border-right:1px solid var(--bdr);position:sticky;top:50px;height:calc(100vh - 50px);overflow-y:auto;display:flex;flex-direction:column;padding:14px 0;gap:0}
-.sb{padding:0 13px;margin-bottom:2px}
-.sb-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);padding:0 3px;margin-bottom:6px;display:block}
-.sb-step{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc);background:var(--acc-dim);border-radius:4px;padding:2px 7px;margin-bottom:6px;display:inline-block}
-.sb-sep{height:1px;background:var(--bdr);margin:11px 13px}
-.sb-spacer{flex:1}
-.sb-btns{display:flex;flex-direction:column;gap:5px}
+/* ── DRAWER ── */
+.drw-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:400;display:none}
+.drw-overlay.open{display:block}
+.drawer{position:fixed;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 24px rgba(0,0,0,.12)}
+.drawer.open{transform:translateX(0)}
+.drw-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.drw-section{padding:14px 16px}
+.drw-section-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
+.drw-step{margin-bottom:14px}
+.drw-step-num{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--acc);background:var(--acc-dim);border-radius:4px;padding:2px 7px;margin-bottom:5px;display:inline-block}
+.drw-step-lbl{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:6px;display:block}
+.drw-sep{height:1px;background:var(--bdr);margin:0 16px;flex-shrink:0}
+.drw-nav{padding:12px 16px;display:flex;flex-direction:column;gap:2px;margin-top:auto}
+.drw-nav a,.drw-nav button{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:var(--r);font-size:13px;font-weight:500;color:var(--txt2);border:none;background:none;cursor:pointer;text-decoration:none;width:100%;text-align:left}
+.drw-nav a:hover,.drw-nav button:hover{background:var(--surf2);color:var(--txt)}
+
+/* ── PAGE WRAP ── */
+.page-wrap{max-width:1100px;margin:0 auto;padding:18px 20px}
+
+/* ── CONTENT ── */
+.content{display:flex;flex-direction:column;gap:13px}
 
 /* Dev list */
 .dev-list{display:flex;flex-direction:column;gap:3px}
@@ -83,15 +99,6 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .ct-lbl{font-size:11px;font-weight:700;color:var(--txt)}
 .ct-sub{font-size:10px;color:var(--txt3)}
 
-/* SB buttons */
-.sb-btn{width:100%;padding:8px 11px;font:700 12.5px/1 'DM Sans',system-ui,sans-serif;border-radius:var(--r);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s}
-.sb-btn:disabled{opacity:.38;cursor:not-allowed}
-.sb-btn.pri{background:var(--acc);color:#fff;border:1.5px solid var(--acc)}
-.sb-btn.pri:hover:not(:disabled){background:var(--acc-dk);border-color:var(--acc-dk)}
-.sb-btn.pri.danger{background:var(--red);border-color:var(--red)}
-.sb-btn.pri.danger:hover:not(:disabled){background:#B91C1C;border-color:#B91C1C}
-.sb-btn.ghost{background:transparent;color:var(--txt2);border:1.5px solid var(--bdr)}
-.sb-btn.ghost:hover:not(:disabled){background:var(--surf2);color:var(--txt)}
 
 /* ── CONTENT ── */
 .content{padding:18px 20px;display:flex;flex-direction:column;gap:13px;max-width:980px}
@@ -255,132 +262,157 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .auth-submit{width:100%;margin-top:4px}
 .auth-links{display:flex;justify-content:space-between;margin-top:12px}
 .auth-links a{font-size:12px;color:var(--acc);cursor:pointer;text-decoration:underline}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  .drawer { width: 85vw; }
+  .two-col { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 
 <!-- TOPBAR -->
 <div class="topbar">
+  <button class="btn-burger" onclick="toggleDrawer()">☰</button>
   <div class="brand">
     <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYkAAAA8CAYAAACTrUbPAAAwTElEQVR42u29eXhdZ30u+r6/b+1Bki3Zkvbeki1LlqxMZk6YQwg0kECYDkMoQ3vaw2nh0F4utKe0Bc7TkJ728EChl7aU2wOHtvSUMoQyl/EAMWMgCUNuCCUktmUrlvbW4EnDHtb3vfePtWXLiibbsuPAep9nR4q899prfcPv/c0fkYA9Pf0vipF5LsWigDoAYmNBCTUiVADNkaxTPExiVOJIJp4fvX/6/tEln7Hmz4CHHhwA3909eBVd9B4qfKFSue+Pm+MqpEiRIsVDABEAVygMv9EHvgjEETBUIfIcfJdI5AC7BGIkASLzJnkxzDWilkaxuGsM8N+TGt/P5XjP6Ojo/ALBNF8hnbIUKVKkOI8kUSr1PyvAbgjSISBUIWbO4fcFiPOCXKJN67CnPAELZBvBSyUbduZe0mhgslgcvN3Mf2l8/MDdTe17gbxSTTxFihQpzgdJCNkbBE2SoQYwOsffRySk4Jv/bxAiwECqCmiWpPMyR6oTtOco2K+UCkP30DU+PD5+8PYTn0uIIiWLFClSpDinJCF2gZoFmDlPQvdUVxYZADWtBDoAIhUDaACcE+EC8SiE3OXdxeHbGmy892h5ZP8iskhdUClSpEhxjmBKBLI9yFo5l/zO5j05ABA4G2hzIh+fpXtHsTjwit1AtkkQlk5jihQpUpwjksDGZzFtOIFINCLUiTAZgmsJjP7TRGnw7YXCjl1NonDpVKZIkSLFuSGJCx0L7icCjJLfeUxwl8myf1Eo7HgKkhhHalGkSJEixS8hSQAPdEc5AHOCtYL5P+vuGXp2alGkSJEixS8vSSx774TmRFQZ+MfFYv81TYsiJYoUKVKkSEli4f41J3JayP7Xnp6hxyJ1PaVIkSJFShJLnkEiMl54S29vbz/SrKcUKVKkSEnilOeQjgrWEofW38PAQL75d6ZTfEZYiPsspCKnhJsiRUoSGwI1tfjVXuemUpqMAMwCvKJQc7/a/K6UJM58Hv2S+UzHMkWKX0JsaBsOCVlSmdXfQk+gsUgIcQPJKhJwmLIXFQo7vjUxcfA+PLAqO+3CuroFoYGBgfzMvL3YaI9FaBzKKP70oclD96Rjl+IXaJ0TaWuf82xJSGbUQZDfFvAdkN9e+iLwfUIjVKgBagPQQTG/gZMlALHATjH7Wyf+euONdvWNN0aQCFKQeMPHPuZwww1pJtQSDGM4N1+L/pSIXg+5K2jZ58eu9a87Owcua45v6npK8ZBXhBZ5NVKcN0uCEhW/Y6J8YO8a73TF4mC3xf4yWPT0QF0OcBOAuQ2aNJN0zMDH93b3Xz42eeAHuOkm7AECbropWSSkbj7ZZPAXVTte0JaWw3L9rhwAf7zERwXwKpn2Q8iBqEnodM49F8BP0y2T4iEOdXXt2MZstmdy7L4fNz0a50IGcIny+lCUHxtMEkAguZBVtFLjPQHwlcq+MoAygFuKxf4hIPObkF0VoAqJLM66l5QJ8C5k7SIAP+h58fMfG+265PXMt/QrbvRYNlNWPS5n77vvn+/76Ec/fcLC+AXbDGcyhhLaBcTNbUMl5NFoWn4P1QWfIoUBCIVC/5PB7FsUsKVUGroln/f/fWRkpHaO9t9DXX5sOElA0mJyCOvRciuVA3sB/El3ceDlZPQqgDOAPMCzcGvIRNQQZb8PIOsuvvhfMxfv7g/zcwjmAOhiy2YRspkX7rr22sH7yIP4BesoWyqV2qS2IRKSQLIuKUvvQ31qav89yyxiAQDJ+0g1JLQJCIQEcBMcfrJos/lU5qR4KAq9YJmXArYJ8gcC+ZT5eTwGwHc3eP9bsThYkAJDyFup5Cbvvvvu+kNloHbv3p2tVGa62FScN5QkyHWz52It1wBgsjLy4e7SkEC+JohHzs7xrUBYo+vAPfdXr75um2vbsqNx/Fis4EHJBMpXaz7b1ZnNXXrppfjylw/ecMMNvPnmm39hNKaYbZdBfKcJMwDNK+sBbjZzY7uB37j75BG1WkTqVi7fs69UGvzLAPd6QllIx4HwRWfVf8OZnQ7Ic6Rh2ZLvSH3MKdZah6I0KSoL42YGVclwbKO/o1AotHpz76Zczhi2TE7W3wDgzoeAImoAwuTk/KV0mbcJqOI8HDK0LjdVc3DdZHnvRwqFwUvNomcAKuMsW2zcDfiujlyOzpQQIpsiiws+Mbl8lAibG24AHloksbSDrxYvQJICrS6oBsAIesByhOprzUW5vO9znZ19P4wiu5QM5XJ59K4z2Cy2guBe+Ded5YYJF+B8rESKZ+L62yhyXSmTh1g+brVRZHuulIOV7nutcRYAOOJ9XqEd4C4p/vtK5eBPzpHy45IX3QU4hqutC0iiyOb9XxgkcYplYTb33oC2R0vMgPRYV36+AkCDZElsgUpcVlCo1SJPmZj8dfHVRLJWrWUA4CFEDwvCN6wmnCWRkJ26qcR1jKcAYHp69H4A95/F/S24pKJhDLvDXYezU6VSDYnZ7Zd5/7o1td27d2cnJo6/HMiUACPZqJnVPjk+Pj6C85+IsNp8nMnGXY1A3RkI8eUEp61xnTM9+XEt5eBs0k55lhajAKBc3lsB8Id9fX0to6Oj82cgfG2VMeWStX0m92qrPKedpYK0MD9+mWdYTunceHfTBlgUrlwuV7pLg58F7eUAjiaCbbX4hGJKIVAECRAyhRaDZpo8oOWmaWE06NxDKQ5xQqB2dw9ebIZ+QK1AmJW0v1kXEgMwFywSkBElgOsuhBseHs4dPlzrkkTlg7WSwjwQcqE6NjY2uZ776+vra6nV3NVi5qmAthxmiIgtLd2TtQaKw1OGxg+8b/xgaurQz85kwR8bPbaJ+dyvCtYihQaR6Yxj/0MA55skTmigW7f29kdR1C+57aTlAc2R/rCP7GCLxQcWCaT1kmumt7e3o1ZzudZWzI+Ojk5j8bG/6xy3vr6+zkbDtYeA6sTESHlhrw0MDOTn5nCphF6S3QBopgNm9bsWzfPpjOXCez0A9Pb2tjYamQ5yXgBmJiYmZhZdi2cgmAMA9fX1dcYxdoUQbUvWPmCyBuX31cLMz6enp9flPlrHfKz0fM353toRRVELSVUqlWkktV8AwDje7JwhanpweRrXP4UASqVSWxxnO0iqrY2HR0ZGqsvcz5kob9bT09NVr7tcayvnRkdHjyz6XiOpxReOLjAhKABUrG+Z0wtFRhIdiXj59yoA3CRYGwEHyVOMCdsihMwvoE81dHfvuAqWeSmEPsHaQWUoi810rFjcebc3/4mp8YO3h1Cv0zKzTYJdz2JyAPzRo43nOJd9fSAmLUa2ATpEyMPHtwJ48yqL05L767+8Wnevg0WXAJoD2IDolQTASaJXii6PIne8WBr8ORT+tVIZ+d7panQSazDUE/eZZUlrPAjzoVKp7/FS7pUSd8sUALZCCIEA6bx5uHpsXwNw0ypjRwCho6N/ay5nVwH2SMAu9l5tUcR8o8G4UBoep3T7nJv75EwixNciCgMQarXoVWbRi8xCuVAYeO3ExMh4sbjzBXPz7nnBrB8KWZHOxNjDV0NomS4Wh77R0uI/2BRK6xVG6unpGQDyV4fgdnvPQTNsIrOxpHqx2FGWGp+bmBj5Ck4v7TRRPDr7tjcy2V9rNPQoiVtFa4MUQOTEqFUIM5FFB4vFjtc3sye5jHtNpVL/oBdeKbqsUzhUqYz83WkQBAqFndeS0fMAbAOUkRAXi5vGpbDXOe4ZH993Wz4/32iEljnANp3Gmm5ef8cus8xTJT46iEXn1CYirlb9VKE0eL8h7CmXR76Ok4XI6x7DQqGwCdb6EkPmV7zQEUXM12qaLRZ3TZPhR+T8Z8fHx0ekYKDjhUoSAQCmdnbt7R49PALYRQQzQDi2ZDAkKUOYE/1P6OxugxG0CGJMBCGymSte/ero4NhYtLqwkbv6xhujPWNj7uobbyQA7AFwdfMnkvqKB9vaMAAqFQZ/NxhfIJgHUQ3QkSQaZwAQEXySyV1ZLA68m/Q/9ycJ4rRaaggMIrOSTpq9ZOsqgvxEeiGZ/fNAVAFVmllqJBQ1t5oHWAVwzAMOsCsp7gVwK04/7ZkQnEC3yK12XuejUBr4zQB7IcCMaE5QC4jDQJgyykvIAtYPqHMtAVQsDr0C4AsBFERmBYiiF+gSog8tInblfeu1LYUdfzUxcfBb67QozIMi3FbSDxYKQ9cJ9jsCZonQADUiIQ5QETAHYpOgF83Ou4GBgYE/baaHrkZu2Lp1qD2b9b8TQvQU0joD/DxoeYomhRpISuwisw8vFAavM/N/XS4f2LcOIWcAQm/34FUNc28JQGsQjzIJKc7L0ABQhnxWYBvBXqixCUl6/bIkgYYVGblnAhYJ4afrVwZKbQFtN0F2eQBqAHKEmQyRpALJS4LwzGJx8Iv1+rH/hag1TiKgWs/10dPT0x1C2x+IfLgHtwIyEDFksYBsDBZM2ibyid09u56VnZ1/x6Hjh6bWMYaJcrl96CLEvBHiNg/NgLYVYIsMmyB1STYMtD6jWOx/TxzjfrML15JIFsYddzSsuPPOQHskgSM6OQiC6Ci2kPEBQu+vlPfeutKFyu+7B9nBwWrpSY9HaApLNmVJaH6Vjhyp73n338QA4j2LPrtnidr6INZRNAXwzt8ItJcKnDqp+bs2yFpBPwmEhqApwG0W7bUIjTtBzTR7Wq0fzhykGAjzgsvTVE1oY8UAHAGEJOXW/XYgG4kFoQCoDmGzgY3kd3UA2hLIBmRm1L2xtw+drhVxDEAOmhW0OeEgQHIrBY7PyXwUi4O/FWC/AbBCsoXwYwzhE3ULd2TD3GQul/Pe+7Z6nV3ZbLRmjQmJp0s2BOAIFX4IhrsVNEHqmIgtJnuy4B4mWLcs+9ZCYeitExN71yYKMwMwK2g2mP025foozBrqHyP8t6pVN+rc8aDMln6jfxaUeSbAOUJPmqvi9QDevgqBE0DIZtknRS8EOCv5EYP2B9TvgXAIoIy42MOeKkYdhLvEy93U0dH/+qNHDxxZyzItFgcf2UD0NlCTAKoGZYH4c1R8i485lc3GR6q1aka5ji2Z4Hd4n5tYbay9uQbJ2absm11PHGQYw9mjCG+G7HKRx0xhC6C7JP81gx0HUALwOCi6HLAXWbSlP5B5SH4d7iYD4L1vvdgM10GYBnSACHsF//MAThHWGkGDHrwcshYAT67nW/6sr6Pv90dHR6trjeHW3qF+NvBngitCaJDeAf4bkH5IxcdItxPmnuSD9ZCZ32FG+9HMbLpQSWJhUMcTqa5Tc/KpGPQyhPeVy3u/1/eYJw6Hx112HbK5raFR2wRRzbEx0mpqNHaFbA4WwikjaQim4BG3tb+u/z+96up63hmluLljRedqVJg5ftfPvnWMvB0PTmW2AQg9nf27A+0lgZxeHMAjwhwRYoIFwCDIAaEuYJJ0l4o47dxsBmQF5ACaiAykBsCIK7fjIACFkL+IZC+SWJAD6CS0OMQfqGb9Hh435fPYQvLSEKKrST3W6D8wPb3/2BqCbumphCBdaLoaVwpunsu021As9j1CsBcBNkWEPOV/5Fz1HWPlB8Rs5gFMru+6OhRC/buk/8bExOjepePR1XXJvzlXe4MYPRlgXcArgeHbgHvrq61NiQaKgDwV9UEKRP3PK5UDXz31ndN3AbiruzhwP5l9jchJwJ5eLA5+oVLZt2r6ZqMRhyji7ZI+E0X125eJXX2pq2vgK4zwJtE2A+rN5ewGAO9bhYAEIBvA3wJRFRFRzCjU3jQ5eeAHD3z74aPNmNSac65mEoeSRI41XbwzPfXnI2SeKHKK8nkgfv+OHYWP3XHHHYtdnB8qFgdeALrXCNHDAVWRZBauy81kpgYZvuV9/LFaLfzkeGIlnIJCYeejYPojwNVAu7QWu2cD+MQaY2hRjP9bZu1AOAZC8v4vJyf3f+PU9dX1Yec2vVKw6wh3iZLYpi5UkliYn7ll/G4iglH6abmy/3vbn/OMi+zyJ9zutve1SwFcJj7LIDTqHlCDOlXOMQ5AtHv3cxDxOVkRPCWuFmACukrbw+bOzmfe/8lPfg033OBw883ns5AsKQCKMr8ZwFYAR7FIWFOKAB0iwgclHXABW0LkHi/PRwU6QCHHhChOo+yEi7MetA4hy0QYoRdgBDbnS3Im1IW5rxwbnZgBgKNHcRjAPgBf6OnpGRgfHz+AtdMPtfT37UdH5iaLQyEApCSA2SjZ8AKWjV9tsBKT+/Vm0Dw44ig4d9PYWHlBO/VrBSSXe758PrxtSWBysQuNU1M/O76p9+L/Nx/8JQBbaXxYqRQ/ulzG99Z21VGCZJIj4o83CSLCqRk0BkCTlZGPFoq7nkhwF4gWwL0MSY7/iu7h6enue4E7XodTW90sXnM2NTXy78Vi/z8J2RtFTZF2ValU+lC5XJ5dhuQcAF8sDj5V4mXBNE2gYIr/RyUhiKX3vp5xPqMYYGdnZ7tH9GIB0wB65fDxibEDH6pUDiy00z8hoyqVkU8VCoMOpjcA4fjpuNi7ulp+dPfdd9+GU4P7p9QCTUzs/3GhMPRxmF4D4qhC9AwAn8Hyxa2WWPg7H+9lTwA4Bfmc6N8+NTnyDZwsL1CyvqaOA1N/Vyjt7JD4LFBHLmRLoln5i6MPXPgKkHUgwhQAaPCiZ9qOHe2NuVpVCBGX8TQIImEOYJIndcoq8Igb3qMBLZWjSpKi4mjbtrzGxl8G4GtX797NPec5MNrZub3Pgw/jyeI3AJAJOcDvA/in5fL+8qLPfaG7NPAyJ7xW4PHzafqQzGhh05ACsRlh0xu7els/PDU2cs+iDcxmuuoaLrZdrwM0KMcGwsKzh1ABHchNSe0HLACH5dwruouD1wPWFJjyIDImBXLuXeVyuXKW1uBCYL5XxLCEqoGtUvy+SuUEQcRrkNyKa75JELaCBSUA0czYPdNtpYH7YkVXAIyD2A/ge2u72AIIRoQOA/z0ImJeLFAXjv71CrVPyFpuMtED4THt7X2dx46NTq88fic0alt5T18dAQfuEjgrWSYwbIqsravp8ll63dBUPJ4i0jOwC/S3Vyr7vtL8jjMd59Odb2/ZzVdK7BZs3knHTfahRdaqXzJfbmJi3yeKpV3XCLg4kNPrdVIvqsh2K7v2rsgoM32XYtZJiGB3b2/vlqbltuzcSO4ZSddtdhK8tVIeuWVhnpeLs83B/qGVepIWKR4XrCXhnGvEfhnrGcgR0QwARN2lzSFIgI8MjJYb25MRiKUUwoX/uuXWGBcCIT6W5fMlANjzsIed7/x7bxY9UmAbqSNaJAxERY7xP46Pj5YBZLAoY2SyPPKRUnHoKoG7AU2fXYuT9ZK6/zno5ptyIkiMQHiaPdY8LiuUBu9HCHea+dsWFec5rNLig+RFAh6WFEHKAwyL6iuriyayGsQdpNu5aHa9yByker3uchvmBs1oGAHNQ600633udpxZMRZO0+JoUiRnaIwEzS+f3L28E5FALkA/njyZ+RNW0mqjKH93HMIx0XIU2nI5149Ek16NZNfI4d+DSgXl7tKuKYIlihZCw62kHPX29rZ6z8EAeANyQfw2Vm9aeU7WtQV7TCA8gTbJf3N8fN/ECuN3wuq2EH8mWPQm8IxqJFaqrfDAHXC+dH/A5jkhWYPN5JJV4oS6BLBZQN1SWE2hCABstry30lYc/KbongXgOAC7YEliPg6xg8WAiKRx4AktmmQMAJl81jes2QzkHC0dkoyymQcju2mhl9IugC2Ajiz6e57ikfHy6J3NJ48XLSwHAJ5hD2WPOA9xlADAJiZG7y2Udn6V4nNFq5CqJ2RhFNhK4FKaPdzDvbSrNHy3k/9g09e9iuDRnIAjAXAEfBKHAAgjoAxOVusbqPlFCQ4Q5QlrAKFG2obNH+PMEOgKBI4L/t6pqfsmcPat7k8UmfX19bXEsdsZg0WJ7VGSyeea9UIS3XCSMRacc2pZ/2KSIzW6WAFZ6b2bxnHsSAljFLaRbJdYXMa6WU64oadnuFALoSdS6JWFjMmi5N4dSZ/zkATzAHIhaEXlpdHIdNChnbIWIVRN8X6c3/MfFtZWiXJ5QZ4MP1pj/AQAtbjxkygTHT2R1Xd6BIGBwkDPrNBrZt0eaolIScEBVIBtBbBJUuDKQo9IgiKFPNkbQE+FOZL3rDGGTHyTugvUs5uu5wvXkogUb/aWlYGLNjgNQEOKMwDYODpt2tLtLcSSOWmZQWuqHgxGWMCJUFVSkEGYgmJTEts78RkhND3rEP1co/qgkYRZZpdXmNHJsxx8EhQOh5Ck4nE5v71JB0NiZtp52FgCwFwmfk+97gLhnyFZm2hVQTVC8xAgwpJ0G3tcoB7RXRr6+8ny3o+sQhTthLvUhVA52d5AAkNNwjHBcjQFSN7Ercl7TgieevO2tjjH/BJhfOYPSusE0RDUsGT8z7Y+Y6HfzybY5hvqdT410LYB3EwFCxAMiEA1JJKwWMBUojg4nsb8OCmaXs+auxf31gthF8AACbVmvv8abrjtF5nlXhYCHuHAfLBMeyIkA0lQoknZLKmDWv2kQwKQc8j7ZCvGMJnRxedx77FJ2Pl63ZVE1EwhJ4XZ9YwfkD8WwHkCuXWuN6KZySXixbOw3YB1eCFLyAcpY7RM4khhCNAYyUiAC6FlRaLNhpYOkVkQ80CYdW7+6DruXyH4KVoU40LPbgqRFRiQBRQv6n9CUA1IJQBy5Yn7sPNiV21pcxYIKiTFxSdCSYmwl/eIgpLEp8VfwoA4E9FOxAjVTH0QaAADMplMFnG9ficAXP2Tn5zPmETzZpWnaV4wl8Tmm64zWm01+0nCPEzxebLOBZyoYn1Xb3f/Ld7s2ZJdZGQvxFYRx09wM3wFYIbCa7u6BspTUyNfx6nZM00rKnyBgSMwP5loAE0mlxzgni7KAHhKkTF8G8BIonVDBANCCDAgn+f0xvmtg4BwDHINkG4jhFGp1D8Y4N4EuUd7cJ6I5wkrA2EaSU67QrA4IanQkxTs0eE0s7IFrdftSJL5AETJbgq2auyod+e18O4Nga4D0DzFiPCjUjgsuQCwnlw0jgJsoCl3Vr35Gi1ECUHMA8wFF593WVWr1RyQzxKhTrKNRG59g2en05dsIf7266B+DTAv2NbEPNZkUm+EGYlOQh2gYBiC5EAkBsXKk6gg1sTkTSEEW+f9n2IlXbCBaxO3B1kuiU2eouTXGNA3MDCQn/7qLV9tz+c+mSmVnhbooqXpSyLlhEibN+fBCGJ8wmKgAE8DjxxrRLGvxQ6L9pyS8RdDY2T/9/n/7f8AAO5561t98+Ci86bNSDoMoB9cWHRsCiq2YuXcdQJRK87/udQGgGOTB+4AcMfWrVs7stn2xwS6ZwJ87MmMNWYA+AAcc869cmBg4LtLqnubfXb2fRbAZx/4NcO5QhG/ksxUqIHWGce1z0xNHbx9fcR7FpMiTouMiFCXlMHKAet1KUOdnZ3tQnQTEO0EMEP6Kcl/yDeqd+TzmhobG5tffN/dxZ2vB7PPBeP6gvttvZoq4YtrjMNCPCDvvVrZtOIlzq9sQfRfruDemOhxmjHFP6K3LyKa/Um5Uj6SWHQJOjs721205X0ilFi4y/rTBQAtzM7W5esUsiQi7y17vgVRLpfz9bqCYCZJFmxdmY3eNyyKMkz26ap1Es0MpMHnBdkbvDhGxFUH3WnmP0+r3Q1gbmxsbG7hA6XSUDHA/hGkBK1qxSaV03DNNHZy7VqvZoq5WhKFghcsSSSqsuxiQTPEA+LNjQAU5ubcy49O7P2Ho+9934sAtG973KUZYDMUEmb1UeQ4P6/Q0fHo1uuv+1Lc1i76k9HrYPRZB8ef//y1/OE3P2sd213t6FEPAAuVT5W9e8PMzMzkIoo93wLXA5gAEEFqLERfJDYA9W7dOtRx+PDe44vG7aRLxXQx5Zq9m84bqYWTcZGrefjwnqPA4VsA3FIo7LwOdL8rWDMInXTmA7CjVsMgklPvlrqDllZSJ0Js0+zmhtoiWDNGIWVoyDfjMcvl829YG3Ep7KOcEwzG0NvVtaM4NXVw7AxIyJJl2vE8if1gmAY110D85qOVkf3LjG3iNmSQxDyJmdNxkklsEBxah8uNtZrb6jLcInCOCgGIl3u+xF63zEshMyDUSf/9SmXff1+GNA2ANm/ebHNVxARbgLDGZjo+R7TFIrIQzBB2Afj+eVJ8FizjaqE0PC1oC0CLnfWuR8jm89rqpVaAjbWUwIGBgfzcvHuliAmH0B58+HJlcv9fr7BeFMeZyCJfB+mwxtYmdSzpcoBYAS3e57fg1FqSlSyJgkS3EHi/0EjCAIQtPTv7Je406uiSVrsE6ATMkHxJsTjUwRy/Eqq5kUO33b24dcfCT7/p2msP5JLsGJ7cH2xaDYZcqevAv9+5twLuw7KDfqKz7INzVoHk7yLc85vuGkuEKxoCt0RRfA2SYhos2jxxoVDYROH6QDRwfjJCmkVm2x/pLZubGt9326KadYckx/tLxeLQE0FdI3D6xGALaMShbRWF4YH+anMhBozBIIUMSUsO0TvR3fJcxJACADg39zOg7UiQywnWHkX2VAAfOQOLorme7OGABYTQatC3j06M7Mep9RaLW2AHkRkqnK7lQhI1ioPFYv9gpXJg3wpkagC8c3h4EDOkD6TK0uzPl+wrAlBHR/9WihcHsmpQq0Gfb45BZtFYnNg79Xq9LrV4gJtIk8QVC8DGxsbmCoVd+0DuEDBPRE9pjvPp9Cw6GySZd0H30HiJhCppD8PqmWyJmS8+2oitnhxbRXcngDA763bAWITCNIkom+UXm/8WLTeGJKWk6He1xp0BACqVA/uLxV2HQBZEOsF2A/jxKvJATW/uFU1XNRcWxQUXj8gJT4DQjlOC1kt1I9REXh9q+Ata7R8LpV0fLJR2JT97dn2w0DP4TgCW0eoZBr5ezwIg/uRPIpxascum8//BOswmAEAI/i5BxyS2LJovC+K8zL28WNz5gr6+vpaFhbSte/BicvNbBLZBoXoe5pgANDw8nAts+X3K/ry7OPB7hcLAowuFwqamsIsLhYEeIHTrpPthIadAUYT5M/xuNd1w52N+BMDK5XIlhPAdQG2BdtzDPbe9va+zuaEXLJnFL7fCHCzUA+WUPIfjqc3sFysmDoAKhd2bTNFjkkInRli7YnixEhoEZEJSHLdw7cX3GwHwpVKpLVj2xaSmAbaGgG8lhVYPLNjL5apZJMcNA4CcVx2npnEuPE8SJ2pkLwHZK9P8euaMjL9I+BlAsyQf0d09dH3z2rbMWLtzs9brtwpqCJilcEmx2D/YvPdoOUUJGM4F2rUBnIXWnh8z5EEFJMH9hvehjlNbhWsRaYisPgJkxzoMVwMQyHCboAjEMUpPxMk6jKVjFQEInZ0DlxnwpKZr2C40kljIKGgB3PNIzANarV+QCTwush7g2gUrCtYjuGJQtFOIBgFozVbgSZBJSGoglns9mLEZm5o6eAjEtwzaRIVq0w8tmrxgrWLmj+r13HuLxaG/KBaH3tMg3y64J4oWN8/jwDl+DgLQ0Rn/PAqDIutg9Cwy+jOz9vcVi0N/UygNvwt07wYyj4Y4B4SAkxkux4D6/jO4TwGypLuhnYbAPPvnJcO/iqpCNMG25vKZG7f2DvU3CTEseXmsfPYHJB1plnlWZboEJ4vFFj+PByCz6qsA2wUohixaf3ZTco4I4WLBriwW+1+Jk8VgC/cZDw8P50JofSPBweQ+GMzC51e2cjULYDbZpzLv+JRFz7yY7OKOjoEtDWevIQwQ3RrWbQDASmXkVlA/INEeZMdp+vVCof/K5vX9Osf5rJS01la73cT7SWREZMTod7F7d3bRHJ1yzkWh5H8biB4pssF1WPCkP54ow3SAWiRdueiZFo9ho1gcLJHuFUnGGdblIAgh/iIBD9HT7NJiceCly1wfAOLOzuH2TMb9vsydkpV1IbmbDICv1TLXg3aJiANYO8+4SSKLU9MkiFWe38Kbc0kURPD/BOKK5GxeVReMbQJ1QWMBLCZ9kyAQdQrzFNoFHW8ShZ1Dggh9fX2d1QZfBobDCBYJVg/JOdntJDubOf41JU3aILgcpOAQ2qXwN82K5dM72pFyIrICTNJmBuaw3p1zdoLDKpUDe7t7hv6K0n8TeEQWXeaC/qqnMPiVwPBDKVSkyJGh1TkbBtQ6Pr7/fy/jskEg7qB0jWj1IPYWSoN/KO//cXLywEIcICoU+naSmecHuVeKmAQsInUamVVMUmDpDxNolTKvLBYHH2Gh8XkEN4GsGILbfvy4v57kZQF2hMD2iP5/jo+P7F9mbpS4ECdmCqXWH1LZ6wQ7FoRndZeGJjI2/5mFYGtSFJd9JBC9OggDhKaS2os11yQBBN+ov99FLZeBoVNwNYC/VygNPNURP0Zd+2PzDSljgHojukfC4SPNg4XO1iUlADYyMlLtLQ7+s2BvETkt2RMKU9X/gULf301MjN678Obe3qH+OMavQvZcAlVCTmuvJZbLIwe7e4bukdxFYjhCRb9aLO6cqVRavwAkVdiFQmGTWevjJPdfZChSmMbyLWAesFYnJg7eVyzu+j9AeL6HTThEv14s7mzPVuObR5MqegDIFAoDD6PCq4LcRWJcAcxdaCThAPiurh3bZO7XKKsmhZan56Y6VXNqZkv65nX0wBWgC/9IZCUTPTLeWRp8l4lvAxUBajbFI5MYheaTp2Zwsu1kY0IK7xcy/wHAFgAxSS8xrCMjRgBD4sZhaLa+8NCyrj8BYD6fn63Vwr/A7D8SQQE0wG0mw/GkpgcCjc0aBmcImwCJCjdXJvZ9AuuvWE4CisdKx4v5ybfJh8gIkWhx2fjHK8QxzglRTI7v/XyxuCsr6jcRLA/Y1kC8HHAvATVHWBZE5KUug24F8E9L1mkAQIbje8j2F0MYEm0Ssmvh3OMKpaH9icbD1gAbNGkrGD5OqCC4RybH0oZ1Pqs8gE2APuoQBLrflqJrPDNPYyYcQZAPdFuBMAtyjtI20v/L+Pi+D65C3kl8iPi0V3xVgDOQdYD/2Ye264vFXeOgWBe7SF5EoAbFHxGj6yU0SKwVdw0AbHr6/tHu7sH/RrM/FDgouDnKXeeB5yHSPEVPJ1LcIjBP1D6z+P6WI0wSXqJx7RziAMDGKvu+0l3cuZNyLyNcDOhyWPZdhdLQfQDmALT4oJ2waBulo1L93WB0LYhhaNX9RgA+Qv1jXtEfiJFgpOTeWCjUngcbKiOptegQ3BUUp0IcfwoRr8G69zKsvZ1/e+xYI2/KPENwJPiKWot7ajE/eH/SGBSdAEoiC4T/GULj/bL8G5qeHEUXCkH09fW11BqZt0poD4zLyTkSZ+cCAUAzawhs5qIFUeRJdzaDtUT+AieKZLOU932/e9u219Jn/4sQPY5CLKIGQc124EmzO/l7hPr/U6ncf2ehNHSxwP8A4LgSRtwM4Gh9VW1bDlArglpAbBaUBdhKaKXgsu69994agE90d/d/V8ank9GVROgT1AbQQSAhCKGeCKHwPcl/ujxx4NtnNiR3NCoVfHc1Ijkfc1Kp3Pep3q29P4ij3Atg9ngv6yTQAtoW0M9QrALaGxi+sxLBTkxMzHR3t7yFjP6A4GUA5iR2CO4pJ01sHTf5fypX9v1tobTzdVD0K6DmpHAa+zeJfJQr+z/S3b1zDBFfCmkHoEiUA/xxEDUJsw76QKW87zNrkHcAwPHxkZ929+x8u0mvBrhDsKyky0QOESFQNBMOSfV3T04c+E6hdNFzDeoEAiTv1kXIk/vuGcDA/zVb4vMpe6qS2ps2ABlSGQE1IIwB2Fed98dWWwch+IyTtSfDGnLrnGtOVva/v1jcWQH0a6JtldwmgFcCISbUCESVwd8H4h8mJka+WijsLMHc45T0sefqYzj6je7ugTY4vFpQK6B5kBcJTNyPQl0IdxrDX05G1Xu7Q9uzAEUU6s2ajFWVqnvvvbc2PDz8rqNHQ0ziOZ6UidsE9oEgxBYQs1J8S9yo/e3hw4cOFkrDvwGFXSCrDxZJLD4L12/bvK2rVsu+SeYGQB09S4IASQeF0NHR394xOTke6vVGfcvWrIL3gQ6mmCGKEOStcfBg4qq6+eYLnigmDx26B8AfFouDTwPclVToAthKMRLCvUD83UrlwDeRBIctrvNfMpn4QNOKyEqMBD9+76lZE6f4YOO48XXn3GRkqMKjDZLJmZMaE2u5C5sukn8B8OGenp5u73PbSesOgVkHDwPG6tB45aQr5Wwb7p3imjjPMaREyzw8dgDA33R1dW0GNm13kdtG+jxiP+Opo878ofHx8ZXOOBAANsftv3Z3919hZpcTti3xT9MDNpqR/+qhyX33AKAhfM6H2r3OWQTortOxnpq9v6zZJvobnZ19282sx7moR2rUfBwf3LQpM3IaJ9Il9z++/xulUukOCy1XBnNXCNiCIGeGGkP4US0+8uXDhw8fTe4//nOB26UQyMahdRB7AGAjGKmijI8B+Nfe3t7tcdzaJ2krLTiEMJmJ44OHDh+6H0sKMpcKzGzW7QuN+J2ixebqU6fj9q1U9n+6p6fnO963PsfMHgb5PIAqGQ6GgJ8Bs9+uVCZmAJgUvmzCESDMxj67b5XnbK6BkS90dPTfmsnwiaR7OIkuKkkTF3RbNlv70ujo6Pzu3buzU1OzbwfUFnvOTk11TyeNlVccQwFgU5F7R09P/+eozDUC+gC2QKoCfgyyWycq+xYUL4Y4fiepIedQZXdp+FMbtGfkEP9+uXzgwCom6gPSEwuF/ieL0WsA19dsT3u2VaySLGMIbVGOfzJ28Off3PE7r3l/dNHQbwXLA86AEMDg4ffuveXgX3/22dD+WjPbayOFjAPgu7sHr6KL3kOFL1Qq9/3xBgjGsNz3rON954v81+M6Wu/7HgpYz7Os5/Sw9RQ6nfaZxt3FXW8GeRWgCNLfT1b2fhhJimrjNNcZzvL9Z7smFxTLB9PyP5fPea7HkOu0tB+wziJsXM4xq9XaQq76qhPZ09NTkLKPB6JrAqInQqqKYYpgdmPuRQaqEeq1aQA4+N7/+Zrtz3rGB6Lu7TvnQ6OdrbkjfvJwefJTn/oOgEbzIAo9BARSwOLCqpNZHQsLaGkL6KU96Zcl6hU249K2ieupP1icEbbcAUAXSubYRseNtMzzapkxwRouskX9YU4952GFOV3TemoWYErLWI0r3POZ1JmEZe5rKYGGJc+4rvtfMkZ+iRW5dKzDOoWlncaaXmv/cYXnPK15WubaWscYns79axk5oWWe5wFrMaJCVWQGsBYJMaml6XfrJsJMruU/dpcG7mFgTlT9RKtcgaC1KIQ8af0+cKfIboCiwjSImGC0QYIjGJWlwtfLlYM/AWAgw/1f/D+3IjlLeTnO1ENMKPkVFtl633sm1z9T4fnLgo143uXm0J/N/ISAFhq3Jsf+PqD30EbOkVa41/U840aM0/la30s/r1XcSP4CHMNwuvIkCsJRUoWNsbujJ0B4OuyBDUskBJqLAYUkz5dHkdRBr3Tk5Fm4ecKsmf558ZfjhhscKhXiaU9L/nb33cLNN4dfMkGW4pcMjuEAFH4KwGjrOko1RYpTENHsGIG+jaB3JW0gDidy+WTwuWmdNE0bqtlByW384yiGuFXUh8bH949gsQ9v4djRPXvSWU/xy4Bma4Z9/wvA3y9Rhnw6PCnWC3Pw+ym2QvJMGq+dhUavsGB9kYoXXiddohLOUZGbgABZJxnuy2caH8aa5/6mSPFLRRhK90OKMyIJKdyRJPJuRI8i2snXYjfSA/6+4ZuAYDsRZhDq72iea4B0U6RIkSLFWZIEWb0T0AiATXhotrEQABIhcubf2SyVd/jFSK9MkSJFigeXJMrl8qzkv9bs5vhQSQVtsoMaAFsobTXU3zU+vv8bWL5uIEWKFClSnAlJAECmWv83KIxLtIfQvQfAtUIhA4X3lMsHP5sSRIoUKVJsPEnYoeOHpgzhk4Q2JWdKX7BYcId5CTlTaIksftfExL6PpwSRIkWKFOeGJATAKpX+j5LhB4BtE+RP4/zc8wR5KlST81q12RgOO+//aHx85PN48Mv1U6RIkeIXmiQE7IkpvYPyBynbcmHFsBWSttiuQGKLKXwpsvk3jE/tuw1pkDpFihQpzhkWusA2rYl95c7O7X8QRS3v8mIJDBPEiVOkzhVrLA2WP6DHDMUWUVkQ94n+nyfK+/csIrnUgkiRIkWKc0wSCwK5echH/xto0ZsBXkaxLiBGUhS3INc3KMCthaZVCwfoJGevikbIROQpZEDcI4TPTJb3fQFJm+ulTc9SpEiRIsU5JokTRNHsb/97pdLASwKiVwBsEzEPoYrmEWNnaVlokRHBpFelHJPDc9oABciPUfYDMnyzUt73dZw8A+HBaoOdIkWKFL/0JLFAFAQQl8sjH+ns7PumRdH1TrxSsgKAfACqJGKcWU0FJTqDTGAehKBwhNQ8xWlA+wD/I3P1Oxcd1rKYHFKCSJEiRYoHkSQWNH0C4PT06P0A3t/Z2fnRKNr0OCnzGBA7KPaKyJ02USTZSTOBOEwfpuA0Ruf/3ak+Ol4eP4RTD0NhSg4pUqRI8eDh/wdRrS6jh8EIgQAAAABJRU5ErkJggg==" alt="dis+ capacidad">
   </div>
-  <div class="tbr">
-    <div class="tb-aux">
-      <button class="btn-tb" id="btnLog" onclick="openModal('logModal')">📋 Registro</button>
-      <button class="btn-tb" onclick="restartTour()">❓ Ayuda</button>
-      <button class="btn-tb" id="btnAuth" onclick="openAuthModal()">👤 Cuenta</button>
-    </div>
-    <div class="tb-sep"></div>
-    <a href="https://www.dismascapacidad.com.ar" target="_blank" class="tb-link">🛒 Tienda</a>
-    <a href="https://wa.me/5493512926315" target="_blank" class="tb-link wapp">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-      Contacto
-    </a>
-    <div class="tb-sep"></div>
-    <div class="spill">
-      <div class="sdot" id="sdot"></div>
-      <span id="stxt">Desconectado</span>
-    </div>
+  <div class="tb-spacer"></div>
+  <div class="spill">
+    <div class="sdot" id="sdot"></div>
+    <span id="stxt">Desconectado</span>
+  </div>
+  <button class="btn-tb" id="btnAuth" onclick="openAuthModal()">👤 Cuenta</button>
+</div>
+
+<!-- STATUS BAR -->
+<div class="status-bar" id="statusBar" style="display:none">
+  <div class="sb-device">
+    <span id="sbDevName">disMouse</span>
+    <span id="sbConnType2" class="sb-conn-badge">USB</span>
+  </div>
+  <div class="sb-actions">
+    <button id="btnReset" disabled onclick="resetDevice()">↺ Cargar configuración de fábrica</button>
   </div>
 </div>
 
-<div class="shell">
+<!-- DRAWER OVERLAY + DRAWER -->
+<div class="drw-overlay" id="drwOverlay" onclick="closeDrawer()"></div>
+<nav class="drawer" id="drawer">
 
-<!-- SIDEBAR -->
-<aside class="sidebar">
+  <div class="drw-head">
+    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYkAAAA8CAYAAACTrUbPAAAwTElEQVR42u29eXhdZ" style="display:none" class="drw-logo" alt=""><!-- placeholder; logo loaded below -->
+    <span style="font-weight:700;font-size:14px;color:var(--txt)">dis+ capacidad</span>
+    <button class="modal-x" onclick="closeDrawer()">✕</button>
+  </div>
 
-  <!-- PASO 1: Producto -->
-  <div class="sb">
-    <span class="sb-step">Paso 1</span>
-    <span class="sb-lbl">Seleccionar producto</span>
-    <div class="dev-list" id="devList">
+  <!-- SETUP: visible cuando NO está conectado -->
+  <div class="drw-setup" id="drwSetup">
+    <div class="drw-section">
+      <div class="drw-section-lbl">Configurar dispositivo</div>
 
-      <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
-        <div class="dev-ico">🎮</div>
-        <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+      <!-- Paso 1: Producto -->
+      <div class="drw-step">
+        <span class="drw-step-num">1</span>
+        <span class="drw-step-lbl">Seleccionar producto</span>
+        <div class="dev-list" id="devList">
+          <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
+            <div class="dev-ico">🎮</div>
+            <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+          </div>
+          <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
+            <div class="dev-ico">🔴</div>
+            <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+          </div>
+          <div class="dev-opt disabled">
+            <div class="dev-ico">📡</div>
+            <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
+            <span class="dev-soon">Próximamente</span>
+          </div>
+        </div>
       </div>
 
-      <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
-        <div class="dev-ico">🔴</div>
-        <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+      <!-- Paso 2: Tipo de conexión -->
+      <div class="drw-step" id="sbConnType" style="opacity:.38;pointer-events:none">
+        <span class="drw-step-num">2</span>
+        <span class="drw-step-lbl">Tipo de conexión</span>
+        <div class="conn-type">
+          <div class="ct-opt active" id="ct-usb" onclick="selectConnType('usb')">
+            <span class="ct-ico">🔌</span>
+            <span class="ct-lbl">USB</span>
+            <span class="ct-sub">Cable</span>
+          </div>
+          <div class="ct-opt" id="ct-ble" onclick="selectConnType('ble')">
+            <span class="ct-ico">📡</span>
+            <span class="ct-lbl">Bluetooth</span>
+            <span class="ct-sub">BLE</span>
+          </div>
+        </div>
+        <div id="bleHint" style="display:none;margin-top:7px;font-size:10.5px;color:var(--txt3);line-height:1.6;padding:7px 9px;background:var(--surf2);border-radius:var(--r);border:1px solid var(--bdr)">
+          <b style="color:var(--amb)">⚠ Windows:</b> si "disMouse V4" ya está emparejado como mouse, el acceso BLE puede fallar. En ese caso:<br>
+          1. Ir a <b>Configuración → Bluetooth → disMouse V4 → Quitar dispositivo</b><br>
+          2. Volver a conectar desde acá<br><br>
+          El dispositivo puede aparecer <b>sin nombre</b>. Selecciónelo igual — el Registro mostrará el diagnóstico.
+        </div>
+        <div class="ios-block" id="iosBlock">
+          <b>iOS / iPadOS no soportado</b><br>
+          Safari y Chrome en iOS no implementan Web Bluetooth. No es una limitación del configurador — Apple no permite el acceso a BLE desde el navegador.<br><br>
+          Para configurar desde iPhone/iPad, usá <b>cable USB</b> conectando a una PC/Mac.
+        </div>
       </div>
 
-      <div class="dev-opt disabled">
-        <div class="dev-ico">📡</div>
-        <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
-        <span class="dev-soon">Próximamente</span>
+      <!-- Paso 3: Conectar -->
+      <div class="drw-step" id="sbConn" style="opacity:.38;pointer-events:none">
+        <span class="drw-step-num">3</span>
+        <span class="drw-step-lbl">Conectar</span>
+        <button class="btn pri sm" id="btnConn" onclick="toggleConn()" style="width:100%;margin-top:6px">Conectar</button>
+        <div id="connSub" style="display:none;flex-direction:column;gap:5px;margin-top:6px">
+          <button class="btn ghost sm" onclick="pingDevice()" style="width:100%">🔄 Probar conexión</button>
+          <button class="btn ghost sm" onclick="getAllConfig()" style="width:100%">📋 Ver configuración</button>
+        </div>
       </div>
-
     </div>
   </div>
 
-  <div class="sb-sep"></div>
+  <div class="drw-sep"></div>
 
-  <!-- PASO 2: Tipo de conexión -->
-  <div class="sb" id="sbConnType" style="opacity:.38;pointer-events:none">
-    <span class="sb-step">Paso 2</span>
-    <span class="sb-lbl">Tipo de conexión</span>
-    <div class="conn-type">
-      <div class="ct-opt active" id="ct-usb" onclick="selectConnType('usb')">
-        <span class="ct-ico">🔌</span>
-        <span class="ct-lbl">USB</span>
-        <span class="ct-sub">Cable</span>
-      </div>
-      <div class="ct-opt" id="ct-ble" onclick="selectConnType('ble')">
-        <span class="ct-ico">📡</span>
-        <span class="ct-lbl">Bluetooth</span>
-        <span class="ct-sub">BLE</span>
-      </div>
+  <!-- PRESETS -->
+  <div class="drw-section" id="secPresets">
+    <div class="drw-section-lbl">⚡ Configuraciones rápidas</div>
+    <div class="factory-grid" id="factoryGrid"></div>
+    <div class="custom-bar">
+      <span class="custom-bar-lbl">⭐ Mis configuraciones</span>
+      <button class="btn pri sm" id="btnSaveCustom" onclick="openSaveModal()" disabled>+ Guardar actual</button>
     </div>
-    <div id="bleHint" style="display:none;margin-top:7px;font-size:10.5px;color:var(--txt3);line-height:1.6;padding:7px 9px;background:var(--surf2);border-radius:var(--r);border:1px solid var(--bdr)">
-      <b style="color:var(--amb)">⚠ Windows:</b> si "disMouse V4" ya está emparejado como mouse, el acceso BLE puede fallar. En ese caso:<br>
-      1. Ir a <b>Configuración → Bluetooth → disMouse V4 → Quitar dispositivo</b><br>
-      2. Volver a conectar desde acá<br><br>
-      El dispositivo puede aparecer <b>sin nombre</b>. Selecciónelo igual — el Registro mostrará el diagnóstico.
-    </div>
-    <div class="ios-block" id="iosBlock">
-      <b>iOS / iPadOS no soportado</b><br>
-      Safari y Chrome en iOS no implementan Web Bluetooth. No es una limitación del configurador — Apple no permite el acceso a BLE desde el navegador.<br><br>
-      Para configurar desde iPhone/iPad, usá <b>cable USB</b> conectando a una PC/Mac.
-    </div>
+    <div class="custom-grid" id="customGrid" style="display:none"></div>
+    <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
   </div>
 
-  <div class="sb-sep"></div>
+  <div class="drw-sep"></div>
 
-  <!-- PASO 3: Conectar -->
-  <div class="sb" id="sbConn" style="opacity:.38;pointer-events:none">
-    <span class="sb-step">Paso 3</span>
-    <span class="sb-lbl">Conectar</span>
-    <div class="sb-btns">
-      <button class="sb-btn pri" id="btnConn" onclick="toggleConn()">Conectar</button>
-      <div id="connSub" style="display:none" class="sb-btns">
-        <button class="sb-btn ghost" onclick="pingDevice()">🔄 Probar conexión</button>
-        <button class="sb-btn ghost" onclick="getAllConfig()">📋 Ver configuración</button>
-      </div>
-    </div>
+  <!-- NAV SECUNDARIA -->
+  <div class="drw-nav">
+    <button onclick="openModal('logModal')">📋 Registro de actividad</button>
+    <button onclick="restartTour()">❓ Ayuda</button>
+    <a href="https://www.dismascapacidad.com.ar" target="_blank">🛒 Tienda</a>
+    <a href="https://wa.me/5493512926315" target="_blank">💬 Contacto WhatsApp</a>
   </div>
 
-  <div class="sb-sep"></div>
+</nav>
 
-  <div class="sb" id="sbSave">
-    <span class="sb-lbl">Guardar</span>
-    <div class="sb-btns">
-      <button class="sb-btn ghost" id="btnSave" onclick="saveConfig()" disabled>💾 Guardar en dispositivo</button>
-      <button class="sb-btn ghost" id="btnReset" onclick="resetDevice()" disabled>🔄 Restaurar por defecto</button>
-    </div>
-  </div>
+<!-- hidden btnSave for JS compatibility -->
+<button id="btnSave" onclick="saveConfig()" disabled style="display:none"></button>
 
-  <div class="sb-spacer"></div>
-</aside>
-
-<!-- CONTENT -->
+<!-- PAGE CONTENT -->
+<div class="page-wrap">
 <main class="content">
 
   <div class="card" id="banner">
     <div class="banner">
       <div class="bico" id="bico">👈</div>
       <div class="btit" id="btit">Seleccione un producto</div>
-      <div class="bdsc" id="bdsc">Elija el dispositivo a configurar en el panel izquierdo.</div>
+      <div class="bdsc" id="bdsc">Elija el dispositivo a configurar usando el menú ☰.</div>
     </div>
   </div>
 
@@ -444,24 +476,6 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="card-head"><span>🎯</span><span class="card-title" id="mainTitle">Botones</span></div>
     <div class="card-body">
       <div class="btns-grid" id="mainGrid"></div>
-    </div>
-  </div>
-
-  <!-- SECCIÓN: Configuraciones rápidas -->
-  <div class="card sec-off" id="secPresets">
-    <div class="card-head"><span>⚡</span><span class="card-title">Configuraciones Rápidas</span></div>
-    <div class="card-body">
-      <div class="presets-outer">
-        <div class="factory-grid" id="factoryGrid">
-          <!-- Se puebla dinámicamente según el producto -->
-        </div>
-        <div class="custom-bar">
-          <span class="custom-bar-lbl">⭐ Mis configuraciones guardadas</span>
-          <button class="btn pri sm" id="btnSaveCustom" onclick="openSaveModal()" disabled>+ Guardar actual</button>
-        </div>
-        <div class="custom-grid" id="customGrid" style="display:none"></div>
-        <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
-      </div>
     </div>
   </div>
 
@@ -899,7 +913,7 @@ function setBanner(state) {
   if (state === 'none') {
     b.style.display=''; i.textContent='👈';
     t.textContent='Seleccione un producto';
-    d.textContent='Elija el dispositivo a configurar en el panel izquierdo.';
+    d.textContent='Elija el dispositivo a configurar usando el menú ☰.';
   } else if (state === 'conn') {
     b.style.display=''; i.textContent='🔌';
     t.textContent='Conecte el dispositivo';
@@ -911,12 +925,13 @@ function setBanner(state) {
 
 // ── HABILITAR / DESHABILITAR ─────────────────────────────
 function setSections(on) {
-  ['secBtns','secPresets'].forEach(id =>
+  ['secBtns'].forEach(id =>
     document.getElementById(id).classList.toggle('sec-off', !on));
   // secArrows solo se habilita si el producto tiene flechas
   if (prod && prod.hasArrows)
     document.getElementById('secArrows').classList.toggle('sec-off', !on);
-  document.getElementById('btnSave').disabled       = !on;
+  const btnSave = document.getElementById('btnSave');
+  if (btnSave) btnSave.disabled = !on;
   document.getElementById('btnReset').disabled      = !on;
   document.getElementById('btnSaveCustom').disabled = !on;
   document.getElementById('connSub').style.display  = on ? 'flex' : 'none';
@@ -1209,6 +1224,7 @@ async function applyPreset(id) {
   const cmds = FACTORY_CMDS[id]; if (!cmds) return;
   for (const c of cmds) await send(c);
   toast('⚡', 'Configuración aplicada');
+  closeDrawer();
 }
 
 // ── CUSTOM PRESETS ───────────────────────────────────────
@@ -1286,6 +1302,7 @@ async function applyCustom(p) {
   if (cfg.acel   != null) cmds.push('ACEL:'   + cfg.acel);
   for (const c of cmds) await send(c);
   toast('⭐', '"' + p.name + '" aplicada');
+  closeDrawer();
 }
 
 function delCustom(idx, e) {
@@ -1578,9 +1595,22 @@ function setConnected(val, physical = false) {
   document.getElementById('stxt').textContent = val ? 'Conectado' : 'Desconectado';
   const btn = document.getElementById('btnConn');
   btn.textContent = val ? 'Desconectar' : 'Conectar';
-  btn.className = 'sb-btn pri' + (val ? ' danger' : '');
+  btn.className = 'btn sm' + (val ? ' ghost' : ' pri');
   setSections(val);
   setBanner(val ? 'ok' : (prod ? 'conn' : 'none'));
+  // Status bar
+  const sb = document.getElementById('statusBar');
+  if (sb) sb.style.display = val ? '' : 'none';
+  if (val && prod) {
+    const el = document.getElementById('sbDevName');
+    const badge = document.getElementById('sbConnType2');
+    if (el) el.textContent = prod.name;
+    if (badge) badge.textContent = connType.toUpperCase();
+  }
+  // Drawer: hide setup when connected
+  const setup = document.getElementById('drwSetup');
+  if (setup) setup.style.display = val ? 'none' : '';
+  if (val) closeDrawer();
   if (val) { addLog('Conectado (' + connType.toUpperCase() + '): ' + (prod ? prod.name : '—')); onArrowMode(); }
   else addLog(physical ? 'Desconexión física detectada' : 'Desconectado', physical ? 'w' : '');
 }
@@ -1625,10 +1655,10 @@ const TOUR = [
    body:'(Solo disMouse) Configure cómo actúan las cuatro flechas: cursor del mouse, teclas de dirección, o acción individual por flecha.'},
   {sel:'#secBtns', pos:'left', title:'Configure cada botón',
    body:'Cada botón puede emular teclado, mouse (clic, doble clic, scroll ↑↓) o desactivarse. Haga clic en el campo de tecla y presione la tecla física.'},
-  {sel:'#secPresets', pos:'left', title:'Configuraciones rápidas',
-   body:'Presets diseñados para contextos de rehabilitación. Pase el cursor sobre cada uno para ver el detalle. Guarde sus propias configuraciones con nombre.'},
-  {sel:'#sbSave', pos:'right', title:'Guardar los cambios',
-   body:'Use "Guardar en dispositivo" para que la configuración persista al desconectar el cable o apagar el dispositivo.'},
+  {sel:'#secBtns', pos:'left', title:'Configuraciones rápidas',
+   body:'Abra el menú ☰ para ver presets diseñados para rehabilitación. Guarde sus propias configuraciones con nombre desde ahí.'},
+  {sel:'#statusBar', pos:'bottom', title:'Guardar los cambios',
+   body:'Cuando esté conectado, use "Cargar configuración de fábrica" para restaurar. Sus cambios en los botones se aplican al instante.'},
 ];
 
 function showWelcome() {
@@ -1738,6 +1768,21 @@ function initPresetTooltips() {
   }
 }
 
+// ── DRAWER ───────────────────────────────────────────────
+function openDrawer() {
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drwOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeDrawer() {
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drwOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+function toggleDrawer() {
+  document.getElementById('drawer').classList.contains('open') ? closeDrawer() : openDrawer();
+}
+
 // ── INIT ─────────────────────────────────────────────────
 function init() {
   const def = PRODUCTS['dismouse'];
@@ -1759,6 +1804,9 @@ function init() {
     addLog('iOS/iPadOS detectado — opción BLE deshabilitada.', 'w');
   }
   setTimeout(showWelcome, 800);
+
+  // Escape cierra drawer
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeDrawer(); });
 
   // Supabase: recuperar sesión activa y escuchar cambios
   // Usamos solo onAuthStateChange — incluye INITIAL_SESSION en v2, evita doble llamada
