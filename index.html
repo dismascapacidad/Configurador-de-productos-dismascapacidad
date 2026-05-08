@@ -1007,7 +1007,7 @@ const PRODUCTS = {
       {code:'FL', label:'Flecha ←', color:'#EAB308'},
       {code:'FR', label:'Flecha →', color:'#EAB308'},
     ],
-    presets: ['caa','causa','juego','oficina'],
+    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
   },
   disbutton: {
     id: 'disbutton', name: 'disButton',
@@ -1018,7 +1018,7 @@ const PRODUCTS = {
       {code:'BR', label:'disButton', color:'#EF4444'},
     ],
     arrowBtns: [],
-    presets: ['caa_single','causa_single'],
+    presets: [],
   },
 };
 
@@ -1342,80 +1342,145 @@ async function applyArrows() {
 
 // ── PRESETS DE FÁBRICA ───────────────────────────────────
 const _SP  = ' ';
-const _ENT = '215'; // ENTER — código correcto para firmware R009+ (era '176' antes)
+const _ENT = '215'; // ENTER
+const _UP  = '209'; const _DN = '210'; const _LT = '211'; const _RT = '212';
+const _DIS = 'X:P:0:0:-:-'; // botón desactivado
 
 const FACTORY_CMDS = {
-  caa: [
-    'CFG:BR:K:P:150:' + _SP  + ':-:-',
-    'CFG:BA:K:P:150:' + _ENT + ':-:-',
-    'CFG:BN:K:R:0:'   + _SP  + ':-:-',
-    'CFG:BC:K:R:0:'   + _ENT + ':-:-',
-    'CFG:FU:X:P:0:0:-:-','CFG:FD:X:P:0:0:-:-',
-    'CFG:FL:X:P:0:0:-:-','CFG:FR:X:P:0:0:-:-','FMODE:0',
+  asterics_barrido: [
+    'CFG:BR:K:P:0:s:-:-', 'CFG:BN:K:P:0:s:-:-',
+    'CFG:BA:K:P:0:c:-:-', 'CFG:BC:K:P:0:c:-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
   ],
-  causa: [
-    'CFG:BR:M:P:250:1:-:-','CFG:BA:M:R:0:1:-:-',
-    'CFG:BN:K:P:250:' + _SP + ':-:-',
-    'CFG:BC:K:R:0:'   + _SP + ':-:-',
-    'CFG:FU:X:P:0:0:-:-','CFG:FD:X:P:0:0:-:-',
-    'CFG:FL:X:P:0:0:-:-','CFG:FR:X:P:0:0:-:-','FMODE:0',
+  asterics_dir: [
+    'CFG:BR:K:P:0:' + _SP + ':-:-', 'CFG:BN:K:P:0:' + _SP + ':-:-',
+    'CFG:BA:K:P:0:' + _SP + ':-:-', 'CFG:BC:K:P:0:' + _SP + ':-:-',
+    'FMODE:2',
   ],
-  juego: [
-    'CFG:BR:K:P:0:' + _SP  + ':-:-',
-    'CFG:BA:K:P:0:' + _ENT + ':-:-',
-    'FMODE:2','ORIENT:0',
+  asterics_huffman: [
+    'CFG:BN:K:P:0:1:-:-', 'CFG:BR:K:P:0:2:-:-',
+    'CFG:BC:K:P:0:7:-:-', 'CFG:BA:K:P:0:8:-:-',
+    'CFG:FU:K:P:0:3:-:-', 'CFG:FD:K:P:0:4:-:-',
+    'CFG:FL:K:P:0:5:-:-', 'CFG:FR:K:P:0:6:-:-',
+    'FMODE:0',
   ],
-  oficina: [
-    'CFG:BR:M:P:0:1:-:-','CFG:BA:M:P:0:2:-:-',
-    'CFG:BN:M:P:0:SU:-:-','CFG:BC:M:P:0:SD:-:-',
-    'FMODE:1','ORIENT:0','VEL:45','ACEL:1',
+  asterics_sec: [
+    'CFG:BR:K:P:0:c:-:-', 'CFG:BA:K:P:0:c:-:-',
+    'CFG:BN:K:P:0:c:-:-', 'CFG:BC:K:P:0:c:-:-',
+    'CFG:FL:K:P:0:a:-:-', 'CFG:FR:K:P:0:s:-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'FMODE:0',
   ],
-  // Presets para disButton (1 botón): solo configura BR
-  caa_single: [
-    'CFG:BR:K:P:150:' + _SP + ':-:-',
+  cboard_barrido: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
+    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
   ],
-  causa_single: [
-    'CFG:BR:M:P:250:1:-:-',
+  juego_flechas: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
+    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
+    'FMODE:2',
+  ],
+  juego_wasd: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
+    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
+    'CFG:FU:K:P:0:w:-:-', 'CFG:FL:K:P:0:a:-:-',
+    'CFG:FD:K:P:0:s:-:-', 'CFG:FR:K:P:0:d:-:-',
+    'FMODE:0',
+  ],
+  std_enter: [
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:1:-:D',
+    'CFG:BC:K:P:0:' + _ENT + ':-:-', 'CFG:BA:M:P:0:2:-:-',
+    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
+  ],
+  std_drag: [
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:1:-:D',
+    'CFG:BC:M:P:0:1:-:M', 'CFG:BA:M:P:0:2:-:-',
+    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
+  ],
+  std_scroll: [
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:SU:-:-',
+    'CFG:BC:M:P:0:SD:-:-', 'CFG:BA:M:P:0:2:-:-',
+    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
+  ],
+  std_copy: [
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:K:P:0:c:C:-',
+    'CFG:BC:K:P:0:v:C:-', 'CFG:BA:M:P:0:2:-:-',
+    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
   ],
 };
 
 const FACTORY_CARDS = {
-  caa:          { icon:'💬', name:'CAA con PDA',    sub:'1 o más pulsadores',   tipId:'tip-caa' },
-  causa:        { icon:'🎯', name:'Causa - Efecto', sub:'Activación por efecto', tipId:'tip-causa' },
-  juego:        { icon:'🕹️', name:'Juego',          sub:'Flechas de dirección', tipId:'tip-juego' },
-  oficina:      { icon:'💼', name:'Oficina',         sub:'Mouse completo',       tipId:'tip-oficina' },
-  caa_single:   { icon:'💬', name:'CAA con PDA',    sub:'Espacio · press · 150ms', tipId:'tip-caa-s' },
-  causa_single: { icon:'🎯', name:'Causa - Efecto', sub:'Clic izq · press · 250ms', tipId:'tip-causa-s' },
+  asterics_barrido: { icon:'💬', name:'Asterics - Barrido',     sub:'S / C · sin debounce',          tipId:'tip-asterics-barrido' },
+  asterics_dir:     { icon:'🧭', name:'Asterics - Dirección',   sub:'Flechas + Espacio',              tipId:'tip-asterics-dir' },
+  asterics_huffman: { icon:'🔢', name:'Asterics - Huffman',     sub:'Botones 1-8',                    tipId:'tip-asterics-huffman' },
+  asterics_sec:     { icon:'↔️', name:'Asterics - Secuencial',  sub:'A / S / C · sin debounce',       tipId:'tip-asterics-sec' },
+  cboard_barrido:   { icon:'📋', name:'Cboard - Barrido',       sub:'Enter / Espacio · sin debounce', tipId:'tip-cboard-barrido' },
+  juego_flechas:    { icon:'🕹️', name:'Juego - Flechas',        sub:'Enter / Espacio + ↑↓←→',        tipId:'tip-juego-flechas' },
+  juego_wasd:       { icon:'⌨️', name:'Juego - WASD',           sub:'Enter / Espacio + WASD',         tipId:'tip-juego-wasd' },
+  std_enter:        { icon:'🖱️', name:'Estándar + Enter',       sub:'Clic · doble · enter · der.',    tipId:'tip-std-enter' },
+  std_drag:         { icon:'🤏', name:'Estándar + Arrastrar',   sub:'Clic · doble · mantener · der.', tipId:'tip-std-drag' },
+  std_scroll:       { icon:'📜', name:'Estándar + Scroll',      sub:'Clic · scroll ↑↓ · der.',        tipId:'tip-std-scroll' },
+  std_copy:         { icon:'📄', name:'Clics + Copiar/Pegar',   sub:'Clic · Ctrl+C · Ctrl+V · der.',  tipId:'tip-std-copy' },
 };
 
 const TIP_CONTENT = {
-  'tip-caa': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · 150 ms debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Enter · Press · 150 ms debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Espacio · Release</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Enter · Release</span></div>
+  'tip-asterics-barrido': `
+    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Tecla S · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Tecla C · Press</span></div>
     <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
-  'tip-causa': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press · 250 ms debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic izq · Release</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Espacio · Press · 250 ms debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Espacio · Release</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
-  'tip-juego': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · sin debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Enter · Press · sin debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠🩵</span><span class="tip-val">Sin cambio</span></div>
+  'tip-asterics-dir': `
+    <div class="tip-row"><span class="tip-btn">🔴🟠🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
     <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas → teclas de dirección</span></div>`,
-  'tip-oficina': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press · sin debounce</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press · sin debounce</span></div>
+  'tip-asterics-huffman': `
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Tecla 1 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla 2 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">↑</span><span class="tip-val">Tecla 3 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">↓</span><span class="tip-val">Tecla 4 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">←</span><span class="tip-val">Tecla 5 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">→</span><span class="tip-val">Tecla 6 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Tecla 7 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla 8 · Press</span></div>`,
+  'tip-asterics-sec': `
+    <div class="tip-row"><span class="tip-btn">🔴🔵🟠🩵</span><span class="tip-val">Tecla C · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">←</span><span class="tip-val">Tecla A · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">→</span><span class="tip-val">Tecla S · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">↑↓</span><span class="tip-val">Desactivadas</span></div>`,
+  'tip-cboard-barrido': `
+    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
+  'tip-juego-flechas': `
+    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas → teclas de dirección</span></div>`,
+  'tip-juego-wasd': `
+    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">↑←↓→</span><span class="tip-val">W A S D</span></div>`,
+  'tip-std-enter': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Doble clic · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
+  'tip-std-drag': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Doble clic · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Mantener clic izq · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
+  'tip-std-scroll': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
     <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Scroll ↑ · Press</span></div>
     <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Scroll ↓ · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 45 · aceleración ON</span></div>`,
-  'tip-caa-s': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press · 150 ms debounce</span></div>`,
-  'tip-causa-s': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Press · 250 ms debounce</span></div>`,
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
+  'tip-std-copy': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Ctrl + C · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Ctrl + V · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
 };
 
 function buildFactoryPresets(ids) {
