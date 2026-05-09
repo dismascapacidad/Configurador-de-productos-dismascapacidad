@@ -197,12 +197,13 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .btn-adv{display:none;border-top:1px solid var(--bdr);margin-top:4px;padding-top:9px}
 .btn-adv.open{display:flex;flex-direction:column;gap:7px}
 
-/* ── LAYOUT PRODUCTO ÚNICO (disButton) ── */
-.prod-single .btns-grid{display:flex;justify-content:center}
-.prod-single .btn-card{width:320px;max-width:100%;position:relative}
-.prod-single .btn-fields{position:relative}
-.prod-single .btn-adv.open{position:absolute;left:calc(100% + 10px);top:0;width:280px;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:11px 12px;box-shadow:var(--shl);z-index:10}
-.prod-single .btn-apply-wrap{display:flex;justify-content:flex-end;margin-top:4px}
+/* ── LAYOUT CENTRADO (disButton, disHub) ── */
+.prod-centered .btns-grid{display:flex;justify-content:center;flex-wrap:wrap}
+.prod-centered .btn-card{display:flex;flex-direction:row;align-items:stretch;width:auto}
+.prod-centered .btn-main{flex-shrink:0;width:296px;display:flex;flex-direction:column;gap:8px}
+.prod-centered .btn-adv{display:none;border-top:none;margin-top:0;padding-top:0;border-left:1.5px solid var(--bdr);padding-left:14px;margin-left:0;flex-direction:column;gap:7px;min-width:230px}
+.prod-centered .btn-adv.open{display:flex}
+.prod-centered .btn-apply-wrap{display:flex;justify-content:flex-end;margin-top:4px}
 
 /* ── PRESETS ── */
 .presets-outer{display:flex;flex-direction:column;gap:12px}
@@ -1072,7 +1073,7 @@ const PRODUCTS = {
     id: 'disbutton', name: 'disButton',
     cardTitle: 'Configura tu disButton',
     hasArrows: false,
-    singleBtn: true,
+    centeredLayout: true,
     mainBtns: [
       {code:'BR', label:'disButton', color:'#EF4444'},
     ],
@@ -1083,6 +1084,7 @@ const PRODUCTS = {
     id: 'dishub', name: 'disHub',
     cardTitle: 'Botones — disHub',
     hasArrows: true,
+    centeredLayout: true,
     arrowSectionTitle: 'Entradas externas',
     arrowSectionIcon: '🔌',
     mainBtns: [
@@ -1137,8 +1139,8 @@ function selectProd(id) {
 
   document.getElementById('mainTitle').textContent = p.cardTitle;
 
-  // Layout prod-single para disButton
-  document.getElementById('secBtns').classList.toggle('prod-single', !!p.singleBtn);
+  // Layout centrado para disButton y disHub
+  document.getElementById('secBtns').classList.toggle('prod-centered', !!p.centeredLayout);
 
   // Título y ícono de la sección flechas/externos
   const arrowTitle = document.getElementById('arrowSectionTitle');
@@ -1220,6 +1222,7 @@ function mkCard(code, label, color) {
   const d = document.createElement('div');
   d.className = 'btn-card'; d.id = 'card-' + code;
   d.innerHTML = `
+    <div class="btn-main">
     <div class="btn-card-head">
       <div class="btn-dot" style="background:${color}"></div>
       <div class="btn-card-title">${label}</div>
@@ -1257,36 +1260,37 @@ function mkCard(code, label, color) {
             </select>
           </div>
         </div>
-        <!-- AVANZADO -->
+        <!-- AVANZADO toggle -->
         <button class="btn-adv-toggle" id="advtog_${code}" onclick="toggleAdv('${code}')">Avanzado</button>
-        <div class="btn-adv" id="adv_${code}">
-          <div class="field" style="margin:0">
-            <label class="lbl">Se activa</label>
-            <select id="m_${code}">
-              <option value="P">Al presionar</option>
-              <option value="R">Al soltar</option>
-              <option value="H">Pulsación larga (1 seg)</option>
-              <option value="O">Una vez por pulsación</option>
-            </select>
-          </div>
-          <div class="field" style="margin:0">
-            <label class="lbl">Debounce (ms)</label>
-            <input type="number" id="d_${code}" min="0" max="5000" value="0" step="50">
-          </div>
-          <div id="kb_mods_${code}">
-            <div class="field" style="margin:0">
-              <label class="lbl">Modificadores</label>
-              <div class="mods-grid">
-                <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
-                <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
-                <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
-                <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
-              </div>
-            </div>
+      </div>
+      <div class="btn-apply-wrap"><button class="btn suc sm" onclick="applyBtn('${code}')">Aplicar</button></div>
+    </div><!-- /btn-main -->
+    <div class="btn-adv" id="adv_${code}">
+      <div class="field" style="margin:0">
+        <label class="lbl">Se activa</label>
+        <select id="m_${code}">
+          <option value="P">Al presionar</option>
+          <option value="R">Al soltar</option>
+          <option value="H">Pulsación larga (1 seg)</option>
+          <option value="O">Una vez por pulsación</option>
+        </select>
+      </div>
+      <div class="field" style="margin:0">
+        <label class="lbl">Debounce (ms)</label>
+        <input type="number" id="d_${code}" min="0" max="5000" value="0" step="50">
+      </div>
+      <div id="kb_mods_${code}">
+        <div class="field" style="margin:0">
+          <label class="lbl">Modificadores</label>
+          <div class="mods-grid">
+            <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
+            <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
+            <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
+            <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
           </div>
         </div>
       </div>
-      <div class="btn-apply-wrap"><button class="btn suc sm" onclick="applyBtn('${code}')">Aplicar</button></div>
+    </div>
     </div>`;
   return d;
 }
