@@ -197,6 +197,13 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .btn-adv{display:none;border-top:1px solid var(--bdr);margin-top:4px;padding-top:9px}
 .btn-adv.open{display:flex;flex-direction:column;gap:7px}
 
+/* ── LAYOUT PRODUCTO ÚNICO (disButton) ── */
+.prod-single .btns-grid{display:flex;justify-content:center}
+.prod-single .btn-card{width:320px;max-width:100%;position:relative}
+.prod-single .btn-fields{position:relative}
+.prod-single .btn-adv.open{position:absolute;left:calc(100% + 10px);top:0;width:280px;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);padding:11px 12px;box-shadow:var(--shl);z-index:10}
+.prod-single .btn-apply-wrap{display:flex;justify-content:flex-end;margin-top:4px}
+
 /* ── PRESETS ── */
 .presets-outer{display:flex;flex-direction:column;gap:12px}
 .factory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -392,15 +399,19 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         <div class="dev-list" id="devList">
           <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
             <div class="dev-ico">🎮</div>
-            <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+            <div><div class="dev-name">disMouse</div></div>
           </div>
           <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
             <div class="dev-ico">🔴</div>
-            <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+            <div><div class="dev-name">disButton</div></div>
+          </div>
+          <div class="dev-opt" id="opt-dishub" onclick="selectProd('dishub')">
+            <div class="dev-ico">🔌</div>
+            <div><div class="dev-name">disHub</div></div>
           </div>
           <div class="dev-opt disabled">
-            <div class="dev-ico">📡</div>
-            <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
+            <div class="dev-ico">🕹️</div>
+            <div><div class="dev-name">disMouth</div></div>
             <span class="dev-soon">Próximamente</span>
           </div>
         </div>
@@ -520,12 +531,12 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
   <!-- SECCIÓN: Flechas (oculta para disButton) -->
   <div class="card sec-off" id="secArrows">
-    <div class="card-head"><span>⬆️</span><span class="card-title">Modo de Flechas</span></div>
+    <div class="card-head"><span id="arrowSectionIcon">⬆️</span><span class="card-title" id="arrowSectionTitle">Modo de Flechas</span></div>
     <div class="card-body">
       <div class="arrow-row">
         <div class="arrow-sel">
           <div class="field" style="margin:0">
-            <label class="lbl">Las flechas funcionan como:</label>
+            <label class="lbl" id="arrowModeLabel">Las flechas funcionan como:</label>
             <select id="arrowMode" onchange="onArrowMode()">
               <option value="1">Mover el cursor del mouse</option>
               <option value="2">Teclas de flecha del teclado (↑↓←→)</option>
@@ -656,15 +667,19 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
             <div class="dev-list" id="devListModal">
               <div class="dev-opt" id="opt-dismouse-m" onclick="selectProd('dismouse')">
                 <div class="dev-ico">🎮</div>
-                <div><div class="dev-name">disMouse</div><div class="dev-sub">9 botones</div></div>
+                <div><div class="dev-name">disMouse</div></div>
               </div>
               <div class="dev-opt" id="opt-disbutton-m" onclick="selectProd('disbutton')">
                 <div class="dev-ico">🔴</div>
-                <div><div class="dev-name">disButton</div><div class="dev-sub">1 botón</div></div>
+                <div><div class="dev-name">disButton</div></div>
+              </div>
+              <div class="dev-opt" id="opt-dishub-m" onclick="selectProd('dishub')">
+                <div class="dev-ico">🔌</div>
+                <div><div class="dev-name">disHub</div></div>
               </div>
               <div class="dev-opt disabled">
-                <div class="dev-ico">📡</div>
-                <div><div class="dev-name">disMouse BLE</div><div class="dev-sub">Bluetooth</div></div>
+                <div class="dev-ico">🕹️</div>
+                <div><div class="dev-name">disMouth</div></div>
                 <span class="dev-soon">Próximamente</span>
               </div>
             </div>
@@ -782,6 +797,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
       <button class="btn ghost" onclick="skipTour()">Omitir</button>
       <button class="btn pri" onclick="startTour()">Comenzar recorrido</button>
     </div>
+    <button class="btn ghost" style="font-size:11px;color:var(--txt3);margin-top:8px;width:100%" onclick="neverShowTour()">No volver a mostrar</button>
   </div>
 </div>
 
@@ -1056,12 +1072,30 @@ const PRODUCTS = {
     id: 'disbutton', name: 'disButton',
     cardTitle: 'Configura tu disButton',
     hasArrows: false,
+    singleBtn: true,
     mainBtns: [
-      // Mismo código BR que disMouse — mismo firmware, solo 1 botón expuesto
       {code:'BR', label:'disButton', color:'#EF4444'},
     ],
     arrowBtns: [],
-    presets: [],
+    presets: ['db_clic_press','db_clic_release','db_youtube','db_cboard'],
+  },
+  dishub: {
+    id: 'dishub', name: 'disHub',
+    cardTitle: 'Botones — disHub',
+    hasArrows: true,
+    arrowSectionTitle: 'Entradas externas',
+    arrowSectionIcon: '🔌',
+    mainBtns: [
+      {code:'BR', label:'Botón Rojo',  color:'#EF4444'},
+      {code:'BA', label:'Botón Azul',  color:'#3B82F6'},
+    ],
+    arrowBtns: [
+      {code:'FU', label:'Externo 1', color:'#EAB308'},
+      {code:'FD', label:'Externo 2', color:'#EAB308'},
+      {code:'FL', label:'Externo 3', color:'#EAB308'},
+      {code:'FR', label:'Externo 4', color:'#EAB308'},
+    ],
+    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
   },
 };
 
@@ -1103,6 +1137,19 @@ function selectProd(id) {
 
   document.getElementById('mainTitle').textContent = p.cardTitle;
 
+  // Layout prod-single para disButton
+  document.getElementById('secBtns').classList.toggle('prod-single', !!p.singleBtn);
+
+  // Título y ícono de la sección flechas/externos
+  const arrowTitle = document.getElementById('arrowSectionTitle');
+  const arrowIcon  = document.getElementById('arrowSectionIcon');
+  if (arrowTitle) arrowTitle.textContent = p.arrowSectionTitle || 'Modo de Flechas';
+  if (arrowIcon)  arrowIcon.textContent  = p.arrowSectionIcon  || '⬆️';
+  const arrowModeLabel = document.getElementById('arrowModeLabel');
+  if (arrowModeLabel) arrowModeLabel.textContent = p.arrowSectionTitle
+    ? 'Las ' + p.arrowSectionTitle.toLowerCase() + ' funcionan como:'
+    : 'Las flechas funcionan como:';
+
   // Mostrar/ocultar sección flechas
   document.getElementById('secArrows').style.display = p.hasArrows ? '' : 'none';
 
@@ -1110,6 +1157,7 @@ function selectProd(id) {
   buildGrid('mainGrid', p.mainBtns);
   if (p.hasArrows) buildGrid('arrowGrid', p.arrowBtns);
   buildFactoryPresets(p.presets);
+  renderCustom();
   addLog('Producto seleccionado: ' + p.name);
 }
 
@@ -1238,7 +1286,7 @@ function mkCard(code, label, color) {
           </div>
         </div>
       </div>
-      <button class="btn suc sm full" onclick="applyBtn('${code}')">Aplicar</button>
+      <div class="btn-apply-wrap"><button class="btn suc sm" onclick="applyBtn('${code}')">Aplicar</button></div>
     </div>`;
   return d;
 }
@@ -1450,6 +1498,11 @@ const FACTORY_CMDS = {
     'CFG:BC:K:P:0:v:C:-', 'CFG:BA:M:P:0:2:-:-',
     'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
   ],
+  // ── disButton (1 botón)
+  db_clic_press:   [ 'CFG:BR:M:P:0:1:-:-' ],
+  db_clic_release: [ 'CFG:BR:M:R:0:1:-:-' ],
+  db_youtube:      [ 'CFG:BR:K:P:0:' + _SP  + ':-:-' ],
+  db_cboard:       [ 'CFG:BR:K:P:0:' + _ENT + ':-:-' ],
 };
 
 const FACTORY_CARDS = {
@@ -1464,6 +1517,10 @@ const FACTORY_CARDS = {
   std_drag:         { icon:'🤏', name:'Estándar + Arrastrar',   sub:'Clic · doble · mantener · der.', tipId:'tip-std-drag' },
   std_scroll:       { icon:'📜', name:'Estándar + Scroll',      sub:'Clic · scroll ↑↓ · der.',        tipId:'tip-std-scroll' },
   std_copy:         { icon:'📄', name:'Clics + Copiar/Pegar',   sub:'Clic · Ctrl+C · Ctrl+V · der.',  tipId:'tip-std-copy' },
+  db_clic_press:   { icon:'🖱️', name:'Clic al presionar',      sub:'Clic izq · Press',               tipId:'tip-db-clic-press' },
+  db_clic_release: { icon:'🖱️', name:'Clic al soltar',         sub:'Clic izq · Release',             tipId:'tip-db-clic-release' },
+  db_youtube:      { icon:'▶️',  name:'Causa-Efecto YouTube',   sub:'Espacio · Press',                tipId:'tip-db-youtube' },
+  db_cboard:       { icon:'📋', name:'Cboard - Escaneo auto',  sub:'Enter · Press',                  tipId:'tip-db-cboard' },
 };
 
 const TIP_CONTENT = {
@@ -1524,6 +1581,14 @@ const TIP_CONTENT = {
     <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Ctrl + V · Press</span></div>
     <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
     <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
+  'tip-db-clic-press': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Press</span></div>`,
+  'tip-db-clic-release': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Release</span></div>`,
+  'tip-db-youtube': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press</span></div>`,
+  'tip-db-cboard': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>`,
 };
 
 function buildFactoryPresets(ids) {
@@ -1560,20 +1625,34 @@ function saveCustomList(list) {
 }
 
 function renderCustom() {
-  const list = loadCustom();
+  const all  = loadCustom();
+  // Filtrar por producto activo; los presets sin prodId (legacy) se muestran siempre
+  const list = prod
+    ? all.filter(p => !p.prodId || p.prodId === prod.id)
+    : all;
   const grid = document.getElementById('customGrid');
   const none = document.getElementById('noCustom');
   grid.innerHTML = '';
-  if (!list.length) { grid.style.display='none'; none.style.display='block'; return; }
+  if (!list.length) {
+    grid.style.display = 'none';
+    none.style.display = 'block';
+    none.textContent   = prod
+      ? 'No hay configuraciones guardadas para ' + prod.name + '.'
+      : 'Seleccioná un producto para ver tus configuraciones.';
+    return;
+  }
   grid.style.display = 'grid'; none.style.display = 'none';
-  list.forEach((p, i) => {
+  list.forEach((p) => {
+    // índice real en la lista completa para poder eliminar correctamente
+    const realIdx = all.indexOf(p);
+    const prodLabel = PRODUCTS[p.prodId] ? PRODUCTS[p.prodId].name : '';
     const card = document.createElement('div');
     card.className = 'custom-card';
     card.innerHTML = `
-      <button class="custom-del" title="Eliminar" onclick="delCustom(${i},event)">✕</button>
+      <button class="custom-del" title="Eliminar" onclick="delCustom(${realIdx},event)">✕</button>
       <div style="font-size:20px;margin-bottom:3px">⭐</div>
       <div class="custom-name">${esc(p.name)}</div>
-      <div class="custom-date">${p.date}</div>`;
+      <div class="custom-date">${p.date}${prodLabel ? ' · ' + prodLabel : ''}</div>`;
     card.addEventListener('click', () => applyCustom(p));
     grid.appendChild(card);
   });
@@ -1592,7 +1671,7 @@ async function confirmSave() {
   await send('GETALL');
   await new Promise(r => setTimeout(r, 2400));
   const list = loadCustom();
-  list.push({ name, date: new Date().toLocaleDateString('es-AR'), cfg: JSON.parse(JSON.stringify(devCfg)) });
+  list.push({ name, date: new Date().toLocaleDateString('es-AR'), prodId: prod ? prod.id : null, cfg: JSON.parse(JSON.stringify(devCfg)) });
   saveCustomList(list);
   renderCustom();
   closeModal('saveModal');
@@ -1936,8 +2015,9 @@ function setConnected(val, physical = false) {
   // Botón Conectar rápido en topbar
   const cq = document.getElementById('btnConnQuick');
   if (cq) {
-    cq.textContent = val ? 'Conectado ✓' : 'Conectar →';
+    cq.textContent = val ? 'Desconectar' : 'Conectar →';
     cq.className = 'btn-conn-quick' + (val ? ' connected' : '');
+    cq.onclick = val ? toggleConn : openConnModal;
   }
   // Actualizar botón dentro del connModal si está abierto
   const btnM = document.getElementById('btnConnM');
@@ -1993,7 +2073,7 @@ const TOUR = [
 ];
 
 function showWelcome() {
-  if (localStorage.getItem('displus_tour') === '2') return;
+  if (localStorage.getItem('displus_tour_skip') === '1') return;
   document.getElementById('twBd').style.display='block';
   document.getElementById('twCard').style.display='flex';
 }
@@ -2004,7 +2084,8 @@ function startTour() {
   document.getElementById('tourBd').style.display='block';
   renderStep();
 }
-function skipTour()    { endTour(); localStorage.setItem('displus_tour','3'); }
+function skipTour()      { endTour(); }
+function neverShowTour() { localStorage.setItem('displus_tour_skip','1'); endTour(); }
 function restartTour() {
   endTour();
   setTimeout(()=>{ document.getElementById('twBd').style.display='block'; document.getElementById('twCard').style.display='flex'; }, 50);
@@ -2013,7 +2094,7 @@ function nextStep() {
   // Paso 3 (flechas) solo aplica a disMouse
   if (tStep === 2 && prod && !prod.hasArrows) { tStep++; }
   if (tStep < TOUR.length-1) { tStep++; renderStep(); }
-  else { endTour(); localStorage.setItem('displus_tour','3'); toast('🎉','¡Recorrido completado!'); }
+  else { endTour(); toast('🎉','¡Recorrido completado!'); }
 }
 function prevStep() { if (tStep>0) { tStep--; renderStep(); } }
 
