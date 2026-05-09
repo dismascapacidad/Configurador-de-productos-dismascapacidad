@@ -313,10 +313,35 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .conn-step-body{padding:12px 14px;display:none}
 .conn-step.active .conn-step-body{display:block}
 
+.drw-mobile-only { display: none; }
+
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
-  .drawer { width: 85vw; }
+  .page-wrap { padding: 8px; }
+  .drawer { width: 88vw; }
+  /* Topbar: ocultar pill de estado y botón cuenta en mobile (están en el drawer) */
+  .spill { display: none; }
+  #btnAuth { display: none; }
+  /* Mostrar los equivalentes del drawer solo en mobile */
+  .drw-mobile-only { display: flex !important; }
+  .btn-conn-quick { font-size: 11px; padding: 5px 10px; }
+  /* Contenido */
+  .content { padding: 10px; gap: 10px; }
+  .btns-grid { grid-template-columns: 1fr; }
+  .factory-grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); }
+  /* Flechas: apilar selector y panel */
+  .arrow-row { flex-direction: column; }
+  .arrow-sel { flex: none; width: 100%; min-width: 0; }
+  .arrow-panel { flex-direction: column; }
+  .arrow-div { display: none; }
   .two-col { grid-template-columns: 1fr; }
+  /* Modales: pantalla completa */
+  .modal-bd { padding: 0; align-items: flex-end; }
+  .modal { border-radius: var(--rl) var(--rl) 0 0; max-width: 100% !important; }
+  .modal-body { max-height: 70vh !important; }
+  /* Status bar */
+  .status-bar { flex-wrap: wrap; gap: 7px; }
+  .sb-actions { flex-wrap: wrap; }
 }
 </style>
 </head>
@@ -428,6 +453,18 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   <!-- MENÚ PRINCIPAL -->
   <nav class="drw-menu">
 
+    <div class="drw-menu-group drw-mobile-only" style="flex-direction:column">
+      <div class="drw-item" style="cursor:default;pointer-events:none">
+        <span class="drw-item-ico"><span class="sdot" id="sdot2"></span></span>
+        <span class="drw-item-lbl" id="stxt2">Desconectado</span>
+      </div>
+      <button class="drw-item" onclick="openAuthModal();closeDrawer()">
+        <span class="drw-item-ico">👤</span>
+        <span class="drw-item-lbl" id="drwAuthLbl">Cuenta</span>
+      </button>
+    </div>
+    <div class="drw-menu-sep drw-mobile-only"></div>
+
     <div class="drw-menu-group">
       <button class="drw-item" id="drwBtnPresets" onclick="openModal('presetsModal');closeDrawer()" disabled>
         <span class="drw-item-ico">⚡</span>
@@ -449,6 +486,10 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
       <button class="drw-item" onclick="openModal('logModal');closeDrawer()">
         <span class="drw-item-ico">🗒️</span>
         <span class="drw-item-lbl">Registro de actividad</span>
+      </button>
+      <button class="drw-item" onclick="closeDrawer();restartTour()">
+        <span class="drw-item-ico">👋</span>
+        <span class="drw-item-lbl">Ver recorrido</span>
       </button>
     </div>
 
@@ -756,9 +797,11 @@ let currentUser = null;
 const AUTH_REDIRECT = window.location.href.split('?')[0].split('#')[0];
 
 function updateAuthBtn() {
+  const label = currentUser ? '👤 ' + currentUser.email.split('@')[0] : '👤 Cuenta';
   const btn = document.getElementById('btnAuth');
-  if (!btn) return;
-  btn.textContent = currentUser ? '👤 ' + currentUser.email.split('@')[0] : '👤 Cuenta';
+  if (btn) btn.textContent = label;
+  const drwLbl = document.getElementById('drwAuthLbl');
+  if (drwLbl) drwLbl.textContent = currentUser ? currentUser.email.split('@')[0] : 'Cuenta';
 }
 
 function openAuthModal() {
@@ -1870,8 +1913,8 @@ async function send(cmd) {
 
 function setConnected(val, physical = false) {
   connected = val;
-  document.getElementById('sdot').className = 'sdot' + (val ? ' on' : '');
-  document.getElementById('stxt').textContent = val ? 'Conectado' : 'Desconectado';
+  ['sdot','sdot2'].forEach(id => { const el=document.getElementById(id); if(el) el.className='sdot'+(val?' on':''); });
+  ['stxt','stxt2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=val?'Conectado':'Desconectado'; });
   const btn = document.getElementById('btnConn');
   btn.textContent = val ? 'Desconectar' : 'Conectar';
   btn.className = 'btn sm' + (val ? ' ghost' : ' pri');
@@ -1939,20 +1982,14 @@ function toast(ico, msg) {
 // ── TOUR ─────────────────────────────────────────────────
 let tStep=0, tActive=false;
 const TOUR = [
-  {sel:'#devList', pos:'right', title:'Paso 1: Seleccione el producto',
-   body:'Elija el dispositivo dis+ que quiere configurar. disMouse tiene 9 botones más flechas; disButton expone un único botón.'},
-  {sel:'#sbConnType', pos:'right', title:'Paso 2: Tipo de conexión',
-   body:'Elija USB (cable) o Bluetooth. Ambas opciones están disponibles según el hardware del dispositivo.'},
-  {sel:'#sbConn', pos:'right', title:'Paso 3: Conectar',
-   body:'Presione "Conectar". En USB, el navegador le mostrará un selector de puertos. En Bluetooth, buscará dispositivos cercanos.'},
+  {sel:'.btn-burger', pos:'right', title:'Menú principal',
+   body:'Abrí el menú ☰ para elegir el producto (disMouse o disButton), el tipo de conexión (USB o Bluetooth) y conectar el dispositivo. También encontrás las configuraciones rápidas y otras opciones.'},
+  {sel:'#btnConnQuick', pos:'bottom', title:'Conectar el dispositivo',
+   body:'Una vez seleccionado el producto y tipo de conexión en el menú, presioná este botón para iniciar la conexión. En USB el navegador muestra un selector de puertos; en Bluetooth buscará dispositivos cercanos.'},
   {sel:'#secArrows', pos:'left', title:'Modo de las flechas',
-   body:'(Solo disMouse) Configure cómo actúan las cuatro flechas: cursor del mouse, teclas de dirección, o acción individual por flecha.'},
-  {sel:'#secBtns', pos:'left', title:'Configure cada botón',
-   body:'Cada botón puede emular teclado, mouse (clic, doble clic, scroll ↑↓) o desactivarse. Haga clic en el campo de tecla y presione la tecla física.'},
-  {sel:'#secBtns', pos:'left', title:'Configuraciones rápidas',
-   body:'Abra el menú ☰ para ver presets diseñados para rehabilitación. Guarde sus propias configuraciones con nombre desde ahí.'},
-  {sel:'#statusBar', pos:'bottom', title:'Guardar los cambios',
-   body:'Cuando esté conectado, use "Cargar configuración de fábrica" para restaurar. Sus cambios en los botones se aplican al instante.'},
+   body:'Solo disMouse. Elegí si las flechas mueven el cursor del mouse, emulan las teclas de dirección del teclado, o configurá cada flecha por separado con una acción distinta.'},
+  {sel:'#secBtns', pos:'left', title:'Configurar cada botón',
+   body:'Cada botón puede emular una tecla del teclado, un clic de mouse, doble clic, scroll o desactivarse. Los cambios se aplican al instante al dispositivo conectado. Desde el menú ☰ podés aplicar configuraciones rápidas prediseñadas para Asterics, Cboard, juegos y más.'},
 ];
 
 function showWelcome() {
@@ -1967,16 +2004,16 @@ function startTour() {
   document.getElementById('tourBd').style.display='block';
   renderStep();
 }
-function skipTour()    { endTour(); localStorage.setItem('displus_tour','2'); }
+function skipTour()    { endTour(); localStorage.setItem('displus_tour','3'); }
 function restartTour() {
   endTour();
   setTimeout(()=>{ document.getElementById('twBd').style.display='block'; document.getElementById('twCard').style.display='flex'; }, 50);
 }
 function nextStep() {
-  // Paso 4 (flechas) solo aplica a disMouse
-  if (tStep === 3 && prod && !prod.hasArrows) { tStep++; }
+  // Paso 3 (flechas) solo aplica a disMouse
+  if (tStep === 2 && prod && !prod.hasArrows) { tStep++; }
   if (tStep < TOUR.length-1) { tStep++; renderStep(); }
-  else { endTour(); localStorage.setItem('displus_tour','2'); toast('🎉','¡Recorrido completado!'); }
+  else { endTour(); localStorage.setItem('displus_tour','3'); toast('🎉','¡Recorrido completado!'); }
 }
 function prevStep() { if (tStep>0) { tStep--; renderStep(); } }
 
