@@ -102,7 +102,8 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .dev-opt.active{background:var(--acc-dim);border-color:var(--acc)}
 .dev-opt.disabled{opacity:.42;cursor:default}
 .dev-soon{position:absolute;right:9px;top:50%;transform:translateY(-50%);font-size:10px;font-weight:700;color:var(--txt3);background:var(--surf2);border:1px solid var(--bdr);border-radius:4px;padding:1px 6px}
-.dev-ico{width:28px;height:28px;border-radius:6px;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.dev-ico{width:32px;height:32px;border-radius:6px;background:var(--surf2);border:1px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;overflow:hidden}
+.dev-ico img{width:100%;height:100%;object-fit:contain;display:block}
 .dev-opt.active .dev-ico{background:var(--acc-dim);border-color:var(--acc)}
 .dev-name{font-size:12.5px;font-weight:700}
 .dev-sub{font-size:10.5px;color:var(--txt3)}
@@ -407,16 +408,17 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         <span class="drw-step-lbl">Seleccionar producto</span>
         <div class="dev-list" id="devList">
           <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
-            <div class="dev-ico">🎮</div>
+            <div class="dev-ico"><img src="assets/img/dismouse.png" alt="disMouse"></div>
             <div><div class="dev-name">disMouse</div></div>
           </div>
           <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
-            <div class="dev-ico">🔴</div>
+            <div class="dev-ico"><img src="assets/img/disbutton.png" alt="disButton"></div>
             <div><div class="dev-name">disButton</div></div>
           </div>
-          <div class="dev-opt" id="opt-dishub" onclick="selectProd('dishub')">
+          <div class="dev-opt disabled">
             <div class="dev-ico">🔌</div>
             <div><div class="dev-name">disHub</div></div>
+            <span class="dev-soon">Próximamente</span>
           </div>
           <div class="dev-opt disabled">
             <div class="dev-ico">🕹️</div>
@@ -669,16 +671,17 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
           <div class="conn-step-body">
             <div class="dev-list" id="devListModal">
               <div class="dev-opt" id="opt-dismouse-m" onclick="selectProd('dismouse')">
-                <div class="dev-ico">🎮</div>
+                <div class="dev-ico"><img src="assets/img/dismouse.png" alt="disMouse"></div>
                 <div><div class="dev-name">disMouse</div></div>
               </div>
               <div class="dev-opt" id="opt-disbutton-m" onclick="selectProd('disbutton')">
-                <div class="dev-ico">🔴</div>
+                <div class="dev-ico"><img src="assets/img/disbutton.png" alt="disButton"></div>
                 <div><div class="dev-name">disButton</div></div>
               </div>
-              <div class="dev-opt" id="opt-dishub-m" onclick="selectProd('dishub')">
+              <div class="dev-opt disabled">
                 <div class="dev-ico">🔌</div>
                 <div><div class="dev-name">disHub</div></div>
+                <span class="dev-soon">Próximamente</span>
               </div>
               <div class="dev-opt disabled">
                 <div class="dev-ico">🕹️</div>
