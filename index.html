@@ -948,10 +948,22 @@ async function signUpWithPassword() {
 }
 
 async function signInWithGoogle() {
-  await supa.auth.signInWithOAuth({
+  const { data, error } = await supa.auth.signInWithOAuth({
     provider: 'google',
-    options: { redirectTo: AUTH_REDIRECT }
+    options: { redirectTo: AUTH_REDIRECT, skipBrowserRedirect: true }
   });
+  if (error) { toast('❌', error.message); return; }
+  const popup = window.open(data.url, 'google-auth',
+    'width=520,height=620,scrollbars=yes,resizable=yes');
+  if (!popup) { toast('⚠️', 'Bloqueador de popups activo. Permití el popup e intentá de nuevo.'); return; }
+  // Cuando el popup cierra, Supabase ya habrá guardado la sesión en localStorage
+  // y onAuthStateChange disparará en esta pestaña automáticamente.
+  const timer = setInterval(() => {
+    if (popup.closed) {
+      clearInterval(timer);
+      supa.auth.getSession(); // fuerza lectura del storage por si el evento tardó
+    }
+  }, 500);
 }
 
 async function sendResetLink() {
