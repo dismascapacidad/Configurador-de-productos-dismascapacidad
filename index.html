@@ -1223,48 +1223,48 @@ function mkCard(code, label, color) {
   d.className = 'btn-card'; d.id = 'card-' + code;
   d.innerHTML = `
     <div class="btn-main">
-    <div class="btn-card-head">
-      <div class="btn-dot" style="background:${color}"></div>
-      <div class="btn-card-title">${label}</div>
-      <div class="btn-summary" id="sum_${code}">—</div>
-    </div>
-    <div class="btn-fields">
-      <div class="field" style="margin:0">
-        <label class="lbl">Funciona como</label>
-        <select id="t_${code}" onchange="onType('${code}')">
-          <option value="K">Teclado</option>
-          <option value="M">Mouse</option>
-          <option value="X">Desactivado</option>
-        </select>
+      <div class="btn-card-head">
+        <div class="btn-dot" style="background:${color}"></div>
+        <div class="btn-card-title">${label}</div>
+        <div class="btn-summary" id="sum_${code}">—</div>
       </div>
-      <div id="act_${code}">
-        <div id="kb_${code}">
-          <div class="field" style="margin:0">
-            <label class="lbl">Tecla</label>
-            <input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
-              onfocus="startCap('${code}')" onblur="stopCap('${code}')">
-            <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
+      <div class="btn-fields">
+        <div class="field" style="margin:0">
+          <label class="lbl">Funciona como</label>
+          <select id="t_${code}" onchange="onType('${code}')">
+            <option value="K">Teclado</option>
+            <option value="M">Mouse</option>
+            <option value="X">Desactivado</option>
+          </select>
+        </div>
+        <div id="act_${code}">
+          <div id="kb_${code}">
+            <div class="field" style="margin:0">
+              <label class="lbl">Tecla</label>
+              <input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
+                onfocus="startCap('${code}')" onblur="stopCap('${code}')">
+              <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
+            </div>
+          </div>
+          <div id="mo_${code}" style="display:none">
+            <div class="field" style="margin:0">
+              <label class="lbl">Acción del mouse</label>
+              <select id="mact_${code}">
+                <option value="1">Clic izquierdo</option>
+                <option value="1D">Doble clic izquierdo</option>
+                <option value="1M">Mantener clic izquierdo (toggle)</option>
+                <option value="2">Clic derecho</option>
+                <option value="4">Clic central</option>
+                <option value="SU">Scroll ↑</option>
+                <option value="SD">Scroll ↓</option>
+              </select>
+            </div>
           </div>
         </div>
-        <div id="mo_${code}" style="display:none">
-          <div class="field" style="margin:0">
-            <label class="lbl">Acción del mouse</label>
-            <select id="mact_${code}">
-              <option value="1">Clic izquierdo</option>
-              <option value="1D">Doble clic izquierdo</option>
-              <option value="1M">Mantener clic izquierdo (toggle)</option>
-              <option value="2">Clic derecho</option>
-              <option value="4">Clic central</option>
-              <option value="SU">Scroll ↑</option>
-              <option value="SD">Scroll ↓</option>
-            </select>
-          </div>
-        </div>
-        <!-- AVANZADO toggle -->
         <button class="btn-adv-toggle" id="advtog_${code}" onclick="toggleAdv('${code}')">Avanzado</button>
       </div>
       <div class="btn-apply-wrap"><button class="btn suc sm" onclick="applyBtn('${code}')">Aplicar</button></div>
-    </div><!-- /btn-main -->
+    </div>
     <div class="btn-adv" id="adv_${code}">
       <div class="field" style="margin:0">
         <label class="lbl">Se activa</label>
@@ -1290,7 +1290,6 @@ function mkCard(code, label, color) {
           </div>
         </div>
       </div>
-    </div>
     </div>`;
   return d;
 }
