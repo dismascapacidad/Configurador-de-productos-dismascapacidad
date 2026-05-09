@@ -1798,12 +1798,8 @@ async function connectUSB() {
   try {
     port = await navigator.serial.requestPort();
     await port.open({baudRate:9600});
-    const dec = new TextDecoderStream();
-    port.readable.pipeTo(dec.writable);
-    reader = dec.readable.getReader();
-    const enc = new TextEncoderStream();
-    enc.readable.pipeTo(port.writable);
-    writer = enc.writable.getWriter();
+    reader = port.readable.getReader();
+    writer = port.writable.getWriter();
     setConnected(true);
     readLoopUSB();
   } catch(e) {
@@ -1812,12 +1808,13 @@ async function connectUSB() {
 }
 
 async function readLoopUSB() {
+  const dec = new TextDecoder();
   let buf = '';
   try {
     while (true) {
       const {value, done} = await reader.read();
       if (done) break;
-      buf += value;
+      buf += dec.decode(value, {stream: true});
       const lines = buf.split('\n'); buf = lines.pop();
       for (const line of lines) { const t = line.trim(); if (t) { addLog(t,'in'); parseLine(t); } }
     }
@@ -1959,9 +1956,9 @@ async function connectBLE() {
 async function disconnect(physical = false) {
   const was = connected; connected = false;
   // USB
-  try { reader && await reader.cancel().catch(()=>{}); } catch(_){}
-  try { writer && await writer.close().catch(()=>{}); } catch(_){}
-  try { port   && await port.close().catch(()=>{}); }   catch(_){}
+  try { if (reader) { await reader.cancel(); reader.releaseLock(); } } catch(_){}
+  try { if (writer) { await writer.close(); writer.releaseLock(); } } catch(_){}
+  try { if (port)   { await port.close(); } }                        catch(_){}
   reader = null; writer = null; port = null;
   // BLE
   try { bleDevice && bleDevice.gatt.connected && bleDevice.gatt.disconnect(); } catch(_){}
@@ -1974,7 +1971,7 @@ async function send(cmd) {
   if (!connected) { toast('❌','Sin conexión activa'); return false; }
   try {
     if (connType === 'usb' && writer) {
-      await writer.write(cmd + '\n');
+      await writer.write(new TextEncoder().encode(cmd + '\n'));
     } else if (connType === 'ble' && bleTxChar) {
       // BLE: enviar en chunks de 20 bytes (MTU mínimo garantizado)
       const enc = new TextEncoder().encode(cmd + '\n');
