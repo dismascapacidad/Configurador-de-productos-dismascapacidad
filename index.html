@@ -1097,7 +1097,7 @@ const PRODUCTS = {
       {code:'FL', label:'Externo 3', color:'#EAB308'},
       {code:'FR', label:'Externo 4', color:'#EAB308'},
     ],
-    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
+    presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
   },
 };
 
@@ -1506,6 +1506,43 @@ const FACTORY_CMDS = {
   db_clic_release: [ 'CFG:BR:M:R:0:1:-:-' ],
   db_youtube:      [ 'CFG:BR:K:P:0:' + _SP  + ':-:-' ],
   db_cboard:       [ 'CFG:BR:K:P:0:' + _ENT + ':-:-' ],
+  // ── disHub (rojo BR, azul BA, externos FU/FD/FL/FR)
+  dh_asterics_barrido: [
+    'CFG:BR:K:P:0:s:-:-', 'CFG:BA:K:P:0:c:-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
+  ],
+  dh_asterics_dir: [
+    'CFG:BR:K:P:0:' + _SP + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
+    'FMODE:2',
+  ],
+  dh_asterics_huffman: [
+    'CFG:BR:K:P:0:1:-:-', 'CFG:FU:K:P:0:2:-:-', 'CFG:FD:K:P:0:3:-:-',
+    'CFG:FL:K:P:0:4:-:-', 'CFG:FR:K:P:0:5:-:-', 'CFG:BA:K:P:0:6:-:-',
+    'FMODE:0',
+  ],
+  dh_asterics_sec: [
+    'CFG:BR:K:P:0:c:-:-', 'CFG:BA:K:P:0:c:-:-',
+    'CFG:FL:K:P:0:a:-:-', 'CFG:FR:K:P:0:s:-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'FMODE:0',
+  ],
+  dh_cboard_barrido: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
+    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
+  ],
+  dh_juego_flechas: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
+    'FMODE:2',
+  ],
+  dh_juego_wasd: [
+    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
+    'CFG:FU:K:P:0:w:-:-', 'CFG:FL:K:P:0:a:-:-',
+    'CFG:FD:K:P:0:s:-:-', 'CFG:FR:K:P:0:d:-:-',
+    'FMODE:0',
+  ],
+  dh_std_enter: [
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BA:M:P:0:2:-:-',
+    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
+  ],
 };
 
 const FACTORY_CARDS = {
@@ -1524,6 +1561,15 @@ const FACTORY_CARDS = {
   db_clic_release: { icon:'🖱️', name:'Clic al soltar',         sub:'Clic izq · Release',             tipId:'tip-db-clic-release' },
   db_youtube:      { icon:'▶️',  name:'Causa-Efecto YouTube',   sub:'Espacio · Press',                tipId:'tip-db-youtube' },
   db_cboard:       { icon:'📋', name:'Cboard - Escaneo auto',  sub:'Enter · Press',                  tipId:'tip-db-cboard' },
+  // ── disHub
+  dh_asterics_barrido: { icon:'💬', name:'Asterics - Barrido',    sub:'Rojo S · Azul C · ext. desact.', tipId:'tip-dh-asterics-barrido' },
+  dh_asterics_dir:     { icon:'🧭', name:'Asterics - Dirección',  sub:'Flechas + Espacio',              tipId:'tip-dh-asterics-dir' },
+  dh_asterics_huffman: { icon:'🔢', name:'Asterics - Huffman',    sub:'Botones 1-6',                    tipId:'tip-dh-asterics-huffman' },
+  dh_asterics_sec:     { icon:'↔️', name:'Asterics - Secuencial', sub:'A / S / C · ext. desact.',       tipId:'tip-dh-asterics-sec' },
+  dh_cboard_barrido:   { icon:'📋', name:'Cboard - Barrido',      sub:'Enter / Espacio · ext. desact.', tipId:'tip-dh-cboard-barrido' },
+  dh_juego_flechas:    { icon:'🕹️', name:'Juego - Flechas',       sub:'Enter / Espacio + ↑↓←→',        tipId:'tip-dh-juego-flechas' },
+  dh_juego_wasd:       { icon:'⌨️', name:'Juego - WASD',          sub:'Enter / Espacio + WASD',         tipId:'tip-dh-juego-wasd' },
+  dh_std_enter:        { icon:'🖱️', name:'Estándar + Enter',      sub:'Clic izq · Clic der · cursor',   tipId:'tip-dh-std-enter' },
 };
 
 const TIP_CONTENT = {
@@ -1592,6 +1638,45 @@ const TIP_CONTENT = {
     <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press</span></div>`,
   'tip-db-cboard': `
     <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>`,
+  // ── disHub
+  'tip-dh-asterics-barrido': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla S · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla C · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌1234</span><span class="tip-val">Externos desactivados</span></div>`,
+  'tip-dh-asterics-dir': `
+    <div class="tip-row"><span class="tip-btn">🔴🔵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Externos → teclas de dirección</span></div>`,
+  'tip-dh-asterics-huffman': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla 1 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌1</span><span class="tip-val">Tecla 2 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌2</span><span class="tip-val">Tecla 3 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">Tecla 4 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">Tecla 5 · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla 6 · Press</span></div>`,
+  'tip-dh-asterics-sec': `
+    <div class="tip-row"><span class="tip-btn">🔴🔵</span><span class="tip-val">Tecla C · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">Tecla A · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">Tecla S · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌1🔌2</span><span class="tip-val">Desactivados</span></div>`,
+  'tip-dh-cboard-barrido': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌1234</span><span class="tip-val">Externos desactivados</span></div>`,
+  'tip-dh-juego-flechas': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Externos → teclas de dirección</span></div>`,
+  'tip-dh-juego-wasd': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌1</span><span class="tip-val">W</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">A</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌2</span><span class="tip-val">S</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">D</span></div>`,
+  'tip-dh-std-enter': `
+    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
 };
 
 function buildFactoryPresets(ids) {
