@@ -243,6 +243,15 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .presets-modal-section:last-child{margin-bottom:0}
 .presets-modal-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
 .presets-modal-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.formacion-list{display:flex;flex-direction:column;gap:12px}
+.formacion-card{display:flex;align-items:flex-start;gap:14px;padding:14px;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl)}
+.formacion-card-ico{font-size:28px;flex-shrink:0;line-height:1;margin-top:2px}
+.formacion-card-body{flex:1;min-width:0}
+.formacion-card-title{font-size:13px;font-weight:700;color:var(--txt);margin-bottom:4px}
+.formacion-card-desc{font-size:12px;color:var(--txt2);line-height:1.45;margin-bottom:10px}
+.formacion-card-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:var(--acc-dim);color:var(--acc);border-radius:4px;padding:2px 6px;margin-bottom:10px}
+.formacion-card-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:var(--r);background:var(--acc);color:#fff;border:none;cursor:pointer;text-decoration:none;transition:background .15s}
+.formacion-card-btn:hover{background:var(--acc-dk)}
 @keyframes pop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
 .modal-head{padding:13px 15px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
 .modal-title{font-size:14px;font-weight:700;flex:1}
@@ -505,6 +514,16 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
     <div class="drw-menu-sep"></div>
 
+    <div class="drw-section-lbl">Formación</div>
+    <div class="drw-menu-group">
+      <button class="drw-item" onclick="openModal('formacionModal');closeDrawer()">
+        <span class="drw-item-ico">📚</span>
+        <span class="drw-item-lbl">Materiales de formación</span>
+      </button>
+    </div>
+
+    <div class="drw-menu-sep"></div>
+
     <div class="drw-section-lbl">Comunidad</div>
     <div class="drw-menu-group">
       <a class="drw-item" href="https://www.dismascapacidad.com.ar" target="_blank">
@@ -632,6 +651,51 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 </div>
 
 <!-- MODAL: PRESETS -->
+<div class="modal-bd" id="formacionModal" style="display:none" onclick="closeBd(event,'formacionModal')">
+  <div class="modal modal-wide">
+    <div class="modal-head">
+      <span class="modal-title">📚 Materiales de formación</span>
+      <button class="modal-x" onclick="closeModal('formacionModal')">✕</button>
+    </div>
+    <div class="modal-body" style="max-height:72vh;overflow-y:auto;padding:16px">
+      <p style="font-size:12.5px;color:var(--txt2);margin:0 0 16px">Recursos del curso <strong>Tecnología Asistiva + Equipar para Equipar</strong>. Podés descargarlos libremente.</p>
+      <div class="formacion-list">
+
+        <div class="formacion-card">
+          <div class="formacion-card-ico">📄</div>
+          <div class="formacion-card-body">
+            <div class="formacion-card-badge">PDF</div>
+            <div class="formacion-card-title">Acceso Indirecto en Android e iOS</div>
+            <div class="formacion-card-desc">Conocé las opciones de accesibilidad disponibles en dispositivos Android e iOS.</div>
+            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 2_ Anexo Acceso Indirecto Android e iOS_wm.pdf" target="_blank" download>⬇ Descargar</a>
+          </div>
+        </div>
+
+        <div class="formacion-card">
+          <div class="formacion-card-ico">📄</div>
+          <div class="formacion-card-body">
+            <div class="formacion-card-badge">PDF</div>
+            <div class="formacion-card-title">Acceso Indirecto en Windows y MacOS</div>
+            <div class="formacion-card-desc">Conocé las opciones de accesibilidad disponibles en PC y Mac.</div>
+            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 2_ Anexo Acceso Indirecto Windows y MacOS_wm.pdf" target="_blank" download>⬇ Descargar</a>
+          </div>
+        </div>
+
+        <div class="formacion-card">
+          <div class="formacion-card-ico">📄</div>
+          <div class="formacion-card-body">
+            <div class="formacion-card-badge">PDF</div>
+            <div class="formacion-card-title">AsTeRICS Grid: opciones de acceso</div>
+            <div class="formacion-card-desc">Conocé las opciones de acceso que tiene AsTeRICS Grid AAC.</div>
+            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 4_ Anexo AsTeRICS Grid_wm.pdf" target="_blank" download>⬇ Descargar</a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bd" id="noDeviceModal" style="display:none" onclick="closeBd(event,'noDeviceModal')">
   <div class="modal" style="max-width:360px;text-align:center">
     <div class="modal-head">
