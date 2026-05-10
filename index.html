@@ -632,6 +632,20 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 </div>
 
 <!-- MODAL: PRESETS -->
+<div class="modal-bd" id="noDeviceModal" style="display:none" onclick="closeBd(event,'noDeviceModal')">
+  <div class="modal" style="max-width:360px;text-align:center">
+    <div class="modal-head">
+      <span class="modal-title">🔌 Sin dispositivo conectado</span>
+      <button class="modal-x" onclick="closeModal('noDeviceModal')">✕</button>
+    </div>
+    <div class="modal-body" style="padding:24px 20px">
+      <p style="margin:0 0 18px">Para aplicar una configuración necesitás tener un dispositivo conectado.</p>
+      <button class="btn pri full" onclick="closeModal('noDeviceModal');connectUSB()">Conectar ahora</button>
+      <button class="btn ghost full" style="margin-top:8px" onclick="closeModal('noDeviceModal')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bd" id="presetsModal" style="display:none" onclick="closeBd(event,'presetsModal')">
   <div class="modal modal-wide">
     <div class="modal-head">
@@ -1703,6 +1717,10 @@ function buildFactoryPresets(ids) {
 
 async function applyPreset(id) {
   const cmds = FACTORY_CMDS[id]; if (!cmds) return;
+  if (!port) {
+    openModal('noDeviceModal');
+    return;
+  }
   for (const c of cmds) await send(c);
   toast('⚡', 'Configuración aplicada');
   closeModal('presetsModal');
