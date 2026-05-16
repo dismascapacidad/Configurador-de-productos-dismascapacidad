@@ -67,7 +67,8 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 /* ── DRAWER ── */
 .drw-overlay{position:absolute;inset:0;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:400;display:none}
 .drw-overlay.open{display:block}
-.drawer{position:absolute;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow-y:auto;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.2)}
+.drawer{position:absolute;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow:hidden;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.2)}
+.drw-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .drawer.open{transform:translateX(0)}
 .drw-head{display:flex;align-items:center;justify-content:space-between;padding:0 16px;height:52px;background:var(--surf);border-bottom:1px solid var(--bdr);flex-shrink:0}
 .drw-head span{color:var(--txt);font-size:13px;font-weight:700}
@@ -409,10 +410,10 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 <nav class="drawer" id="drawer">
 
   <div class="drw-head">
-    <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAYkAAAA8CAYAAACTrUbPAAAwTElEQVR42u29eXhdZ" style="display:none" class="drw-logo" alt=""><!-- placeholder; logo loaded below -->
-    <span style="font-weight:700;font-size:14px;color:var(--txt)">dis+ capacidad</span>
+    <span id="drwHeadGreet" style="font-weight:700;font-size:14px;color:var(--txt)">dis+ capacidad</span>
     <button class="modal-x" onclick="closeDrawer()">✕</button>
   </div>
+  <div class="drw-scroll">
 
   <!-- SETUP: visible cuando NO está conectado -->
   <div class="drw-setup" id="drwSetup">
@@ -560,6 +561,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
   </nav>
 
+  </div><!-- /drw-scroll -->
 </nav>
 
 <main class="content">
@@ -976,11 +978,21 @@ let currentUser = null;
 const AUTH_REDIRECT = window.location.href.split('?')[0].split('#')[0];
 
 function updateAuthBtn() {
-  const label = currentUser ? '👤 ' + currentUser.email.split('@')[0] : '👤 Cuenta';
-  const btn = document.getElementById('btnAuth');
+  const name  = currentUser ? (currentUser.user_metadata?.full_name?.split(' ')[0] || currentUser.email.split('@')[0]) : null;
+  const label = currentUser ? '👤 ' + name : '👤 Cuenta';
+  const btn   = document.getElementById('btnAuth');
   if (btn) btn.textContent = label;
   const drwLbl = document.getElementById('drwAuthLbl');
-  if (drwLbl) drwLbl.textContent = currentUser ? currentUser.email.split('@')[0] : 'Cuenta';
+  if (drwLbl) drwLbl.textContent = currentUser ? name : 'Cuenta';
+  // Header del drawer
+  const greet = document.getElementById('drwHeadGreet');
+  if (greet) {
+    if (currentUser) {
+      greet.innerHTML = `Hola, <em>${esc(name)}</em>`;
+    } else {
+      greet.innerHTML = `<button class="btn pri sm" onclick="closeDrawer();openAuthModal()">Iniciar sesión</button>`;
+    }
+  }
 }
 
 function openAuthModal() {
