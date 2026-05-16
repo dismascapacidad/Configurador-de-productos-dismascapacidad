@@ -67,7 +67,6 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 /* ── DRAWER ── */
 .drw-overlay{position:absolute;top:0;right:0;bottom:0;left:300px;background:rgba(0,0,0,.5);backdrop-filter:blur(4px);z-index:400;display:none}
 .drw-overlay.open{display:block}
-@media(max-width:600px){.drw-overlay.open{left:88vw}}
 .drawer{position:absolute;left:0;top:0;bottom:0;width:300px;background:var(--surf);border-right:1px solid var(--bdr);z-index:500;display:flex;flex-direction:column;overflow:hidden;transform:translateX(-100%);transition:transform .25s cubic-bezier(.4,0,.2,1);box-shadow:4px 0 32px rgba(0,0,0,.2)}
 .drw-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .drawer.open{transform:translateX(0)}
@@ -346,7 +345,8 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 /* ── RESPONSIVE ── */
 @media (max-width: 600px) {
   .page-wrap { padding: 8px; }
-  .drawer { width: 88vw; }
+  .drawer { width: 88vw; position: fixed; top: 0; bottom: 0; height: 100dvh; }
+  .drw-overlay { position: fixed; left: 88vw; }
   /* Topbar: ocultar pill de estado y botón cuenta en mobile (están en el drawer) */
   .spill { display: none; }
   #btnAuth { display: none; }
