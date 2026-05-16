@@ -226,14 +226,22 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 /* Custom presets */
 .custom-bar{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--acc-dim);border:1.5px dashed #93B4F5;border-radius:var(--rl)}
 .custom-bar-lbl{font-size:12px;font-weight:700;color:var(--acc);flex:1}
-.custom-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
-.custom-card{position:relative;padding:10px 11px;text-align:center;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
+.custom-grid{display:flex;flex-direction:column;gap:8px}
+.custom-card{position:relative;padding:11px 13px;text-align:left;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
 .custom-card:hover{border-color:var(--grn);background:var(--grn-dim)}
-.custom-name{font-size:12px;font-weight:700;word-break:break-word}
-.custom-date{font-size:10.5px;color:var(--txt3);margin-top:2px}
-.custom-del{position:absolute;top:5px;right:7px;background:none;border:none;font-size:13px;color:var(--txt3);cursor:pointer;line-height:1;padding:1px 3px;border-radius:3px;transition:color .15s}
+.custom-card.shared{border-color:var(--acc);background:var(--acc-dim)}
+.custom-card.community{border-color:#9333ea;background:#f5f3ff}
+.custom-name{font-size:12.5px;font-weight:700;word-break:break-word;padding-right:22px}
+.custom-date{font-size:10.5px;color:var(--txt3);margin-top:1px}
+.custom-notes{font-size:11.5px;color:var(--txt2);margin-top:6px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.custom-sender{font-size:10.5px;color:var(--txt3);margin-top:4px;font-style:italic}
+.custom-actions{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
+.custom-del{position:absolute;top:7px;right:8px;background:none;border:none;font-size:13px;color:var(--txt3);cursor:pointer;line-height:1;padding:1px 3px;border-radius:3px;transition:color .15s}
 .custom-del:hover{color:var(--red)}
 .no-custom{font-size:12px;color:var(--txt3)}
+.share-modal-opts{display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.share-divider{text-align:center;font-size:11px;color:var(--txt3);margin:4px 0}
+
 
 /* ── MODALS ── */
 .modal-bd{position:fixed;inset:0;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);z-index:5000;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -724,11 +732,49 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
       <div class="presets-modal-section">
         <div class="presets-modal-bar">
           <span class="presets-modal-lbl">⭐ Mis configuraciones</span>
-          <button class="btn pri sm" id="btnSaveCustom" onclick="closeModal('presetsModal');openSaveModal()" disabled>+ Guardar actual</button>
+          <div style="display:flex;gap:6px">
+            <button class="btn ghost sm" onclick="importCSV()" title="Importar desde CSV">⬆ CSV</button>
+            <button class="btn pri sm" id="btnSaveCustom" onclick="closeModal('presetsModal');openSaveModal()" disabled>+ Guardar actual</button>
+          </div>
         </div>
-        <div class="custom-grid" id="customGrid" style="display:none"></div>
+        <div class="custom-grid" id="customGrid"></div>
         <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
       </div>
+      <div class="presets-modal-section" id="sectionShared" style="display:none">
+        <div class="presets-modal-lbl">📨 Compartidos conmigo</div>
+        <div class="custom-grid" id="sharedGrid"></div>
+      </div>
+      <div class="presets-modal-section" id="sectionCommunity" style="display:none">
+        <div class="presets-modal-lbl">🌐 Comunidad</div>
+        <div class="custom-grid" id="communityGrid"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL: COMPARTIR PRESET -->
+<div class="modal-bd" id="shareModal" style="display:none" onclick="closeBd(event,'shareModal')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <span class="modal-title">↗ Compartir configuración</span>
+      <button class="modal-x" onclick="closeModal('shareModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12.5px;color:var(--txt2);margin:0 0 14px">
+        Compartís: <strong id="sharePresetName"></strong>
+      </p>
+      <div class="share-modal-opts">
+        <div class="field" style="margin:0">
+          <label class="lbl">Compartir con un usuario por email</label>
+          <input type="email" id="shareEmail" placeholder="nombre@email.com" style="width:100%">
+        </div>
+        <button class="btn pri sm" onclick="shareWithUser()">Enviar a este usuario</button>
+        <div class="share-divider">— o —</div>
+        <button class="btn sm" style="background:#9333ea;color:#fff;border-color:#9333ea" onclick="shareWithCommunity()">🌐 Compartir con toda la comunidad</button>
+        <div class="share-divider">— o —</div>
+        <button class="btn ghost sm" onclick="downloadCSV(shareModal._preset)">⬇ Descargar como CSV</button>
+      </div>
+      <div id="shareMsg" style="margin-top:12px;font-size:12px;display:none"></div>
     </div>
   </div>
 </div>
@@ -831,6 +877,11 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         <label class="lbl">Nombre de la configuración</label>
         <input type="text" id="customName" placeholder="Ej: Juan · semana 3, Exploración switch rojo…" maxlength="60">
         <div class="hint">Aparecerá como configuración rápida en este navegador/dispositivo.</div>
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label class="lbl">Nota <span style="font-weight:400;color:var(--txt3)">(opcional)</span></label>
+        <textarea id="customNotes" placeholder="Ej: Usar en modo barrido automático con AsTeRICS Grid. Ajustar velocidad según el usuario." maxlength="300" rows="3" style="width:100%;resize:vertical;font-size:12.5px;padding:7px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);background:var(--surf2);color:var(--txt);font-family:inherit"></textarea>
+        <div class="hint" id="notesCount" style="text-align:right">0 / 300</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1802,52 +1853,248 @@ function saveCustomList(list) {
 
 function renderCustom() {
   const all  = loadCustom();
-  // Filtrar por producto activo; los presets sin prodId (legacy) se muestran siempre
-  const list = prod
-    ? all.filter(p => !p.prodId || p.prodId === prod.id)
-    : all;
+  const list = prod ? all.filter(p => !p.prodId || p.prodId === prod.id) : all;
   const grid = document.getElementById('customGrid');
   const none = document.getElementById('noCustom');
   grid.innerHTML = '';
   if (!list.length) {
-    grid.style.display = 'none';
     none.style.display = 'block';
     none.textContent   = prod
       ? 'No hay configuraciones guardadas para ' + prod.name + '.'
       : 'Seleccioná un producto para ver tus configuraciones.';
     return;
   }
-  grid.style.display = 'grid'; none.style.display = 'none';
+  none.style.display = 'none';
   list.forEach((p) => {
-    // índice real en la lista completa para poder eliminar correctamente
-    const realIdx = all.indexOf(p);
+    const realIdx   = all.indexOf(p);
     const prodLabel = PRODUCTS[p.prodId] ? PRODUCTS[p.prodId].name : '';
-    const card = document.createElement('div');
-    card.className = 'custom-card';
-    card.innerHTML = `
+    const card      = document.createElement('div');
+    card.className  = 'custom-card';
+    card.innerHTML  = `
       <button class="custom-del" title="Eliminar" onclick="delCustom(${realIdx},event)">✕</button>
-      <div style="font-size:20px;margin-bottom:3px">⭐</div>
-      <div class="custom-name">${esc(p.name)}</div>
-      <div class="custom-date">${p.date}${prodLabel ? ' · ' + prodLabel : ''}</div>`;
-    card.addEventListener('click', () => applyCustom(p));
+      <div class="custom-name">⭐ ${esc(p.name)}</div>
+      <div class="custom-date">${p.date}${prodLabel ? ' · ' + prodLabel : ''}</div>
+      ${p.notes ? `<div class="custom-notes">${esc(p.notes)}</div>` : ''}
+      <div class="custom-actions" onclick="event.stopPropagation()">
+        <button class="btn pri sm" onclick="applyCustom(${JSON.stringify(JSON.stringify(p))})">Aplicar</button>
+        <button class="btn ghost sm" onclick="openShareModal(${JSON.stringify(JSON.stringify(p))})">↗ Compartir</button>
+        <button class="btn ghost sm" onclick="downloadCSV(${JSON.stringify(JSON.stringify(p))})">⬇ CSV</button>
+      </div>`;
     grid.appendChild(card);
   });
 }
 
+// ── COMPARTIR / CSV ──────────────────────────────────────
+
+let _sharePreset = null;
+
+function openShareModal(pJson) {
+  _sharePreset = JSON.parse(pJson);
+  document.getElementById('sharePresetName').textContent = _sharePreset.name;
+  document.getElementById('shareEmail').value = '';
+  const msg = document.getElementById('shareMsg');
+  msg.style.display = 'none'; msg.textContent = '';
+  openModal('shareModal');
+}
+
+async function shareWithUser() {
+  if (!currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
+  const email = document.getElementById('shareEmail').value.trim().toLowerCase();
+  if (!email) { document.getElementById('shareEmail').focus(); return; }
+  if (email === currentUser.email) { showShareMsg('No podés compartir contigo mismo.', 'warn'); return; }
+
+  // Buscar recipient_id via función RPC (ver instrucciones en README)
+  const { data, error: ue } = await supa.rpc('get_user_id_by_email', { p_email: email });
+  if (ue || !data) {
+    showShareMsg('❌ No encontramos ninguna cuenta con ese email. <button class="btn ghost sm" style="margin-top:6px" onclick="downloadCSV(JSON.stringify(_sharePreset))">⬇ Descargar CSV</button>', 'warn');
+    return;
+  }
+
+  const { error } = await supa.from('shared_presets').insert({
+    recipient_id: data,
+    sender_email: currentUser.email,
+    sender_name:  currentUser.user_metadata?.full_name || currentUser.email,
+    name:         _sharePreset.name,
+    date:         _sharePreset.date,
+    prod_id:      _sharePreset.prodId || null,
+    cfg:          _sharePreset.cfg,
+    notes:        _sharePreset.notes || null,
+    is_community: false
+  });
+  if (error) { showShareMsg('Error al enviar: ' + error.message, 'error'); return; }
+  showShareMsg('✅ ¡Enviado! El usuario verá el preset la próxima vez que abra sus configuraciones.', 'ok');
+  setTimeout(() => closeModal('shareModal'), 2000);
+}
+
+async function shareWithCommunity() {
+  if (!currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
+  if (!confirm('¿Querés compartir "' + _sharePreset.name + '" con toda la comunidad? Será visible para todos los usuarios.')) return;
+  const { error } = await supa.from('shared_presets').insert({
+    recipient_id: null,
+    sender_email: currentUser.email,
+    sender_name:  currentUser.user_metadata?.full_name || currentUser.email,
+    name:         _sharePreset.name,
+    date:         _sharePreset.date,
+    prod_id:      _sharePreset.prodId || null,
+    cfg:          _sharePreset.cfg,
+    notes:        _sharePreset.notes || null,
+    is_community: true
+  });
+  if (error) { showShareMsg('Error: ' + error.message, 'error'); return; }
+  showShareMsg('✅ ¡Compartido con la comunidad!', 'ok');
+  setTimeout(() => closeModal('shareModal'), 1800);
+}
+
+function showShareMsg(html, type) {
+  const el = document.getElementById('shareMsg');
+  el.innerHTML = html;
+  el.style.display = 'block';
+  el.style.color = type === 'ok' ? 'var(--grn)' : type === 'warn' ? 'var(--acc)' : 'var(--red)';
+}
+
+function downloadCSV(pJson) {
+  const p = typeof pJson === 'string' ? JSON.parse(pJson) : pJson;
+  const rows = [
+    ['name','date','prodId','notes','cfg_json'],
+    [p.name, p.date||'', p.prodId||'', p.notes||'', JSON.stringify(p.cfg)]
+  ];
+  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  const a   = document.createElement('a');
+  a.href    = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = (p.name || 'preset').replace(/[^a-z0-9]/gi,'_') + '.csv';
+  a.click();
+}
+
+function importCSV() {
+  const inp = document.createElement('input');
+  inp.type  = 'file'; inp.accept = '.csv';
+  inp.onchange = async e => {
+    const file = e.target.files[0]; if (!file) return;
+    const text = await file.text();
+    const lines = text.split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { toast('⚠️','CSV vacío o inválido'); return; }
+    const header = parseCSVLine(lines[0]);
+    const iName  = header.indexOf('name');
+    const iDate  = header.indexOf('date');
+    const iProd  = header.indexOf('prodId');
+    const iNotes = header.indexOf('notes');
+    const iCfg   = header.indexOf('cfg_json');
+    if (iName < 0 || iCfg < 0) { toast('⚠️','El CSV no tiene el formato correcto'); return; }
+    const existing = loadCustom();
+    const existingNames = new Set(existing.map(p => p.name));
+    let added = 0;
+    for (let i = 1; i < lines.length; i++) {
+      const cols = parseCSVLine(lines[i]);
+      const name = cols[iName]?.trim(); if (!name) continue;
+      if (existingNames.has(name)) continue;
+      try {
+        const cfg = JSON.parse(cols[iCfg]);
+        existing.push({ name, date: cols[iDate]||'', prodId: cols[iProd]||null, notes: cols[iNotes]||'', cfg });
+        existingNames.add(name); added++;
+      } catch { /* cfg inválido, ignorar */ }
+    }
+    saveCustomList(existing);
+    renderCustom();
+    toast('⬆️', added + ' configuración' + (added !== 1 ? 'es' : '') + ' importada' + (added !== 1 ? 's' : ''));
+  };
+  inp.click();
+}
+
+function parseCSVLine(line) {
+  const result = []; let cur = ''; let inQ = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (c === '"') {
+      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
+      else inQ = !inQ;
+    } else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
+    else cur += c;
+  }
+  result.push(cur);
+  return result;
+}
+
+// ── PRESETS COMPARTIDOS Y COMUNIDAD ─────────────────────
+
+async function loadSharedPresets() {
+  if (!currentUser) return;
+  const { data, error } = await supa.from('shared_presets')
+    .select('*')
+    .order('created_at', { ascending: false });
+  if (error) { addLog('Error al cargar compartidos: ' + error.message, 'w'); return; }
+
+  const mine      = (data || []).filter(p => p.recipient_id === currentUser.id && !p.is_community);
+  const community = (data || []).filter(p => p.is_community);
+
+  renderSharedGrid('sharedGrid',    'sectionShared',    mine,      false);
+  renderSharedGrid('communityGrid', 'sectionCommunity', community, true);
+}
+
+function renderSharedGrid(gridId, sectionId, list, isCommunity) {
+  const section = document.getElementById(sectionId);
+  const grid    = document.getElementById(gridId);
+  if (!list.length) { section.style.display = 'none'; return; }
+  section.style.display = 'block';
+  grid.innerHTML = '';
+  list.forEach(p => {
+    const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
+    const card      = document.createElement('div');
+    card.className  = 'custom-card ' + (isCommunity ? 'community' : 'shared');
+    const pJson     = JSON.stringify(JSON.stringify({ name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes }));
+    card.innerHTML  = `
+      ${!isCommunity ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',event)">✕</button>` : ''}
+      <div class="custom-name">${isCommunity ? '🌐' : '📨'} ${esc(p.name)}</div>
+      <div class="custom-date">${p.date||''}${prodLabel ? ' · ' + prodLabel : ''}</div>
+      <div class="custom-sender">Por: ${esc(p.sender_name || p.sender_email)}</div>
+      ${p.notes ? `<div class="custom-notes">${esc(p.notes)}</div>` : ''}
+      <div class="custom-actions" onclick="event.stopPropagation()">
+        <button class="btn pri sm" onclick="applyCustom(JSON.parse(${pJson}))">Aplicar</button>
+        <button class="btn ghost sm" onclick="saveSharedAsOwn(${pJson})">💾 Guardar</button>
+        <button class="btn ghost sm" onclick="openShareModal(${pJson})">↗ Reenviar</button>
+        <button class="btn ghost sm" onclick="downloadCSV(${pJson})">⬇ CSV</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function delShared(id, e) {
+  e.stopPropagation();
+  if (!confirm('¿Eliminar este preset compartido?')) return;
+  const { error } = await supa.from('shared_presets').delete().eq('id', id);
+  if (error) { toast('⚠️', 'Error al eliminar'); return; }
+  loadSharedPresets();
+}
+
+function saveSharedAsOwn(pJson) {
+  const p    = JSON.parse(pJson);
+  const list = loadCustom();
+  if (list.find(x => x.name === p.name)) { toast('⚠️', 'Ya tenés una configuración con ese nombre'); return; }
+  list.push({ name: p.name, date: p.date || new Date().toLocaleDateString('es-AR'), prodId: p.prodId||null, cfg: p.cfg, notes: p.notes||'' });
+  saveCustomList(list);
+  renderCustom();
+  toast('⭐', '"' + p.name + '" guardada en tus configuraciones');
+}
+
 function openSaveModal() {
   document.getElementById('customName').value = '';
+  document.getElementById('customNotes').value = '';
+  document.getElementById('notesCount').textContent = '0 / 300';
   openModal('saveModal');
   setTimeout(() => document.getElementById('customName').focus(), 100);
+  document.getElementById('customNotes').oninput = function() {
+    document.getElementById('notesCount').textContent = this.value.length + ' / 300';
+  };
 }
 
 async function confirmSave() {
-  const name = document.getElementById('customName').value.trim();
+  const name  = document.getElementById('customName').value.trim();
+  const notes = document.getElementById('customNotes').value.trim();
   if (!name) { document.getElementById('customName').focus(); return; }
   devCfg = mkCfg();
   await send('GETALL');
   await new Promise(r => setTimeout(r, 2400));
   const list = loadCustom();
-  list.push({ name, date: new Date().toLocaleDateString('es-AR'), prodId: prod ? prod.id : null, cfg: JSON.parse(JSON.stringify(devCfg)) });
+  list.push({ name, date: new Date().toLocaleDateString('es-AR'), prodId: prod ? prod.id : null, cfg: JSON.parse(JSON.stringify(devCfg)), notes });
   saveCustomList(list);
   renderCustom();
   closeModal('saveModal');
@@ -2206,7 +2453,10 @@ function setConnected(val, physical = false) {
 }
 
 // ── MODALS ────────────────────────────────────────────────
-function openModal(id)  { document.getElementById(id).style.display='flex'; }
+function openModal(id)  {
+  document.getElementById(id).style.display='flex';
+  if (id === 'presetsModal') loadSharedPresets();
+}
 function closeModal(id) { document.getElementById(id).style.display='none'; }
 function closeBd(e,id)  { if (e.target===document.getElementById(id)) closeModal(id); }
 
@@ -2585,9 +2835,13 @@ function init() {
       // Limpiar presets locales para no dejar datos del usuario en el navegador
       localStorage.removeItem('displus_presets_v1');
       renderCustom();
+      // Ocultar secciones compartidas
+      document.getElementById('sectionShared').style.display    = 'none';
+      document.getElementById('sectionCommunity').style.display = 'none';
     } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser && !prevUser) {
       // Login nuevo (no recarga con sesión ya activa desde antes)
       handleLoginSync();
+      loadSharedPresets();
     }
   });
 }
