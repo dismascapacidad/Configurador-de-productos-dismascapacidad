@@ -2074,7 +2074,7 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
     const card      = document.createElement('div');
     card.className  = 'custom-card ' + (isCommunity ? 'community' : 'shared');
     card.innerHTML  = `
-      ${!isCommunity ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',event)">✕</button>` : ''}
+      ${(!isCommunity || p.sender_email === currentUser?.email) ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',event)">✕</button>` : ''}
       <div class="custom-name">${isCommunity ? '🌐' : '📨'} ${esc(p.name)}</div>
       <div class="custom-date">${p.date||''}${prodLabel ? ' · ' + prodLabel : ''}</div>
       <div class="custom-sender">Por: ${esc(p.sender_name || p.sender_email)}</div>
