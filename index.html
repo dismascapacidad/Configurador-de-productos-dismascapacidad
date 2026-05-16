@@ -227,12 +227,12 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .custom-bar{display:flex;align-items:center;gap:9px;padding:10px 12px;background:var(--acc-dim);border:1.5px dashed #93B4F5;border-radius:var(--rl)}
 .custom-bar-lbl{font-size:12px;font-weight:700;color:var(--acc);flex:1}
 .custom-grid{display:flex;flex-direction:column;gap:8px}
-.custom-card{position:relative;padding:11px 13px;text-align:left;background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
-.custom-card:hover{border-color:var(--grn);background:var(--grn-dim)}
-.custom-card.shared{border-color:var(--acc);background:var(--acc-dim)}
-.custom-card.community{border-color:#9333ea;background:#f5f3ff}
-.custom-name{font-size:12.5px;font-weight:700;word-break:break-word;padding-right:22px}
-.custom-date{font-size:10.5px;color:var(--txt3);margin-top:1px}
+.custom-card{position:relative;padding:12px;text-align:left;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:default;transition:all .15s}
+.custom-card:hover{border-color:var(--acc);background:var(--acc-dim)}
+.custom-card.shared{border-left:3px solid var(--acc)}
+.custom-card.community{border-left:3px solid #9333ea}
+.custom-name{font-size:12px;font-weight:700;word-break:break-word;padding-right:22px}
+.custom-date{font-size:10.5px;color:var(--txt3);margin-top:2px}
 .custom-notes{font-size:11.5px;color:var(--txt2);margin-top:6px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .custom-sender{font-size:10.5px;color:var(--txt3);margin-top:4px;font-style:italic}
 .custom-actions{display:flex;gap:5px;margin-top:9px;flex-wrap:wrap}
@@ -892,6 +892,31 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 </div>
 
 <!-- MODAL: IMPORT PRESETS -->
+<!-- MODAL: EDITAR PRESET -->
+<div class="modal-bd" id="editPresetModal" style="display:none" onclick="closeBd(event,'editPresetModal')">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">✏️ Editar configuración</span>
+      <button class="modal-x" onclick="closeModal('editPresetModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label class="lbl">Nombre</label>
+        <input type="text" id="editPresetName" maxlength="60" style="width:100%">
+      </div>
+      <div class="field" style="margin-top:10px">
+        <label class="lbl">Nota <span style="font-weight:400;color:var(--txt3)">(opcional)</span></label>
+        <textarea id="editPresetNotes" maxlength="300" rows="3" style="width:100%;resize:vertical;font-size:12.5px;padding:7px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);background:var(--surf2);color:var(--txt);font-family:inherit"></textarea>
+        <div class="hint" id="editNotesCount" style="text-align:right">0 / 300</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost sm" onclick="closeModal('editPresetModal')">Cancelar</button>
+      <button class="btn pri sm" onclick="confirmEditPreset()">Guardar</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bd" id="importModal" style="display:none">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">☁️ Configuraciones locales</span></div>
@@ -1868,6 +1893,7 @@ function renderCustom() {
   list.forEach((p) => {
     const realIdx   = all.indexOf(p);
     const prodLabel = PRODUCTS[p.prodId] ? PRODUCTS[p.prodId].name : '';
+    const k         = _reg(p);
     const card      = document.createElement('div');
     card.className  = 'custom-card';
     card.innerHTML  = `
@@ -1876,20 +1902,26 @@ function renderCustom() {
       <div class="custom-date">${p.date}${prodLabel ? ' · ' + prodLabel : ''}</div>
       ${p.notes ? `<div class="custom-notes">${esc(p.notes)}</div>` : ''}
       <div class="custom-actions" onclick="event.stopPropagation()">
-        <button class="btn pri sm" onclick="applyCustom(${JSON.stringify(JSON.stringify(p))})">Aplicar</button>
-        <button class="btn ghost sm" onclick="openShareModal(${JSON.stringify(JSON.stringify(p))})">↗ Compartir</button>
-        <button class="btn ghost sm" onclick="downloadCSV(${JSON.stringify(JSON.stringify(p))})">⬇ CSV</button>
+        <button class="btn pri sm"   onclick="applyCustom(_PR['${k}'])">Aplicar</button>
+        <button class="btn ghost sm" onclick="openEditPreset(${realIdx})">✏️ Editar</button>
+        <button class="btn ghost sm" onclick="openShareModal(_PR['${k}'])">↗ Compartir</button>
+        <button class="btn ghost sm" onclick="downloadCSV(_PR['${k}'])">⬇ CSV</button>
       </div>`;
     grid.appendChild(card);
   });
 }
 
+// ── REGISTRO DE PRESETS (evita JSON inline en onclick) ───
+const _PR = {}; // id → preset object
+let   _prIdx = 0;
+function _reg(p) { const k = 'p' + (_prIdx++); _PR[k] = p; return k; }
+
 // ── COMPARTIR / CSV ──────────────────────────────────────
 
 let _sharePreset = null;
 
-function openShareModal(pJson) {
-  _sharePreset = JSON.parse(pJson);
+function openShareModal(p) {
+  _sharePreset = p;
   document.getElementById('sharePresetName').textContent = _sharePreset.name;
   document.getElementById('shareEmail').value = '';
   const msg = document.getElementById('shareMsg');
@@ -1952,8 +1984,7 @@ function showShareMsg(html, type) {
   el.style.color = type === 'ok' ? 'var(--grn)' : type === 'warn' ? 'var(--acc)' : 'var(--red)';
 }
 
-function downloadCSV(pJson) {
-  const p = typeof pJson === 'string' ? JSON.parse(pJson) : pJson;
+function downloadCSV(p) {
   const rows = [
     ['name','date','prodId','notes','cfg_json'],
     [p.name, p.date||'', p.prodId||'', p.notes||'', JSON.stringify(p.cfg)]
@@ -2038,9 +2069,10 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
   grid.innerHTML = '';
   list.forEach(p => {
     const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
+    const mapped    = { name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes };
+    const k         = _reg(mapped);
     const card      = document.createElement('div');
     card.className  = 'custom-card ' + (isCommunity ? 'community' : 'shared');
-    const pJson     = JSON.stringify(JSON.stringify({ name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes }));
     card.innerHTML  = `
       ${!isCommunity ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',event)">✕</button>` : ''}
       <div class="custom-name">${isCommunity ? '🌐' : '📨'} ${esc(p.name)}</div>
@@ -2048,10 +2080,10 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
       <div class="custom-sender">Por: ${esc(p.sender_name || p.sender_email)}</div>
       ${p.notes ? `<div class="custom-notes">${esc(p.notes)}</div>` : ''}
       <div class="custom-actions" onclick="event.stopPropagation()">
-        <button class="btn pri sm" onclick="applyCustom(JSON.parse(${pJson}))">Aplicar</button>
-        <button class="btn ghost sm" onclick="saveSharedAsOwn(${pJson})">💾 Guardar</button>
-        <button class="btn ghost sm" onclick="openShareModal(${pJson})">↗ Reenviar</button>
-        <button class="btn ghost sm" onclick="downloadCSV(${pJson})">⬇ CSV</button>
+        <button class="btn pri sm"   onclick="applyCustom(_PR['${k}'])">Aplicar</button>
+        <button class="btn ghost sm" onclick="saveSharedAsOwn(_PR['${k}'])">💾 Guardar</button>
+        <button class="btn ghost sm" onclick="openShareModal(_PR['${k}'])">↗ Reenviar</button>
+        <button class="btn ghost sm" onclick="downloadCSV(_PR['${k}'])">⬇ CSV</button>
       </div>`;
     grid.appendChild(card);
   });
@@ -2065,14 +2097,43 @@ async function delShared(id, e) {
   loadSharedPresets();
 }
 
-function saveSharedAsOwn(pJson) {
-  const p    = JSON.parse(pJson);
+function saveSharedAsOwn(p) {
   const list = loadCustom();
   if (list.find(x => x.name === p.name)) { toast('⚠️', 'Ya tenés una configuración con ese nombre'); return; }
   list.push({ name: p.name, date: p.date || new Date().toLocaleDateString('es-AR'), prodId: p.prodId||null, cfg: p.cfg, notes: p.notes||'' });
   saveCustomList(list);
   renderCustom();
   toast('⭐', '"' + p.name + '" guardada en tus configuraciones');
+}
+
+let _editIdx = null;
+
+function openEditPreset(idx) {
+  const list = loadCustom();
+  const p    = list[idx]; if (!p) return;
+  _editIdx   = idx;
+  document.getElementById('editPresetName').value  = p.name  || '';
+  document.getElementById('editPresetNotes').value = p.notes || '';
+  document.getElementById('editNotesCount').textContent = (p.notes || '').length + ' / 300';
+  document.getElementById('editPresetNotes').oninput = function() {
+    document.getElementById('editNotesCount').textContent = this.value.length + ' / 300';
+  };
+  openModal('editPresetModal');
+  setTimeout(() => document.getElementById('editPresetName').focus(), 100);
+}
+
+function confirmEditPreset() {
+  const name  = document.getElementById('editPresetName').value.trim();
+  const notes = document.getElementById('editPresetNotes').value.trim();
+  if (!name) { document.getElementById('editPresetName').focus(); return; }
+  const list  = loadCustom();
+  if (!list[_editIdx]) return;
+  list[_editIdx].name  = name;
+  list[_editIdx].notes = notes;
+  saveCustomList(list);
+  renderCustom();
+  closeModal('editPresetModal');
+  toast('✏️', '"' + name + '" actualizada');
 }
 
 function openSaveModal() {
