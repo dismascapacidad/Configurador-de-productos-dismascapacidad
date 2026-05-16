@@ -2067,14 +2067,16 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
   if (!list.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   grid.innerHTML = '';
+  const myEmail = currentUser?.email || '';
   list.forEach(p => {
     const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
     const mapped    = { name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes };
     const k         = _reg(mapped);
+    const canDel    = !isCommunity || p.sender_email === myEmail;
     const card      = document.createElement('div');
     card.className  = 'custom-card ' + (isCommunity ? 'community' : 'shared');
     card.innerHTML  = `
-      ${(!isCommunity || p.sender_email === currentUser?.email) ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',event)">✕</button>` : ''}
+      ${canDel ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',${isCommunity},event)">✕</button>` : ''}
       <div class="custom-name">${isCommunity ? '🌐' : '📨'} ${esc(p.name)}</div>
       <div class="custom-date">${p.date||''}${prodLabel ? ' · ' + prodLabel : ''}</div>
       <div class="custom-sender">Por: ${esc(p.sender_name || p.sender_email)}</div>
@@ -2089,11 +2091,15 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
   });
 }
 
-async function delShared(id, e) {
+async function delShared(id, isCommunity, e) {
   e.stopPropagation();
-  if (!confirm('¿Eliminar este preset compartido?')) return;
+  const msg = isCommunity
+    ? '¿Eliminar este preset? La comunidad ya no podrá verlo.'
+    : '¿Eliminar este preset compartido?';
+  if (!confirm(msg)) return;
   const { error } = await supa.from('shared_presets').delete().eq('id', id);
-  if (error) { toast('⚠️', 'Error al eliminar'); return; }
+  if (error) { addLog('Error al eliminar shared preset: ' + error.message, 'w'); toast('⚠️', 'No se pudo eliminar: ' + error.message); return; }
+  toast('🗑️', 'Preset eliminado');
   loadSharedPresets();
 }
 
