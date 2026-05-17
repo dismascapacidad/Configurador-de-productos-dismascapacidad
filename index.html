@@ -957,8 +957,8 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 <div class="tw" id="twCard">
   <div class="tw-card">
     <div class="tw-emoji">👋</div>
-    <div class="tw-title">Bienvenido al Configurador dis+</div>
-    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br>¿Primera vez? Le mostramos cómo adaptar el dispositivo a su paciente en pocos pasos.</div>
+    <div class="tw-title">Bienvenido al Configurador EpE</div>
+    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br><br>Configurá tus dispositivos, guardá perfiles por usuario y compartí configuraciones con toda la comunidad EpE.<br><br>¿Primera vez? Te mostramos todo en un recorrido rápido.</div>
     <div class="tw-btns">
       <button class="btn ghost" onclick="skipTour()">Omitir</button>
       <button class="btn pri" onclick="startTour()">Comenzar recorrido</button>
@@ -2566,13 +2566,17 @@ function toast(ico, msg) {
 let tStep=0, tActive=false;
 const TOUR = [
   {sel:'.btn-burger', pos:'right', title:'Menú principal',
-   body:'Abrí el menú ☰ para elegir el producto (disMouse o disButton), el tipo de conexión (USB o Bluetooth) y conectar el dispositivo. También encontrás las configuraciones rápidas y otras opciones.'},
+   body:'Abrí el menú ☰ para elegir el producto, conectar el dispositivo y acceder a todas las funciones: configuraciones rápidas, formación, comunidad y más.'},
   {sel:'#btnConnQuick', pos:'bottom', title:'Conectar el dispositivo',
-   body:'Una vez seleccionado el producto y tipo de conexión en el menú, presioná este botón para iniciar la conexión. En USB el navegador muestra un selector de puertos; en Bluetooth buscará dispositivos cercanos.'},
+   body:'Una vez seleccionado el producto en el menú, presioná este botón para iniciar la conexión. En USB el navegador muestra un selector de puertos; en Bluetooth buscará dispositivos cercanos.'},
   {sel:'#secArrows', pos:'left', title:'Modo de las flechas',
    body:'Solo disMouse. Elegí si las flechas mueven el cursor del mouse, emulan las teclas de dirección del teclado, o configurá cada flecha por separado con una acción distinta.'},
   {sel:'#secBtns', pos:'left', title:'Configurar cada botón',
-   body:'Cada botón puede emular una tecla del teclado, un clic de mouse, doble clic, scroll o desactivarse. Los cambios se aplican al instante al dispositivo conectado. Desde el menú ☰ podés aplicar configuraciones rápidas prediseñadas para Asterics, Cboard, juegos y más.'},
+   body:'Cada botón puede emular una tecla del teclado, un clic de mouse, doble clic, scroll o desactivarse. Los cambios se aplican al instante al dispositivo conectado.'},
+  {sel:'#drwBtnPresets', pos:'right', title:'Configuraciones rápidas',
+   body:'Aplicá configuraciones prediseñadas para Asterics, Cboard, juegos y más — sin necesidad de conectar el dispositivo para explorarlas. También podés guardar tus propias configuraciones con un nombre y una nota explicativa.'},
+  {sel:'#btnAuth', selMobile:'#drwAuthLbl', pos:'bottom', title:'Comunidad EpE',
+   body:'Iniciá sesión para desbloquear las funciones de comunidad: guardá tus configuraciones en la nube, compartílas con colegas por email, o publicalas para que toda la comunidad EpE pueda usarlas. También podés importar y exportar configuraciones en CSV.'},
 ];
 
 function showWelcome() {
@@ -2605,7 +2609,13 @@ function renderStep() {
   const s = TOUR[tStep];
   // Si este paso apunta a secArrows y el producto no tiene flechas, saltar
   if (s.sel === '#secArrows' && prod && !prod.hasArrows) { nextStep(); return; }
-  const el = document.querySelector(s.sel);
+  // En mobile usar selector alternativo si existe
+  const isMobile = window.innerWidth <= 600;
+  const sel = (isMobile && s.selMobile) ? s.selMobile : s.sel;
+  // Pasos que requieren drawer abierto
+  const needsDrawer = sel === '#drwBtnPresets' || sel === '#drwAuthLbl';
+  if (needsDrawer) openDrawer(); else if (!isMobile) closeDrawer();
+  const el = document.querySelector(sel);
   document.getElementById('tBadge').textContent = tStep+1;
   document.getElementById('tTitle').textContent = s.title;
   document.getElementById('tBody').textContent  = s.body;
@@ -2644,6 +2654,7 @@ function placeTip(tip, r, pref) {
 function endTour() {
   tActive=false;
   ['tourBd','tourSpot','tourTip','twBd','twCard'].forEach(id=>document.getElementById(id).style.display='none');
+  closeDrawer();
 }
 window.addEventListener('resize', ()=>{ if (tActive) renderStep(); });
 
