@@ -262,6 +262,15 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .formacion-card-btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:6px 13px;border-radius:var(--r);background:var(--acc);color:#fff;border:none;cursor:pointer;text-decoration:none;transition:background .15s}
 .formacion-card-btn:hover{background:var(--acc-dk)}
 @keyframes pop{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes deviceReveal{
+  0%  {transform:scale(0.4) translateY(12px);opacity:0;filter:blur(16px)}
+  55% {transform:scale(1.07) translateY(-4px);opacity:1;filter:blur(0)}
+  75% {transform:scale(0.97) translateY(1px)}
+  100%{transform:scale(1) translateY(0);opacity:1;filter:blur(0)}
+}
+@keyframes fadeSlideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.welcome-dev-img{animation:deviceReveal .7s cubic-bezier(.34,1.56,.64,1) both}
+.welcome-dev-txt{animation:fadeSlideUp .4s .5s ease both}
 .modal-head{padding:13px 15px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;gap:8px}
 .modal-title{font-size:14px;font-weight:700;flex:1}
 .modal-x{width:26px;height:26px;border:none;background:transparent;color:var(--txt3);font-size:16px;cursor:pointer;border-radius:5px;display:flex;align-items:center;justify-content:center;transition:all .15s}
@@ -393,6 +402,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 <div class="status-bar" id="statusBar" style="display:none">
   <div class="sb-device">
     <span id="sbDevName">disMouse</span>
+    <span id="sbFwVersion" style="font-size:10px;color:var(--txt3);margin-left:4px"></span>
     <span id="sbConnType2" class="sb-conn-badge">USB</span>
   </div>
   <button id="btnReset" disabled onclick="resetDevice()" style="display:none"></button><!-- mantenido por compatibilidad JS -->
@@ -707,6 +717,41 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   </div>
 </div>
 
+<div class="modal-bd" id="welcomeDevModal" style="display:none">
+  <div class="modal" style="max-width:360px;text-align:center;padding:0;overflow:hidden">
+    <div style="padding:40px 32px 32px">
+      <img id="welcomeDevImg" src="" alt="" class="welcome-dev-img" style="height:130px;width:auto;object-fit:contain;margin-bottom:22px;display:block;margin-left:auto;margin-right:auto;filter:drop-shadow(0 12px 28px rgba(0,0,0,.18))">
+      <div class="welcome-dev-txt">
+        <div id="welcomeDevTitle" style="font-size:24px;font-weight:800;color:var(--txt);margin-bottom:5px"></div>
+        <div id="welcomeDevVersion" style="font-size:12.5px;color:var(--txt3)"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bd" id="selectProdModal" style="display:none" onclick="closeBd(event,'selectProdModal')">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-head">
+      <span class="modal-title">¿Qué dispositivo conectaste?</span>
+      <button class="modal-x" onclick="closeModal('selectProdModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--txt2);margin:0 0 6px">No pudimos detectar el modelo automáticamente. Seleccionalo para continuar.</p>
+      <p style="font-size:11.5px;color:var(--acc);margin:0 0 14px">⬆️ Para tener las últimas funcionalidades, actualizá tu dispositivo. Visitá la sección Actualizaciones para saber más.</p>
+      <div class="dev-list">
+        <div class="dev-opt" onclick="selectProd('dismouse');closeModal('selectProdModal')">
+          <div class="dev-ico"><img src="assets/img/dismouse.png" alt="disMouse"></div>
+          <div><div class="dev-name">disMouse</div></div>
+        </div>
+        <div class="dev-opt" onclick="selectProd('disbutton');closeModal('selectProdModal')">
+          <div class="dev-ico"><img src="assets/img/disbutton.png" alt="disButton"></div>
+          <div><div class="dev-name">disButton</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal-bd" id="noDeviceModal" style="display:none" onclick="closeBd(event,'noDeviceModal')">
   <div class="modal" style="max-width:360px;text-align:center">
     <div class="modal-head">
@@ -792,8 +837,8 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="modal-body">
       <div class="conn-steps">
 
-        <!-- Paso 1: Producto -->
-        <div class="conn-step active" id="cstep1">
+        <!-- Paso 1: Producto (oculto — autodetectado por WHO) -->
+        <div class="conn-step" id="cstep1" style="display:none">
           <div class="conn-step-head">
             <div class="conn-step-num">1</div>
             <span class="conn-step-lbl">Seleccionar producto</span>
@@ -823,7 +868,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         </div>
 
         <!-- Paso 2: Tipo de conexión -->
-        <div class="conn-step" id="cstep2" style="opacity:.4;pointer-events:none">
+        <div class="conn-step active" id="cstep2">
           <div class="conn-step-head">
             <div class="conn-step-num">2</div>
             <span class="conn-step-lbl">Tipo de conexión</span>
@@ -852,7 +897,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         </div>
 
         <!-- Paso 3: Conectar -->
-        <div class="conn-step" id="cstep3" style="opacity:.4;pointer-events:none">
+        <div class="conn-step active" id="cstep3">
           <div class="conn-step-head">
             <div class="conn-step-num">3</div>
             <span class="conn-step-lbl">Conectar</span>
@@ -1288,6 +1333,18 @@ let devCfg    = mkCfg();
 let capActive = null;
 const capHandlers = {};
 const STORAGE_KEY = 'displus_presets_v1';
+
+// ── VERSIONES DE FIRMWARE CONOCIDAS ─────────────────────
+// Actualizar cuando se lance nuevo firmware
+const LATEST_FW = {
+  disMouse:  'R019',
+  disButton: 'R019',
+  disHub:    'R013',
+  disMouth:  'R001',
+};
+
+// Resolver para la promesa de WHO
+let _whoResolve = null;
 
 function mkCfg() { return {orient:null, vel:null, acel:null, fmode:null, btns:{}}; }
 
@@ -2234,7 +2291,11 @@ async function getAllConfig() {
 }
 
 function parseLine(line) {
-  if      (line.startsWith('ORIENT:')) devCfg.orient = parseInt(line.slice(7));
+  if      (line.startsWith('OK:WHO:')) {
+    const p = line.split(':'); // ['OK','WHO','disMouse','R019']
+    if (_whoResolve) { _whoResolve({model: p[2], version: p[3]}); _whoResolve = null; }
+  }
+  else if (line.startsWith('ORIENT:')) devCfg.orient = parseInt(line.slice(7));
   else if (line.startsWith('VEL:'))    devCfg.vel    = parseInt(line.slice(4));
   else if (line.startsWith('ACEL:'))   devCfg.acel   = parseInt(line.slice(5));
   else if (line.startsWith('FMODE:'))  devCfg.fmode  = parseInt(line.slice(6));
@@ -2242,6 +2303,75 @@ function parseLine(line) {
     const p = line.split(':');
     devCfg.btns[p[1]] = {tipo:+p[2], modo:+p[3], debounce:+p[4], accion:+p[5], mods:+p[6], flags:+p[7]};
   }
+}
+
+// ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
+const DEV_IMAGES = {
+  dismouse:  'assets/img/dismouse.png',
+  disbutton: 'assets/img/disbutton.png',
+  dishub:    'assets/img/dismouse.png', // placeholder hasta tener imagen
+  dismouth:  'assets/img/dismouse.png', // placeholder hasta tener imagen
+};
+
+function showWelcomeDev(model, version) {
+  const key  = model.toLowerCase().replace(/\s/g,'');
+  const img  = document.getElementById('welcomeDevImg');
+  const ttl  = document.getElementById('welcomeDevTitle');
+  const ver  = document.getElementById('welcomeDevVersion');
+  if (img) {
+    // Reiniciar animación
+    img.style.animation = 'none';
+    img.src = DEV_IMAGES[key] || '';
+    requestAnimationFrame(() => { img.style.animation = ''; });
+  }
+  if (ttl) ttl.textContent = '¡Hola, ' + model + '!';
+  if (ver) ver.textContent = version ? 'Firmware ' + version : '';
+  openModal('welcomeDevModal');
+  setTimeout(() => closeModal('welcomeDevModal'), 2500);
+}
+
+// ── POST-CONEXIÓN: WHO → selección automática → GETALL ──
+async function postConnect() {
+  // Enviar WHO y esperar respuesta hasta 800ms
+  const whoPromise = new Promise(resolve => {
+    _whoResolve = resolve;
+    setTimeout(() => { if (_whoResolve) { _whoResolve(null); _whoResolve = null; } }, 800);
+  });
+  await send('WHO');
+  const who = await whoPromise;
+
+  if (who && who.model) {
+    // Autodetección exitosa
+    const modelKey = who.model.toLowerCase().replace(/\s/g,'');
+    if (PRODUCTS[modelKey]) selectProd(modelKey);
+    showWelcomeDev(who.model, who.version);
+
+    // Mostrar versión en status bar
+    const vEl = document.getElementById('sbFwVersion');
+    if (vEl) vEl.textContent = who.version || '';
+
+    // Comparar con versión más reciente conocida
+    const latest = LATEST_FW[who.model];
+    if (latest && who.version) {
+      const cur    = parseInt((who.version || '').replace(/\D/g,''));
+      const latNum = parseInt(latest.replace(/\D/g,''));
+      if (cur < latNum) {
+        toast('⬆️', `Para tener las últimas funcionalidades, actualizá tu ${who.model}. Visitá la sección Actualizaciones para saber más.`);
+        addLog(`Firmware desactualizado: ${who.version} → última versión conocida: ${latest}`, 'w');
+      }
+    }
+  } else {
+    // Firmware viejo — sin WHO: pedir selección manual de producto
+    const vEl = document.getElementById('sbFwVersion');
+    if (vEl) vEl.textContent = '';
+    openModal('selectProdModal');
+    addLog('El dispositivo no respondió WHO — firmware sin soporte de autodetección.', 'w');
+  }
+
+  // GETALL siempre, independientemente de WHO
+  devCfg = mkCfg();
+  await send('GETALL');
+  setTimeout(applyDevCfgToCards, 2400);
 }
 
 function renderCfgModal() {
@@ -2302,6 +2432,7 @@ async function connectUSB() {
     writer = port.writable.getWriter();
     setConnected(true);
     readLoopUSB();
+    await postConnect();
   } catch(e) {
     if (e.name !== 'NotFoundError') { addLog('Error USB: ' + e.message, 'w'); toast('❌', e.message); }
   }
@@ -2438,6 +2569,7 @@ async function connectBLE() {
     bleTxChar = await service.getCharacteristic(BLE_TX);
     addLog('RX/TX OK. Listo para enviar comandos.');
     setConnected(true);
+    await postConnect();
 
   } catch(e) {
     if (e.name === 'NotFoundError' || e.name === 'AbortError') return; // usuario canceló
@@ -2711,16 +2843,15 @@ function toggleDrawer() {
 
 // ── CONN MODAL ───────────────────────────────────────────
 function openConnModal() {
-  // Sincronizar estado de producto seleccionado con los opts del modal
+  // Con WHO, el producto se detecta solo → pasos 2 y 3 siempre habilitados
+  _connStepEnable(2); _connStepEnable(3);
+
+  // Sincronizar producto si ya hay uno seleccionado
   document.querySelectorAll('#devListModal .dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
   if (prod) {
-    const id = 'opt-' + (prod.id || (prod.name.toLowerCase().includes('button') ? 'disbutton' : 'dismouse')) + '-m';
+    const id = 'opt-' + prod.id + '-m';
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
-    // Habilitar pasos 2 y 3
-    _connStepEnable(2); _connStepEnable(3);
-  } else {
-    _connStepDisable(2); _connStepDisable(3);
   }
   // Sincronizar tipo de conexión
   ['usb','ble'].forEach(t => {
