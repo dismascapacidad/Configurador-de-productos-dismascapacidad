@@ -2020,14 +2020,22 @@ function _refreshPresetContent() {
 }
 
 function _buildFactoryPresetsRaw(ids) {
-  const grid = document.getElementById('factoryGrid');
+  const grid    = document.getElementById('factoryGrid');
+  const section = grid ? grid.closest('.presets-modal-section') : null;
   if (!grid) return;
   grid.innerHTML = '';
-  const devTab = prod ? _tabForProd(prod.id) : null;
+  // Filtrar solo IDs con FACTORY_CARDS definido
+  const validIds = ids.filter(id => !!FACTORY_CARDS[id]);
+  if (!validIds.length) {
+    if (section) section.style.display = 'none';
+    return;
+  }
+  if (section) section.style.display = '';
+  const devTab    = prod ? _tabForProd(prod.id) : null;
   const activeTab = PRESET_TABS.find(t => t.tabId === activePresetTab);
-  const canApply = !connected || (devTab && activeTab && devTab.tabId === activeTab.tabId);
-  ids.forEach(id => {
-    const c = FACTORY_CARDS[id]; if (!c) return;
+  const canApply  = !connected || (devTab && activeTab && devTab.tabId === activeTab.tabId);
+  validIds.forEach(id => {
+    const c = FACTORY_CARDS[id];
     const div = document.createElement('div');
     div.className = 'preset-card' + (canApply ? '' : ' preset-locked');
     div.setAttribute('data-tip-id', c.tipId);
