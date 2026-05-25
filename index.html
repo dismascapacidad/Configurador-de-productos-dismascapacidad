@@ -211,7 +211,8 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .presets-outer{display:flex;flex-direction:column;gap:12px}
 .factory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .preset-card{position:relative;padding:12px;text-align:center;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl);cursor:pointer;transition:all .15s}
-.preset-card:hover{border-color:var(--acc);background:var(--acc-dim)}
+.preset-card:hover:not(.preset-locked){border-color:var(--acc);background:var(--acc-dim)}
+.preset-card.preset-locked{opacity:.45;cursor:not-allowed}
 .preset-icon{font-size:24px;margin-bottom:4px;display:block}
 .preset-name{font-size:12px;font-weight:700;display:block}
 .preset-sub{font-size:10.5px;color:var(--txt3);margin-top:2px;display:block}
@@ -252,6 +253,14 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .presets-modal-section:last-child{margin-bottom:0}
 .presets-modal-lbl{font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
 .presets-modal-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+/* ── Tabs de dispositivo en modal presets ── */
+.preset-tabs{display:flex;gap:5px;flex-wrap:wrap;padding-bottom:14px;border-bottom:1px solid var(--bdr);margin-bottom:16px}
+.preset-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);cursor:pointer;white-space:nowrap;transition:all .15s;line-height:1.4}
+.preset-tab:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-dim)}
+.preset-tab.active{background:var(--acc);border-color:var(--acc);color:#fff}
+.preset-tab.dev-match{border-color:var(--grn);color:var(--grn)}
+.preset-tab.dev-match.active{background:var(--grn);border-color:var(--grn);color:#fff}
+.preset-tab-hint{font-size:11px;color:var(--txt3);padding:4px 0 0;width:100%}
 .formacion-list{display:flex;flex-direction:column;gap:12px}
 .formacion-card{display:flex;align-items:flex-start;gap:14px;padding:14px;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--rl)}
 .formacion-card-ico{font-size:28px;flex-shrink:0;line-height:1;margin-top:2px}
@@ -400,9 +409,12 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 </div>
 <!-- STATUS BAR (también dentro de app-shell) -->
 <div class="status-bar" id="statusBar" style="display:none">
-  <div class="sb-device">
-    <span id="sbDevName">disMouse</span>
-    <span id="sbFwVersion" style="font-size:10px;color:var(--txt3);margin-left:4px"></span>
+  <div class="sb-device" style="display:flex;align-items:center;gap:8px">
+    <img id="sbDevImg" src="" alt="" style="height:28px;width:auto;object-fit:contain;display:none">
+    <div style="display:flex;flex-direction:column;line-height:1.2">
+      <span id="sbDevName" style="font-size:13px;font-weight:700"></span>
+      <span id="sbFwVersion" style="font-size:10px;color:var(--txt3)"></span>
+    </div>
     <span id="sbConnType2" class="sb-conn-badge">USB</span>
   </div>
   <button id="btnReset" disabled onclick="resetDevice()" style="display:none"></button><!-- mantenido por compatibilidad JS -->
@@ -431,35 +443,9 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
     <div class="drw-section">
       <div class="drw-section-lbl">Conectá tu dispositivo</div>
 
-      <!-- Paso 1: Producto -->
-      <div class="drw-step">
+      <!-- Tipo de conexión -->
+      <div class="drw-step" id="sbConnType">
         <span class="drw-step-num">1</span>
-        <span class="drw-step-lbl">Seleccionar producto</span>
-        <div class="dev-list" id="devList">
-          <div class="dev-opt" id="opt-dismouse" onclick="selectProd('dismouse')">
-            <div class="dev-ico"><img src="assets/img/dismouse.png" alt="disMouse"></div>
-            <div><div class="dev-name">disMouse</div></div>
-          </div>
-          <div class="dev-opt" id="opt-disbutton" onclick="selectProd('disbutton')">
-            <div class="dev-ico"><img src="assets/img/disbutton.png" alt="disButton"></div>
-            <div><div class="dev-name">disButton</div></div>
-          </div>
-          <div class="dev-opt disabled">
-            <div class="dev-ico">🔌</div>
-            <div><div class="dev-name">disHub</div></div>
-            <span class="dev-soon">Próximamente</span>
-          </div>
-          <div class="dev-opt disabled">
-            <div class="dev-ico">🕹️</div>
-            <div><div class="dev-name">disMouth</div></div>
-            <span class="dev-soon">Próximamente</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Paso 2: Tipo de conexión -->
-      <div class="drw-step" id="sbConnType" style="opacity:.38;pointer-events:none">
-        <span class="drw-step-num">2</span>
         <span class="drw-step-lbl">Tipo de conexión</span>
         <div class="conn-type">
           <div class="ct-opt active" id="ct-usb" onclick="selectConnType('usb')">
@@ -486,9 +472,9 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
         </div>
       </div>
 
-      <!-- Paso 3: Conectar -->
-      <div class="drw-step" id="sbConn" style="opacity:.38;pointer-events:none">
-        <span class="drw-step-num">3</span>
+      <!-- Conectar -->
+      <div class="drw-step" id="sbConn">
+        <span class="drw-step-num">2</span>
         <span class="drw-step-lbl">Conectar</span>
         <button class="btn pri sm" id="btnConn" onclick="toggleConn()" style="width:100%;margin-top:6px">Conectar</button>
         <div id="connSub" style="display:none;flex-direction:column;gap:5px;margin-top:6px">
@@ -772,9 +758,10 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
       <span class="modal-title">⚡ Configuraciones rápidas</span>
       <button class="modal-x" onclick="closeModal('presetsModal')">✕</button>
     </div>
-    <div class="modal-body" style="max-height:70vh;overflow-y:auto">
+    <div class="modal-body" style="max-height:70vh;overflow-y:auto;display:flex;flex-direction:column">
+      <div class="preset-tabs" id="presetTabs"></div>
       <div class="presets-modal-section">
-        <div class="presets-modal-lbl">Presets de fábrica</div>
+        <div class="presets-modal-lbl">Presets EpE</div>
         <div class="factory-grid" id="factoryGrid"></div>
       </div>
       <div class="presets-modal-section">
@@ -1199,10 +1186,10 @@ async function signOut() {
 // ── SYNC PRESETS ─────────────────────────────────────────
 async function fetchSupaPresets() {
   const { data, error } = await supa.from('presets')
-    .select('name, date, cfg')
+    .select('name, date, cfg, prod_id, notes')
     .order('created_at', { ascending: true });
   if (error) { addLog('Error al leer presets de la nube: ' + error.message, 'w'); return []; }
-  return data || [];
+  return (data || []).map(p => ({ ...p, prodId: p.prod_id }));
 }
 
 async function pushAllPresetsToSupa(list) {
@@ -1210,7 +1197,7 @@ async function pushAllPresetsToSupa(list) {
   const { error: delErr } = await supa.from('presets').delete().eq('user_id', currentUser.id);
   if (delErr) { addLog('Error al sincronizar: ' + delErr.message, 'w'); return; }
   if (list.length === 0) return;
-  const rows = list.map(p => ({ user_id: currentUser.id, name: p.name, date: p.date, cfg: p.cfg }));
+  const rows = list.map(p => ({ user_id: currentUser.id, name: p.name, date: p.date, cfg: p.cfg, prod_id: p.prodId || null, notes: p.notes || null }));
   const { error: insErr } = await supa.from('presets').insert(rows);
   if (insErr) addLog('Error al guardar en la nube: ' + insErr.message, 'w');
 }
@@ -1319,12 +1306,75 @@ const PRODUCTS = {
     ],
     presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
   },
+  disjoystick: {
+    id: 'disjoystick', name: 'disJoystick',
+    cardTitle: 'Botones — disJoystick',
+    hasArrows: true,
+    mainBtns: [
+      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
+      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
+      {code:'BN', label:'Botón Naranja', color:'#F97316'},
+      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
+    ],
+    arrowBtns: [
+      {code:'FU', label:'Flecha ↑', color:'#EAB308'},
+      {code:'FD', label:'Flecha ↓', color:'#EAB308'},
+      {code:'FL', label:'Flecha ←', color:'#EAB308'},
+      {code:'FR', label:'Flecha →', color:'#EAB308'},
+    ],
+    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
+  },
+  dishubmini: {
+    id: 'dishubmini', name: 'disHub mini',
+    cardTitle: 'Botones — disHub mini',
+    hasArrows: true,
+    centeredLayout: true,
+    arrowSectionTitle: 'Entradas externas',
+    arrowSectionIcon: '🔌',
+    mainBtns: [
+      {code:'BR', label:'Botón Rojo', color:'#EF4444'},
+      {code:'BA', label:'Botón Azul', color:'#3B82F6'},
+    ],
+    arrowBtns: [
+      {code:'FU', label:'Externo 1', color:'#EAB308'},
+      {code:'FD', label:'Externo 2', color:'#EAB308'},
+      {code:'FL', label:'Externo 3', color:'#EAB308'},
+      {code:'FR', label:'Externo 4', color:'#EAB308'},
+    ],
+    presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
+  },
+  dishubkeys: {
+    id: 'dishubkeys', name: 'disHub keys',
+    cardTitle: 'Botones — disHub keys',
+    hasArrows: false,
+    mainBtns: [
+      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
+      {code:'BN', label:'Botón Naranja', color:'#F97316'},
+      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
+      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
+    ],
+    arrowBtns: [],
+    presets: ['asterics_barrido','asterics_dir','asterics_sec','cboard_barrido'],
+  },
 };
+
+// ── GRUPOS DE TABS DE PRESETS ────────────────────────────
+// prodIds: qué IDs de PRODUCTS agrupa esta tab
+// tabId: identificador único del grupo
+const PRESET_TABS = [
+  { tabId: 'dismouse',   label: 'disMouse',    prodIds: ['dismouse']              },
+  { tabId: 'disjoystick',label: 'disJoystick', prodIds: ['disjoystick']           },
+  { tabId: 'disbutton',  label: 'disButton',   prodIds: ['disbutton','disbuttonbt']},
+  { tabId: 'dishub',     label: 'disHub',      prodIds: ['dishub','dishubbt']     },
+  { tabId: 'dishubmini', label: 'disHub mini', prodIds: ['dishubmini']            },
+  { tabId: 'dishubkeys', label: 'disHub keys', prodIds: ['dishubkeys']            },
+];
 
 // ── ESTADO ──────────────────────────────────────────────
 let prod      = null;
 let connType  = 'usb';  // 'usb' | 'ble'
 let connected = false;
+let activePresetTab = null; // tabId activo en presetsModal
 // USB
 let port = null, reader = null, writer = null;
 // BLE
@@ -1390,7 +1440,13 @@ function selectProd(id) {
   setBanner('conn');
   buildGrid('mainGrid', p.mainBtns);
   if (p.hasArrows) buildGrid('arrowGrid', p.arrowBtns);
-  buildFactoryPresets(p.presets);
+  // Auto-seleccionar tab del dispositivo
+  const devTab = _tabForProd(p.id);
+  if (devTab) activePresetTab = devTab.tabId;
+  // Si el modal está abierto, refrescar; si no, solo pre-popular la grid (para cuando abra)
+  const presetsOpen = document.getElementById('presetsModal')?.style.display !== 'none';
+  if (presetsOpen) renderPresetTabs();
+  else buildFactoryPresets(p.presets);
   renderCustom();
   addLog('Producto seleccionado: ' + p.name);
 }
@@ -1436,8 +1492,9 @@ function setSections(on) {
   // Botones del menú lateral
   const drwCfg     = document.getElementById('drwBtnCfg');
   const drwReset   = document.getElementById('drwBtnReset');
-  if (drwCfg)     drwCfg.disabled     = !on;
-  if (drwReset)   drwReset.disabled   = !on;
+  // Solo habilitar si hay conexión Y producto reconocido
+  if (drwCfg)   drwCfg.disabled   = !on || !prod;
+  if (drwReset) drwReset.disabled = !on || !prod;
 }
 
 // ── GRILLAS ───────────────────────────────────────────────
@@ -1572,24 +1629,28 @@ const SKEYS = {
 };
 
 function startCap(code) {
+  // Cancelar cualquier captura activa anterior
+  if (capActive && capActive !== code) stopCap(capActive);
   capActive = code;
   const inp = document.getElementById('k_' + code);
   const hint = document.getElementById('kh_' + code);
   inp.classList.add('cap-on');
   hint.textContent = '⌨️ Presione la tecla…'; hint.className = 'hint cap';
-  if (!capHandlers[code]) {
-    capHandlers[code] = e => {
-      if (capActive !== code) return;
-      if (['Control','Shift','Alt','Meta'].includes(e.key)) return;
-      e.preventDefault(); e.stopPropagation();
-      const name = SKEYS[e.key] ?? (e.key.length === 1 ? e.key.toLowerCase() : e.key);
-      inp.value = name; inp.classList.remove('cap-on');
-      hint.textContent = '✓ "' + name + '" capturada'; hint.className = 'hint ok';
-      capActive = null;
-      setTimeout(() => { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }, 2200);
-    };
-    document.addEventListener('keydown', capHandlers[code], true);
+  // Remover handler anterior si existía, para evitar duplicados
+  if (capHandlers[code]) {
+    document.removeEventListener('keydown', capHandlers[code], true);
   }
+  capHandlers[code] = e => {
+    if (capActive !== code) return;
+    if (['Control','Shift','Alt','Meta'].includes(e.key)) return;
+    e.preventDefault(); e.stopPropagation();
+    const name = SKEYS[e.key] ?? (e.key.length === 1 ? e.key.toLowerCase() : e.key);
+    inp.value = name; inp.classList.remove('cap-on');
+    hint.textContent = '✓ "' + name + '" capturada'; hint.className = 'hint ok';
+    capActive = null;
+    setTimeout(() => { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }, 2200);
+  };
+  document.addEventListener('keydown', capHandlers[code], true);
 }
 
 function stopCap(code) {
@@ -1909,26 +1970,87 @@ const TIP_CONTENT = {
     <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
 };
 
-function buildFactoryPresets(ids) {
+// ── TABS DE DISPOSITIVO EN MODAL PRESETS ────────────────
+function _tabForProd(prodId) {
+  return PRESET_TABS.find(t => t.prodIds.includes(prodId)) || null;
+}
+
+function renderPresetTabs() {
+  const container = document.getElementById('presetTabs');
+  if (!container) return;
+  // Determinar tab activa: si hay dispositivo conectado, usar su tab
+  const devTab = prod ? _tabForProd(prod.id) : null;
+  if (!activePresetTab || (devTab && devTab.tabId !== activePresetTab)) {
+    activePresetTab = devTab ? devTab.tabId : PRESET_TABS[0].tabId;
+  }
+  container.innerHTML = '';
+  PRESET_TABS.forEach(tab => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-tab' +
+      (tab.tabId === activePresetTab ? ' active' : '') +
+      (devTab && tab.tabId === devTab.tabId ? ' dev-match' : '');
+    btn.textContent = tab.label;
+    if (devTab && tab.tabId === devTab.tabId) btn.title = 'Dispositivo conectado';
+    btn.onclick = () => switchPresetTab(tab.tabId);
+    container.appendChild(btn);
+  });
+  if (devTab) {
+    const hint = document.createElement('span');
+    hint.className = 'preset-tab-hint';
+    hint.textContent = '● Solo podés aplicar presets de la pestaña ' + devTab.label + ' (dispositivo conectado)';
+    container.appendChild(hint);
+  }
+  // Renderizar contenido para el tab activo
+  _refreshPresetContent();
+}
+
+function switchPresetTab(tabId) {
+  activePresetTab = tabId;
+  renderPresetTabs();
+}
+
+function _refreshPresetContent() {
+  const tab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  if (!tab) return;
+  // Factory presets: unir presets de todos los productos del grupo
+  const factoryIds = [...new Set(tab.prodIds.flatMap(pid => PRODUCTS[pid]?.presets || []))];
+  _buildFactoryPresetsRaw(factoryIds);
+  renderCustom();
+  if (currentUser) loadSharedPresets();
+}
+
+function _buildFactoryPresetsRaw(ids) {
   const grid = document.getElementById('factoryGrid');
+  if (!grid) return;
   grid.innerHTML = '';
+  const devTab = prod ? _tabForProd(prod.id) : null;
+  const activeTab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const canApply = !connected || (devTab && activeTab && devTab.tabId === activeTab.tabId);
   ids.forEach(id => {
     const c = FACTORY_CARDS[id]; if (!c) return;
     const div = document.createElement('div');
-    div.className = 'preset-card';
+    div.className = 'preset-card' + (canApply ? '' : ' preset-locked');
     div.setAttribute('data-tip-id', c.tipId);
     div.innerHTML = `<span class="preset-icon">${c.icon}</span><span class="preset-name">${c.name}</span><span class="preset-sub">${c.sub}</span>`;
     div.addEventListener('click', () => applyPreset(id));
     grid.appendChild(div);
   });
-  // Re-inicializar tooltips para las nuevas cards
   initPresetTooltips();
+}
+
+function buildFactoryPresets(ids) {
+  // Mantener compatibilidad: si el modal no está abierto, solo guardar para cuando abra
+  _buildFactoryPresetsRaw(ids);
 }
 
 async function applyPreset(id) {
   const cmds = FACTORY_CMDS[id]; if (!cmds) return;
-  if (!port) {
-    openModal('noDeviceModal');
+  if (!connected) { openModal('noDeviceModal'); return; }
+  // Validar que el preset es compatible con el dispositivo conectado
+  const devTab = prod ? _tabForProd(prod.id) : null;
+  const activeTab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  if (devTab && activeTab && devTab.tabId !== activeTab.tabId) {
+    toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + prod.name);
     return;
   }
   for (const c of cmds) await send(c);
@@ -1948,15 +2070,19 @@ function saveCustomList(list) {
 
 function renderCustom() {
   const all  = loadCustom();
-  const list = prod ? all.filter(p => !p.prodId || p.prodId === prod.id) : all;
+  const tab  = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const list = tab
+    ? all.filter(p => !p.prodId || tab.prodIds.includes(p.prodId))
+    : all;
   const grid = document.getElementById('customGrid');
   const none = document.getElementById('noCustom');
+  if (!grid) return;
   grid.innerHTML = '';
   if (!list.length) {
     none.style.display = 'block';
-    none.textContent   = prod
-      ? 'No hay configuraciones guardadas para ' + prod.name + '.'
-      : 'Seleccioná un producto para ver tus configuraciones.';
+    none.textContent   = tab
+      ? 'No hay configuraciones guardadas para ' + tab.label + '.'
+      : 'Conectá un dispositivo para ver tus configuraciones.';
     return;
   }
   none.style.display = 'none';
@@ -2134,11 +2260,14 @@ async function loadSharedPresets() {
 function renderSharedGrid(gridId, sectionId, list, isCommunity) {
   const section = document.getElementById(sectionId);
   const grid    = document.getElementById(gridId);
-  if (!list.length) { section.style.display = 'none'; return; }
+  // Filtrar por tab activa
+  const tab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const items = tab ? list.filter(p => !p.prod_id || tab.prodIds.includes(p.prod_id)) : list;
+  if (!items.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   grid.innerHTML = '';
   const myEmail = currentUser?.email || '';
-  list.forEach(p => {
+  items.forEach(p => {
     const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
     const mapped    = { name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes };
     const k         = _reg(mapped);
@@ -2239,6 +2368,16 @@ async function confirmSave() {
 }
 
 async function applyCustom(p) {
+  if (!connected) { openModal('noDeviceModal'); return; }
+  // Validar compatibilidad con dispositivo conectado
+  if (p.prodId && prod) {
+    const presetTab = _tabForProd(p.prodId);
+    const devTab    = _tabForProd(prod.id);
+    if (presetTab && devTab && presetTab.tabId !== devTab.tabId) {
+      toast('⚠️', 'Este preset es para ' + (PRODUCTS[p.prodId]?.name || p.prodId) + ', pero tenés conectado un ' + prod.name);
+      return;
+    }
+  }
   const cfg = p.cfg; if (!cfg) return;
   const CODE = {0:'BR',1:'BA',2:'BN',3:'BC',4:'FU',5:'FD',6:'FL',7:'FR'};
   const TL = {0:'M',1:'K',2:'X'};
@@ -2306,26 +2445,58 @@ function parseLine(line) {
 }
 
 // ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
+// Mapa: nombre recibido por WHO (lowercase sin espacios) → imagen
 const DEV_IMAGES = {
-  dismouse:  'assets/img/dismouse.png',
-  disbutton: 'assets/img/disbutton.png',
-  dishub:    'assets/img/dismouse.png', // placeholder hasta tener imagen
-  dismouth:  'assets/img/dismouse.png', // placeholder hasta tener imagen
+  'dismouse':     'assets/img/dismouse.png',
+  'disbutton':    'assets/img/disbutton.png',
+  'disbuttonbt':  'assets/img/disbutton.png',
+  'disjoystick':  'assets/img/disjoystick.png',
+  'dishub':       'assets/img/dishubs.png',
+  'dishubb':      'assets/img/dishubs.png',   // "disHub BT" → dishubs
+  'dishubbt':     'assets/img/dishubs.png',
+  'dishubmini':   'assets/img/dishubmini.png',
+  'dishubkeys':   'assets/img/dishubkeys.png',
 };
 
+// Mapa: nombre WHO → productKey en PRODUCTS (para selectProd)
+const WHO_TO_PROD = {
+  'disMouse':     'dismouse',
+  'disButton':    'disbutton',
+  'disButton BT': 'disbutton',
+  'disJoystick':  'disjoystick',
+  'disHub':       'dishub',
+  'disHub BT':    'dishub',
+  'disHub mini':  'dishubmini',
+  'disHub keys':  'dishubkeys',
+};
+
+function updateStatusBar(model, version) {
+  const key     = model ? model.toLowerCase().replace(/[\s]/g,'') : '';
+  const imgSrc  = DEV_IMAGES[key] || '';
+  const sbImg   = document.getElementById('sbDevImg');
+  const sbName  = document.getElementById('sbDevName');
+  const sbVer   = document.getElementById('sbFwVersion');
+  const sbBadge = document.getElementById('sbConnType2');
+  if (sbImg)  { sbImg.src = imgSrc; sbImg.style.display = imgSrc ? '' : 'none'; }
+  if (sbName) sbName.textContent = model ? '¡Hola, ' + model + '!' : '';
+  if (sbVer)  sbVer.textContent  = version || '';
+  if (sbBadge) sbBadge.textContent = connType.toUpperCase();
+}
+
 function showWelcomeDev(model, version) {
-  const key  = model.toLowerCase().replace(/\s/g,'');
+  const key  = model.toLowerCase().replace(/[\s]/g,'');
   const img  = document.getElementById('welcomeDevImg');
   const ttl  = document.getElementById('welcomeDevTitle');
   const ver  = document.getElementById('welcomeDevVersion');
   if (img) {
-    // Reiniciar animación
     img.style.animation = 'none';
     img.src = DEV_IMAGES[key] || '';
     requestAnimationFrame(() => { img.style.animation = ''; });
   }
   if (ttl) ttl.textContent = '¡Hola, ' + model + '!';
   if (ver) ver.textContent = version ? 'Firmware ' + version : '';
+  // Actualizar status bar también
+  updateStatusBar(model, version);
   openModal('welcomeDevModal');
   setTimeout(() => closeModal('welcomeDevModal'), 2500);
 }
@@ -2342,8 +2513,8 @@ async function postConnect() {
 
   if (who && who.model) {
     // Autodetección exitosa
-    const modelKey = who.model.toLowerCase().replace(/\s/g,'');
-    if (PRODUCTS[modelKey]) selectProd(modelKey);
+    const prodKey = WHO_TO_PROD[who.model];
+    if (prodKey && PRODUCTS[prodKey]) selectProd(prodKey);
     showWelcomeDev(who.model, who.version);
 
     // Mostrar versión en status bar
@@ -2368,10 +2539,12 @@ async function postConnect() {
     addLog('El dispositivo no respondió WHO — firmware sin soporte de autodetección.', 'w');
   }
 
-  // GETALL siempre, independientemente de WHO
-  devCfg = mkCfg();
-  await send('GETALL');
-  setTimeout(applyDevCfgToCards, 2400);
+  // GETALL solo si el dispositivo fue reconocido
+  if (prod) {
+    devCfg = mkCfg();
+    await send('GETALL');
+    setTimeout(applyDevCfgToCards, 2400);
+  }
 }
 
 function renderCfgModal() {
@@ -2634,11 +2807,9 @@ function setConnected(val, physical = false) {
   // Status bar
   const sb = document.getElementById('statusBar');
   if (sb) sb.style.display = val ? '' : 'none';
-  if (val && prod) {
-    const el = document.getElementById('sbDevName');
-    const badge = document.getElementById('sbConnType2');
-    if (el) el.textContent = prod.name;
-    if (badge) badge.textContent = connType.toUpperCase();
+  if (!val) {
+    // Limpiar status bar al desconectar
+    updateStatusBar('', '');
   }
   // Drawer: hide setup when connected
   const setup = document.getElementById('drwSetup');
@@ -2667,7 +2838,9 @@ function setConnected(val, physical = false) {
 // ── MODALS ────────────────────────────────────────────────
 function openModal(id)  {
   document.getElementById(id).style.display='flex';
-  if (id === 'presetsModal') loadSharedPresets();
+  if (id === 'presetsModal') {
+    renderPresetTabs();   // builds tabs, factory presets, and triggers loadSharedPresets via _refreshPresetContent
+  }
 }
 function closeModal(id) { document.getElementById(id).style.display='none'; }
 function closeBd(e,id)  { if (e.target===document.getElementById(id)) closeModal(id); }
