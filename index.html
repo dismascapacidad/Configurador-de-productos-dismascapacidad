@@ -1448,6 +1448,8 @@ function selectProd(id) {
   if (presetsOpen) renderPresetTabs();
   else buildFactoryPresets(p.presets);
   renderCustom();
+  // Re-evaluar botones ahora que prod está seteado (setConnected se llamó antes que WHO)
+  setSections(connected);
   addLog('Producto seleccionado: ' + p.name);
 }
 
