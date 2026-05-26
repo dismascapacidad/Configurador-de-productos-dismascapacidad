@@ -185,6 +185,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .btn-card-head{display:flex;align-items:center;gap:7px}
 .btn-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
 .btn-card-title{font-size:12px;font-weight:700;flex:1}
+.btn-card-note{display:block;font-size:10px;font-weight:500;color:var(--txt3);margin-top:1px}
 .btn-summary{font-size:11px;color:var(--txt3);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px}
 .btn-fields{display:flex;flex-direction:column;gap:7px}
 .mods-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
@@ -1295,8 +1296,10 @@ const PRODUCTS = {
     arrowSectionTitle: 'Entradas externas',
     arrowSectionIcon: '🔌',
     mainBtns: [
-      {code:'BR', label:'Botón Rojo',  color:'#EF4444'},
-      {code:'BA', label:'Botón Azul',  color:'#3B82F6'},
+      {code:'BR', label:'Botón Rojo',              color:'#EF4444'},
+      {code:'BA', label:'Botón Azul',              color:'#3B82F6'},
+      {code:'BN', label:'Conector Naranja 🔌',     color:'#F97316', note:'Sensor externo'},
+      {code:'BC', label:'Conector Celeste 🔌',     color:'#06B6D4', note:'Sensor externo'},
     ],
     arrowBtns: [
       {code:'FU', label:'Externo 1', color:'#EAB308'},
@@ -1504,17 +1507,17 @@ function buildGrid(containerId, buttons) {
   const c = document.getElementById(containerId);
   if (!c) return;
   c.innerHTML = '';
-  buttons.forEach(b => c.appendChild(mkCard(b.code, b.label, b.color)));
+  buttons.forEach(b => c.appendChild(mkCard(b.code, b.label, b.color, b.note)));
 }
 
-function mkCard(code, label, color) {
+function mkCard(code, label, color, note) {
   const d = document.createElement('div');
   d.className = 'btn-card'; d.id = 'card-' + code;
   d.innerHTML = `
     <div class="btn-main">
       <div class="btn-card-head">
         <div class="btn-dot" style="background:${color}"></div>
-        <div class="btn-card-title">${label}</div>
+        <div class="btn-card-title">${label}${note ? `<span class="btn-card-note">${note}</span>` : ''}</div>
         <div class="btn-summary" id="sum_${code}">—</div>
       </div>
       <div class="btn-fields">
@@ -1980,9 +1983,9 @@ function _tabForProd(prodId) {
 function renderPresetTabs() {
   const container = document.getElementById('presetTabs');
   if (!container) return;
-  // Determinar tab activa: si hay dispositivo conectado, usar su tab
   const devTab = prod ? _tabForProd(prod.id) : null;
-  if (!activePresetTab || (devTab && devTab.tabId !== activePresetTab)) {
+  // Fallback solo si no hay tab activa todavía
+  if (!activePresetTab) {
     activePresetTab = devTab ? devTab.tabId : PRESET_TABS[0].tabId;
   }
   container.innerHTML = '';
@@ -1999,7 +2002,7 @@ function renderPresetTabs() {
   if (devTab) {
     const hint = document.createElement('span');
     hint.className = 'preset-tab-hint';
-    hint.textContent = '● Solo podés aplicar presets de la pestaña ' + devTab.label + ' (dispositivo conectado)';
+    hint.textContent = '● Presets EpE visibles solo para ' + devTab.label + ' (dispositivo conectado)';
     container.appendChild(hint);
   }
   // Renderizar contenido para el tab activo
@@ -2028,6 +2031,13 @@ function _buildFactoryPresetsRaw(ids) {
   grid.innerHTML = '';
   // Filtrar solo IDs con FACTORY_CARDS definido
   const validIds = ids.filter(id => !!FACTORY_CARDS[id]);
+  // Si hay dispositivo conectado y la tab activa no es la suya, ocultar Presets EpE
+  const devTab2    = prod ? _tabForProd(prod.id) : null;
+  const activeTab2 = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  if (connected && devTab2 && activeTab2 && devTab2.tabId !== activeTab2.tabId) {
+    if (section) section.style.display = 'none';
+    return;
+  }
   if (!validIds.length) {
     if (section) section.style.display = 'none';
     return;
@@ -2820,6 +2830,11 @@ function setConnected(val, physical = false) {
   if (!val) {
     // Limpiar status bar al desconectar
     updateStatusBar('', '');
+    // Resetear tab activa para que al reconectar se auto-seleccione correctamente
+    activePresetTab = null;
+    // Refrescar modal de presets si está abierto
+    const pm = document.getElementById('presetsModal');
+    if (pm && pm.style.display !== 'none') renderPresetTabs();
   }
   // Drawer: hide setup when connected
   const setup = document.getElementById('drwSetup');
