@@ -208,6 +208,13 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .prod-centered .btn-adv.open{display:flex}
 .prod-centered .btn-apply-wrap{display:flex;justify-content:flex-end;margin-top:4px}
 
+/* ── LAYOUT disHub (dos filas de conectores) ── */
+#mainGrid.dishub-grid{display:flex;flex-direction:column;gap:10px}
+.dishub-row{display:grid;align-items:stretch;gap:10px}
+.dishub-row-a{grid-template-columns:1fr 1fr}
+.dishub-row-b{grid-template-columns:repeat(6,1fr)}
+.dishub-row .btn-card{width:100%}
+
 /* ── PRESETS ── */
 .presets-outer{display:flex;flex-direction:column;gap:12px}
 .factory-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
@@ -1290,23 +1297,20 @@ const PRODUCTS = {
   },
   dishub: {
     id: 'dishub', name: 'disHub',
-    cardTitle: 'Botones — disHub',
-    hasArrows: true,
-    centeredLayout: true,
-    arrowSectionTitle: 'Entradas externas',
-    arrowSectionIcon: '🔌',
+    cardTitle: 'Conectores — disHub',
+    hasArrows: false,
+    dishubLayout: true,
     mainBtns: [
-      {code:'BR', label:'Botón Rojo',              color:'#EF4444'},
-      {code:'BA', label:'Botón Azul',              color:'#3B82F6'},
-      {code:'BN', label:'Conector Naranja 🔌',     color:'#F97316', note:'Sensor externo'},
-      {code:'BC', label:'Conector Celeste 🔌',     color:'#06B6D4', note:'Sensor externo'},
+      {code:'BR', label:'Botón Rojo',  note:'también Conector 1', color:'#EF4444', group:'A'},
+      {code:'BA', label:'Botón Azul',  note:'también Conector 8', color:'#3B82F6', group:'A'},
+      {code:'BN', label:'Conector 2',  color:'#F97316', group:'B'},
+      {code:'FU', label:'Conector 3',  color:'#EAB308', group:'B'},
+      {code:'FD', label:'Conector 4',  color:'#EAB308', group:'B'},
+      {code:'FL', label:'Conector 5',  color:'#EAB308', group:'B'},
+      {code:'FR', label:'Conector 6',  color:'#EAB308', group:'B'},
+      {code:'BC', label:'Conector 7',  color:'#06B6D4', group:'B'},
     ],
-    arrowBtns: [
-      {code:'FU', label:'Externo 1', color:'#EAB308'},
-      {code:'FD', label:'Externo 2', color:'#EAB308'},
-      {code:'FL', label:'Externo 3', color:'#EAB308'},
-      {code:'FR', label:'Externo 4', color:'#EAB308'},
-    ],
+    arrowBtns: [],
     presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
   },
   disjoystick: {
@@ -1441,7 +1445,8 @@ function selectProd(id) {
   document.getElementById('secArrows').style.display = p.hasArrows ? '' : 'none';
 
   setBanner('conn');
-  buildGrid('mainGrid', p.mainBtns);
+  if (p.dishubLayout) buildDishubGrid('mainGrid', p.mainBtns);
+  else buildGrid('mainGrid', p.mainBtns);
   if (p.hasArrows) buildGrid('arrowGrid', p.arrowBtns);
   // Auto-seleccionar tab del dispositivo
   const devTab = _tabForProd(p.id);
@@ -1503,10 +1508,26 @@ function setSections(on) {
 }
 
 // ── GRILLAS ───────────────────────────────────────────────
+function buildDishubGrid(containerId, buttons) {
+  const c = document.getElementById(containerId);
+  if (!c) return;
+  c.innerHTML = '';
+  c.classList.add('dishub-grid');
+  const mkRow = (cls, btns) => {
+    const row = document.createElement('div');
+    row.className = 'dishub-row ' + cls;
+    btns.forEach(b => row.appendChild(mkCard(b.code, b.label, b.color, b.note)));
+    return row;
+  };
+  c.appendChild(mkRow('dishub-row-a', buttons.filter(b => b.group === 'A')));
+  c.appendChild(mkRow('dishub-row-b', buttons.filter(b => b.group === 'B')));
+}
+
 function buildGrid(containerId, buttons) {
   const c = document.getElementById(containerId);
   if (!c) return;
   c.innerHTML = '';
+  c.classList.remove('dishub-grid');
   buttons.forEach(b => c.appendChild(mkCard(b.code, b.label, b.color, b.note)));
 }
 
