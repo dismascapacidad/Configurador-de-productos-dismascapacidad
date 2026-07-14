@@ -2497,11 +2497,17 @@ const DEV_IMAGES = {
   'dishubbt':     'assets/img/dishubs.png',
   'dishubmini':   'assets/img/dishubmini.png',
   'dishubkeys':   'assets/img/dishubkeys.png',
+  'admouse':      'assets/img/Logo_EpE.png',
+};
+
+const DEV_WELCOME = {
+  'admouse': '¡Bienvenido a EpE, AdMouse!',
 };
 
 // Mapa: nombre WHO → productKey en PRODUCTS (para selectProd)
 const WHO_TO_PROD = {
   'disMouse':     'dismouse',
+  'AdMouse':      'dismouse',
   'disButton':    'disbutton',
   'disButton BT': 'disbutton',
   'disJoystick':  'disjoystick',
@@ -2534,7 +2540,7 @@ function showWelcomeDev(model, version) {
     img.src = DEV_IMAGES[key] || '';
     requestAnimationFrame(() => { img.style.animation = ''; });
   }
-  if (ttl) ttl.textContent = '¡Hola, ' + model + '!';
+  if (ttl) ttl.textContent = DEV_WELCOME[key] || '¡Hola, ' + model + '!';
   if (ver) ver.textContent = version ? 'Firmware ' + version : '';
   // Actualizar status bar también
   updateStatusBar(model, version);
