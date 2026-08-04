@@ -3255,7 +3255,7 @@ function applyDevCfgToCards() {
   const allBtns = [
     ...prod.mainBtns,
     ...(prod.hasArrows ? prod.arrowBtns : []),
-    ...(prod.hasCenterConnectors ? prod.centerBtns : []),
+    ...(prod.hasCenterConnectors && devCfg.fmode === 0 ? prod.centerBtns : []),
   ];
 
   // Mapa modo numérico → selector value
