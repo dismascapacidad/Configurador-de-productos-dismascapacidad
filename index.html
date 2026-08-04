@@ -214,6 +214,9 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .dishub-row-a .btn-card{width:100%}
 .dishub-row-b{display:flex;align-items:flex-start;gap:10px}
 .dishub-row-b .btn-card{flex:1;min-width:0}
+.dishub-center-cards{display:none;flex:4;min-width:0;gap:10px}
+.dishub-center-cards.open{display:flex}
+.dishub-center-cards .btn-card{flex:1;min-width:0}
 .dishub-center-sec{padding:12px 0;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin:4px 0}
 
 /* ── PRESETS ── */
@@ -1536,12 +1539,11 @@ function buildDishubGrid(containerId, buttons) {
   const bc = bBtns.find(b => b.code === 'BC');
   if (bn) rowB.appendChild(mkCard(bn.code, bn.label, bn.color, bn.note));
   if (prod && prod.centerBtns) {
-    prod.centerBtns.forEach(b => {
-      const card = mkCard(b.code, b.label, b.color, b.note);
-      card.style.display = 'none';
-      card.dataset.centerCard = '1';
-      rowB.appendChild(card);
-    });
+    const centerWrap = document.createElement('div');
+    centerWrap.id = 'dishubCenterCards';
+    centerWrap.className = 'dishub-center-cards';
+    prod.centerBtns.forEach(b => centerWrap.appendChild(mkCard(b.code, b.label, b.color, b.note)));
+    rowB.appendChild(centerWrap);
   }
   if (bc) rowB.appendChild(mkCard(bc.code, bc.label, bc.color, bc.note));
   c.appendChild(rowB);
@@ -1833,9 +1835,8 @@ function onDishubCenterMode() {
   const el = id => document.getElementById(id);
   if (el('dishubVelWrap'))  el('dishubVelWrap').style.display  = showCursorCfg ? '' : 'none';
   if (el('dishubAcelWrap')) el('dishubAcelWrap').style.display = showCursorCfg ? '' : 'none';
-  document.querySelectorAll('[data-center-card]').forEach(card => {
-    card.style.display = m === 0 ? '' : 'none';
-  });
+  const centerWrap = document.getElementById('dishubCenterCards');
+  if (centerWrap) centerWrap.classList.toggle('open', m === 0);
 }
 
 async function applyDishubCenter() {
