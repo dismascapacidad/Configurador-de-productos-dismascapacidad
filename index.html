@@ -210,10 +210,11 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
 /* ── LAYOUT disHub (dos filas de conectores) ── */
 #mainGrid.dishub-grid{display:flex;flex-direction:column;gap:10px}
-.dishub-row{display:grid;align-items:stretch;gap:10px}
-.dishub-row-a{grid-template-columns:1fr 1fr}
-.dishub-row-b{grid-template-columns:repeat(6,1fr)}
-.dishub-row .btn-card{width:100%}
+.dishub-row-a{display:grid;grid-template-columns:1fr 1fr;align-items:stretch;gap:10px}
+.dishub-row-a .btn-card{width:100%}
+.dishub-row-b{display:flex;align-items:stretch;gap:10px}
+.dishub-row-b .btn-card{flex:1;min-width:0}
+.dishub-center-sec{padding:12px 0;border-top:1px solid var(--bdr);border-bottom:1px solid var(--bdr);margin:4px 0}
 
 /* ── PRESETS ── */
 .presets-outer{display:flex;flex-direction:column;gap:12px}
@@ -1300,15 +1301,18 @@ const PRODUCTS = {
     cardTitle: 'Conectores — disHub',
     hasArrows: false,
     dishubLayout: true,
+    hasCenterConnectors: true,
     mainBtns: [
       {code:'BR', label:'Botón Rojo',  note:'también Conector 1', color:'#EF4444', group:'A'},
       {code:'BA', label:'Botón Azul',  note:'también Conector 8', color:'#3B82F6', group:'A'},
       {code:'BN', label:'Conector 2',  color:'#F97316', group:'B'},
-      {code:'FU', label:'Conector 3',  color:'#EAB308', group:'B'},
-      {code:'FD', label:'Conector 4',  color:'#EAB308', group:'B'},
-      {code:'FL', label:'Conector 5',  color:'#EAB308', group:'B'},
-      {code:'FR', label:'Conector 6',  color:'#EAB308', group:'B'},
       {code:'BC', label:'Conector 7',  color:'#06B6D4', group:'B'},
+    ],
+    centerBtns: [
+      {code:'FU', label:'Conector 3',  color:'#EAB308'},
+      {code:'FD', label:'Conector 4',  color:'#EAB308'},
+      {code:'FL', label:'Conector 5',  color:'#EAB308'},
+      {code:'FR', label:'Conector 6',  color:'#EAB308'},
     ],
     arrowBtns: [],
     presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
@@ -1513,14 +1517,86 @@ function buildDishubGrid(containerId, buttons) {
   if (!c) return;
   c.innerHTML = '';
   c.classList.add('dishub-grid');
-  const mkRow = (cls, btns) => {
-    const row = document.createElement('div');
-    row.className = 'dishub-row ' + cls;
-    btns.forEach(b => row.appendChild(mkCard(b.code, b.label, b.color, b.note)));
-    return row;
-  };
-  c.appendChild(mkRow('dishub-row-a', buttons.filter(b => b.group === 'A')));
-  c.appendChild(mkRow('dishub-row-b', buttons.filter(b => b.group === 'B')));
+
+  // Row A: BR y BA
+  const rowA = document.createElement('div');
+  rowA.className = 'dishub-row dishub-row-a';
+  buttons.filter(b => b.group === 'A').forEach(b => rowA.appendChild(mkCard(b.code, b.label, b.color, b.note)));
+  c.appendChild(rowA);
+
+  // Sección conectores centrales
+  if (prod && prod.hasCenterConnectors) c.appendChild(buildDishubCenterSection());
+
+  // Row B: BN + conectores centrales (ocultos por defecto) + BC
+  const rowB = document.createElement('div');
+  rowB.id = 'dishubRowB';
+  rowB.className = 'dishub-row dishub-row-b';
+  const bBtns = buttons.filter(b => b.group === 'B');
+  const bn = bBtns.find(b => b.code === 'BN');
+  const bc = bBtns.find(b => b.code === 'BC');
+  if (bn) rowB.appendChild(mkCard(bn.code, bn.label, bn.color, bn.note));
+  if (prod && prod.centerBtns) {
+    prod.centerBtns.forEach(b => {
+      const card = mkCard(b.code, b.label, b.color, b.note);
+      card.style.display = 'none';
+      card.dataset.centerCard = '1';
+      rowB.appendChild(card);
+    });
+  }
+  if (bc) rowB.appendChild(mkCard(bc.code, bc.label, bc.color, bc.note));
+  c.appendChild(rowB);
+}
+
+function buildDishubCenterSection() {
+  const sec = document.createElement('div');
+  sec.id = 'dishubCenterSec';
+  sec.className = 'dishub-center-sec';
+  sec.innerHTML = `
+    <div class="arrow-row">
+      <div class="arrow-sel">
+        <div class="field" style="margin:0">
+          <label class="lbl">Los conectores centrales funcionan como:</label>
+          <select id="dishubCenterMode" onchange="onDishubCenterMode()">
+            <option value="1">Mover el cursor del mouse</option>
+            <option value="2">Teclas de flecha del teclado (↑↓←→)</option>
+            <option value="0">Acción individual por cada conector</option>
+          </select>
+        </div>
+      </div>
+      <div class="arrow-panel">
+        <div class="arrow-div"></div>
+        <div class="arrow-body">
+          <div class="two-col" style="margin-bottom:9px">
+            <div class="field" style="margin:0">
+              <label class="lbl">Orientación</label>
+              <select id="dishubOrient">
+                <option value="0">Normal (0°)</option>
+                <option value="1">Girado derecha (90°)</option>
+                <option value="2">Girado izquierda (-90°)</option>
+                <option value="3">Invertido (180°)</option>
+              </select>
+            </div>
+            <div class="field" style="margin:0" id="dishubVelWrap">
+              <label class="lbl">Velocidad del cursor</label>
+              <input type="number" id="dishubVel" min="1" max="50" value="25">
+            </div>
+          </div>
+          <div class="field" style="margin:0 0 9px" id="dishubAcelWrap">
+            <label class="tog-row">
+              <span class="tog">
+                <input type="checkbox" id="dishubAcel">
+                <span class="tog-track"></span>
+                <span class="tog-thumb"></span>
+              </span>
+              <span class="tog-lbl">Aceleración gradual</span>
+            </label>
+            <div class="hint">El cursor acelera al mantener el conector presionado.</div>
+          </div>
+          <button class="btn suc sm" onclick="applyDishubCenter()">Aplicar</button>
+        </div>
+      </div>
+    </div>`;
+  return sec;
 }
 
 function buildGrid(containerId, buttons) {
@@ -1749,6 +1825,29 @@ async function applyArrows() {
     await send('ACEL:' + (document.getElementById('acel').checked ? '1' : '0'));
   }
   toast('✅', 'Flechas configuradas');
+}
+
+function onDishubCenterMode() {
+  const m = parseInt(document.getElementById('dishubCenterMode').value);
+  const showCursorCfg = (m === 0 || m === 1);
+  const el = id => document.getElementById(id);
+  if (el('dishubVelWrap'))  el('dishubVelWrap').style.display  = showCursorCfg ? '' : 'none';
+  if (el('dishubAcelWrap')) el('dishubAcelWrap').style.display = showCursorCfg ? '' : 'none';
+  document.querySelectorAll('[data-center-card]').forEach(card => {
+    card.style.display = m === 0 ? '' : 'none';
+  });
+}
+
+async function applyDishubCenter() {
+  const m   = parseInt(document.getElementById('dishubCenterMode').value);
+  const ori = document.getElementById('dishubOrient').value;
+  await send('FMODE:' + m);
+  await send('ORIENT:' + ori);
+  if (m === 0 || m === 1) {
+    await send('VEL:' + document.getElementById('dishubVel').value);
+    await send('ACEL:' + (document.getElementById('dishubAcel').checked ? '1' : '0'));
+  }
+  toast('✅', 'Conectores centrales configurados');
 }
 
 // ── PRESETS DE FÁBRICA ───────────────────────────────────
@@ -2610,7 +2709,11 @@ function renderCfgModal() {
   }
   if (prod) {
     const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
-    const allBtns = [...prod.mainBtns, ...(prod.hasArrows && devCfg.fmode===0 ? prod.arrowBtns : [])];
+    const allBtns = [
+      ...prod.mainBtns,
+      ...(prod.hasArrows && devCfg.fmode===0 ? prod.arrowBtns : []),
+      ...(prod.hasCenterConnectors && devCfg.fmode===0 ? prod.centerBtns : []),
+    ];
     h += '<div class="cfg-sec"><div class="cfg-sec-title">🎯 Botones</div>';
     allBtns.forEach(({code,label}) => {
       const c = devCfg.btns[String(codeToIdx[code])];
@@ -3149,7 +3252,11 @@ const REV_KEY = (() => {
 function applyDevCfgToCards() {
   if (!prod) return;
   const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
-  const allBtns = [...prod.mainBtns, ...(prod.hasArrows ? prod.arrowBtns : [])];
+  const allBtns = [
+    ...prod.mainBtns,
+    ...(prod.hasArrows ? prod.arrowBtns : []),
+    ...(prod.hasCenterConnectors ? prod.centerBtns : []),
+  ];
 
   // Mapa modo numérico → selector value
   const MODO_MAP = {0:'P', 1:'R', 2:'H', 3:'O'};
@@ -3234,6 +3341,19 @@ function applyDevCfgToCards() {
     if (velInp && devCfg.vel != null)    velInp.value = devCfg.vel;
     if (acelCb && devCfg.acel != null)   acelCb.checked = devCfg.acel === 1;
     onArrowMode();
+  }
+
+  // Conectores centrales: aplicar si el producto los tiene
+  if (prod.hasCenterConnectors) {
+    const cmSel = document.getElementById('dishubCenterMode');
+    const oriSel = document.getElementById('dishubOrient');
+    const velInp = document.getElementById('dishubVel');
+    const acelCb = document.getElementById('dishubAcel');
+    if (cmSel && devCfg.fmode != null)   cmSel.value   = String(devCfg.fmode);
+    if (oriSel && devCfg.orient != null) oriSel.value  = String(devCfg.orient);
+    if (velInp && devCfg.vel != null)    velInp.value  = devCfg.vel;
+    if (acelCb && devCfg.acel != null)   acelCb.checked = devCfg.acel === 1;
+    onDishubCenterMode();
   }
 
   toast('✅', 'Configuración cargada en las tarjetas');
