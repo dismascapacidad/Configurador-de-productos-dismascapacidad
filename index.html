@@ -1453,7 +1453,7 @@ function selectProd(id) {
   setBanner('conn');
   if (p.dishubLayout) buildDishubGrid('mainGrid', p.mainBtns);
   else buildGrid('mainGrid', p.mainBtns);
-  if (p.hasArrows) buildGrid('arrowGrid', p.arrowBtns);
+  buildGrid('arrowGrid', p.hasArrows ? p.arrowBtns : []);
   // Auto-seleccionar tab del dispositivo
   const devTab = _tabForProd(p.id);
   if (devTab) activePresetTab = devTab.tabId;
