@@ -1786,7 +1786,7 @@ async function applyBtn(code) {
   if (tipo === 'X') {
     accion = '0';
   } else if (tipo === 'M') {
-    const sel = document.getElementById('mact_' + code).value;
+    const sel = document.getElementById('mact_' + code)?.value || '1';
     if      (sel === '1D') { accion='1';  flags='D'; }
     else if (sel === '1M') { accion='1';  flags='M'; }
     else if (sel === 'SU') { accion='SU'; }
@@ -3303,6 +3303,7 @@ function applyDevCfgToCards() {
           mActSel.value = '1M';
         } else {
           mActSel.value = String(c.accion);
+          if (!mActSel.value) mActSel.value = '1'; // accion=0 u otro valor sin opción → default clic izquierdo
         }
       }
     } else if (c.tipo === 1) {
