@@ -2604,18 +2604,18 @@ const DEV_WELCOME = {
   'admouse': '¡Bienvenido a EpE, AdMouse!',
 };
 
-// Mapa: nombre WHO → productKey en PRODUCTS (para selectProd)
+// Mapa: nombre WHO normalizado (lowercase sin espacios) → productKey
 const WHO_TO_PROD = {
-  'disMouse':     'dismouse',
-  'AdMouse':      'dismouse',
-  'disButton':    'disbutton',
-  'disButton BT': 'disbutton',
-  'disJoystick':  'disjoystick',
-  'disHub':       'dishub',
-  'disHub BT':    'dishub',
-  'disHub BLE':   'dishub',
-  'disHub mini':  'dishubmini',
-  'disHub keys':  'dishubkeys',
+  'dismouse':     'dismouse',
+  'admouse':      'dismouse',
+  'disbutton':    'disbutton',
+  'disbuttonbt':  'disbutton',
+  'disjoystick':  'disjoystick',
+  'dishub':       'dishub',
+  'dishubbt':     'dishub',
+  'dishubble':    'dishub',
+  'dishubmini':   'dishubmini',
+  'dishubkeys':   'dishubkeys',
 };
 
 function updateStatusBar(model, version) {
@@ -2661,7 +2661,7 @@ async function postConnect() {
 
   if (who && who.model) {
     // Autodetección exitosa
-    const prodKey = WHO_TO_PROD[who.model];
+    const prodKey = WHO_TO_PROD[who.model.toLowerCase().replace(/[\s]/g,'')];
     if (prodKey && PRODUCTS[prodKey]) selectProd(prodKey);
     showWelcomeDev(who.model, who.version);
 
