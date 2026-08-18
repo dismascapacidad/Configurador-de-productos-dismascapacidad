@@ -339,6 +339,8 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .lo{color:#60A5FA}
 .lw{color:#FBBF24}
 .lm{color:#C8C3BB;flex:1;word-break:break-all}
+.log-send-row{display:flex;gap:7px;margin-top:9px}
+.log-send-row input[type=text]{flex:1;font-family:'SF Mono','Fira Mono',monospace}
 /* AUTH */
 #btnAuth{max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .auth-info{font-size:12px;color:var(--txt2);margin-bottom:14px;word-break:break-all;line-height:1.5}
@@ -651,7 +653,13 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 <div class="modal-bd" id="logModal" style="display:none" onclick="closeBd(event,'logModal')">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📋 Registro de actividad</span><button class="modal-x" onclick="closeModal('logModal')">✕</button></div>
-    <div class="modal-body"><div class="log-panel" id="logPanel"></div></div>
+    <div class="modal-body">
+      <div class="log-panel" id="logPanel"></div>
+      <div class="log-send-row">
+        <input type="text" id="logCmdInput" placeholder="Comando crudo (ej: BAT, WHO, PING)" disabled onkeydown="if(event.key==='Enter'){sendLogCmd();}">
+        <button class="btn pri sm" id="btnLogSend" onclick="sendLogCmd()" disabled>Enviar</button>
+      </div>
+    </div>
     <div class="modal-foot">
       <button class="btn ghost sm" onclick="clearLog()">Limpiar</button>
       <button class="btn pri sm" onclick="closeModal('logModal')">Cerrar</button>
@@ -1505,6 +1513,10 @@ function setSections(on) {
   if (btnReset) btnReset.disabled = !on;
   document.getElementById('btnSaveCustom').disabled = !on;
   document.getElementById('connSub').style.display  = on ? 'flex' : 'none';
+  const logInput = document.getElementById('logCmdInput');
+  const btnLogSend = document.getElementById('btnLogSend');
+  if (logInput)   logInput.disabled   = !on;
+  if (btnLogSend) btnLogSend.disabled = !on;
   // Botones del menú lateral
   const drwCfg     = document.getElementById('drwBtnCfg');
   const drwReset   = document.getElementById('drwBtnReset');
@@ -3014,6 +3026,15 @@ function addLog(msg, dir='') {
   p.appendChild(e); p.scrollTop = p.scrollHeight;
 }
 function clearLog() { document.getElementById('logPanel').innerHTML=''; }
+
+// Canal de comandos crudos: reusa send() (misma escritura RX ya usada por la UI estructurada)
+async function sendLogCmd() {
+  const inp = document.getElementById('logCmdInput');
+  const cmd = inp.value.trim();
+  if (!cmd || !connected) return;
+  const ok = await send(cmd);
+  if (ok) inp.value = '';
+}
 
 // ── TOASTS ────────────────────────────────────────────────
 function toast(ico, msg) {
