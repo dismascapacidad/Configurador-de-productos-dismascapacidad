@@ -192,6 +192,11 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .mod-cb{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:600;transition:all .15s}
 .mod-cb input{cursor:pointer;width:13px;height:13px}
 .mod-cb:has(input:checked){background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
+.mod-os-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.mod-os-txt{flex:1;min-width:0}
+.mod-os-name{color:var(--txt2)}
+.mod-os-link{font-size:11px;font-weight:600;color:var(--acc);text-decoration:none;white-space:nowrap}
+.mod-os-link:hover{text-decoration:underline}
 /* Advanced toggle */
 .btn-adv-toggle{font-size:11px;color:var(--txt3);cursor:pointer;background:none;border:none;padding:0;text-align:left;display:flex;align-items:center;gap:4px;transition:color .15s;font-weight:600}
 .btn-adv-toggle:hover{color:var(--acc)}
@@ -1395,6 +1400,7 @@ const PRESET_TABS = [
 let prod      = null;
 let connType  = 'usb';  // 'usb' | 'ble'
 let connected = false;
+let osMode    = 'win'; // 'win' | 'mac' — se resuelve en init() (lee localStorage a salvo de excepciones)
 let activePresetTab = null; // tabId activo en presetsModal
 // USB
 let port = null, reader = null, writer = null;
@@ -1493,6 +1499,39 @@ function selectConnType(type) {
   if (bleM) bleM.classList.toggle('active', type === 'ble');
   const bhM = document.getElementById('bleHintM');
   if (bhM) bhM.style.display = type === 'ble' ? '' : 'none';
+}
+
+// ── MODO DE MODIFICADORES (Windows / Mac) ────────────────
+// Se autodetecta al cargar (isMacOS) y se recuerda en este navegador.
+// Solo afecta a presets con modificador "principal" (hoy: std_copy).
+// El editor manual de botones ya expone Ctrl y GUI/⌘ por separado, sin ambigüedad —
+// por eso el control de cambio vive en el panel Avanzado de cada botón, junto a esos checkboxes.
+function selectOsMode(mode) {
+  osMode = mode;
+  try { localStorage.setItem('displus_os_mode', mode); } catch(_) {}
+  // Re-etiquetar el checkbox "GUI" (mg_${code}) y la nota de modo en el panel Avanzado
+  // de cada botón, y refrescar el modal de configuración si está abierto.
+  document.querySelectorAll('.mod-gui-lbl').forEach(el => { el.textContent = mode === 'mac' ? '⌘ Cmd' : 'Win'; });
+  document.querySelectorAll('.mod-os-name').forEach(el => { el.textContent = mode === 'mac' ? '⌘ (Mac)' : 'Ctrl (Windows)'; });
+  const cfgModal = document.getElementById('cfgModal');
+  if (cfgModal && cfgModal.style.display !== 'none') renderCfgModal();
+}
+
+function primaryMod() { return osMode === 'mac' ? 'G' : 'C'; }
+
+// Cambio manual desde el panel Avanzado de un botón — requiere confirmación porque
+// solo corresponde si el dispositivo se va a usar en una computadora con otro SO
+// distinto al que se está usando ahora mismo para configurarlo.
+function confirmToggleOsMode(e) {
+  if (e) e.preventDefault();
+  const next = osMode === 'mac' ? 'win' : 'mac';
+  const nextLbl = next === 'mac' ? 'Mac (⌘)' : 'Windows (Ctrl)';
+  const ok = confirm(
+    'Esto va a hacer que los atajos con modificador principal (Copiar/Pegar) usen ' + nextLbl + '.\n\n' +
+    'Cambiá esto SOLO si vas a usar el dispositivo en una computadora con un sistema operativo ' +
+    'distinto al que estás usando ahora para configurarlo. Si es la misma computadora, dejalo como está.'
+  );
+  if (ok) selectOsMode(next);
 }
 
 // ── BANNER ───────────────────────────────────────────────
@@ -1688,7 +1727,11 @@ function mkCard(code, label, color, note) {
             <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
             <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
             <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
-            <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span>Win</span></label>
+            <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span class="mod-gui-lbl">${osMode === 'mac' ? '⌘ Cmd' : 'Win'}</span></label>
+          </div>
+          <div class="hint mod-os-row">
+            <span class="mod-os-txt">Los atajos con modificador principal (Copiar/Pegar) usan <b class="mod-os-name">${osMode === 'mac' ? '⌘ (Mac)' : 'Ctrl (Windows)'}</b>, detectado automáticamente.</span>
+            <a href="#" class="mod-os-link" onclick="confirmToggleOsMode(event)">Cambiar</a>
           </div>
         </div>
       </div>
@@ -1716,7 +1759,7 @@ function updateSummary(code) {
   }
   const k = document.getElementById('k_' + code)?.value || '';
   const mods = ['mc','ms','ma','mg'].filter(p => document.getElementById(p+'_'+code)?.checked)
-    .map(p => ({mc:'Ctrl',ms:'Shift',ma:'Alt',mg:'Win'}[p]));
+    .map(p => ({mc:'Ctrl',ms:'Shift',ma:'Alt',mg:osMode==='mac'?'⌘':'Win'}[p]));
   const parts = [...mods, k].filter(Boolean);
   el.textContent = parts.length ? parts.join('+') : 'sin tecla';
 }
@@ -1924,9 +1967,10 @@ const FACTORY_CMDS = {
     'CFG:BC:M:P:0:SD:-:-', 'CFG:BA:M:P:0:2:-:-',
     'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
   ],
+  // '%P%' se resuelve en applyPreset() según osMode: 'C' (Ctrl, Windows) o 'G' (GUI/⌘, Mac)
   std_copy: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:K:P:0:c:C:-',
-    'CFG:BC:K:P:0:v:C:-', 'CFG:BA:M:P:0:2:-:-',
+    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:K:P:0:c:%P%:-',
+    'CFG:BC:K:P:0:v:%P%:-', 'CFG:BA:M:P:0:2:-:-',
     'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
   ],
   // ── disButton (1 botón)
@@ -1984,7 +2028,7 @@ const FACTORY_CARDS = {
   std_enter:        { icon:'🖱️', name:'Estándar + Enter',       sub:'Clic · doble · enter · der.',    tipId:'tip-std-enter' },
   std_drag:         { icon:'🤏', name:'Estándar + Arrastrar',   sub:'Clic · doble · mantener · der.', tipId:'tip-std-drag' },
   std_scroll:       { icon:'📜', name:'Estándar + Scroll',      sub:'Clic · scroll ↑↓ · der.',        tipId:'tip-std-scroll' },
-  std_copy:         { icon:'📄', name:'Clics + Copiar/Pegar',   sub:'Clic · Ctrl+C · Ctrl+V · der.',  tipId:'tip-std-copy' },
+  std_copy:         { icon:'📄', name:'Clics + Copiar/Pegar',   sub:'Clic · Copiar · Pegar · der.',   tipId:'tip-std-copy' },
   db_clic_press:   { icon:'🖱️', name:'Clic al presionar',      sub:'Clic izq · Press',               tipId:'tip-db-clic-press' },
   db_clic_release: { icon:'🖱️', name:'Clic al soltar',         sub:'Clic izq · Release',             tipId:'tip-db-clic-release' },
   db_youtube:      { icon:'▶️',  name:'Causa-Efecto YouTube',   sub:'Espacio · Press',                tipId:'tip-db-youtube' },
@@ -2054,8 +2098,8 @@ const TIP_CONTENT = {
     <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
   'tip-std-copy': `
     <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Ctrl + C · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Ctrl + V · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Copiar (%PLBL%+C) · Press</span></div>
+    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Pegar (%PLBL%+V) · Press</span></div>
     <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
     <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
   'tip-db-clic-press': `
@@ -2205,7 +2249,7 @@ async function applyPreset(id) {
     toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + prod.name);
     return;
   }
-  for (const c of cmds) await send(c);
+  for (const c of cmds) await send(c.includes('%P%') ? c.replace('%P%', primaryMod()) : c);
   toast('⚡', 'Configuración aplicada');
   closeModal('presetsModal');
 }
@@ -2739,7 +2783,7 @@ function renderCfgModal() {
         row += ' — ' + hl(dc + (MOU[c.accion]||'#'+c.accion) + mc);
       } else {
         const ch = c.accion>31&&c.accion<127 ? String.fromCharCode(c.accion) : '#'+c.accion;
-        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push('Win');
+        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push(osMode==='mac'?'⌘':'Win');
         row += ' — tecla ' + hl(ch) + (mm.length?' + '+hl(mm.join('+')):'');
       }
       if (c.debounce>0) row += ', debounce ' + hl(c.debounce+'ms');
@@ -2802,6 +2846,11 @@ const BLE_RX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notificaciones
 function isIOS() {
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS en modo escritorio
+}
+
+// Detectar macOS (para sugerir el modo de modificadores ⌘/Ctrl por defecto)
+function isMacOS() {
+  return (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).includes('Mac') && !isIOS();
 }
 
 async function connectBLE() {
@@ -3155,7 +3204,7 @@ function initPresetTooltips() {
       const id = card.getAttribute('data-tip-id');
       const html = TIP_CONTENT[id];
       if (!html) return;
-      gt.innerHTML = html;
+      gt.innerHTML = html.includes('%PLBL%') ? html.replaceAll('%PLBL%', osMode === 'mac' ? '⌘' : 'Ctrl') : html;
       gt.style.display = 'block';
       positionTip(card);
     });
@@ -3400,6 +3449,9 @@ function init() {
   setBanner('none');
   onArrowMode();
   renderCustom();
+  let savedOsMode = null;
+  try { savedOsMode = localStorage.getItem('displus_os_mode'); } catch(_) {}
+  selectOsMode(savedOsMode || (isMacOS() ? 'mac' : 'win'));
   addLog('Configurador dis+ R014. Firmware R009 compatible.');
   // Bloquear BLE en iOS — Web Bluetooth no disponible en ningún browser iOS
   if (isIOS()) {
