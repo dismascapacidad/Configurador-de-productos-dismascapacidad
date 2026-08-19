@@ -192,6 +192,10 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .mod-cb{display:flex;align-items:center;gap:5px;padding:5px 7px;background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--r);cursor:pointer;font-size:11.5px;font-weight:600;transition:all .15s}
 .mod-cb input{cursor:pointer;width:13px;height:13px}
 .mod-cb:has(input:checked){background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
+.key-chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.key-chip{font-size:11px;font-weight:600;padding:4px 8px;border-radius:var(--r);border:1.5px solid var(--bdr);background:var(--surf2);color:var(--txt2);cursor:pointer;transition:all .15s}
+.key-chip:hover{border-color:var(--acc);color:var(--acc)}
+.key-chip:active{background:var(--acc-dim);border-color:var(--acc);color:var(--acc)}
 .mod-os-row{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
 .mod-os-txt{flex:1;min-width:0}
 .mod-os-name{color:var(--txt2)}
@@ -1682,9 +1686,15 @@ function mkCard(code, label, color, note) {
           <div id="kb_${code}">
             <div class="field" style="margin:0">
               <label class="lbl">Tecla</label>
-              <input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
-                onfocus="startCap('${code}')" onblur="stopCap('${code}')">
+              ${isTouchDevice()
+                ? `<input type="text" id="k_${code}" placeholder="Tocá y escribí la tecla" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                    oninput="captureFromInput('${code}', event)">`
+                : `<input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
+                    onfocus="startCap('${code}')" onblur="stopCap('${code}')">`}
               <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
+              ${isTouchDevice() ? `<div class="key-chips">${SPECIAL_KEY_CHIPS.map(k =>
+                `<button type="button" class="key-chip" onclick="setCapturedKey('${code}','${k.name}')">${k.label}</button>`
+              ).join('')}</div>` : ''}
             </div>
           </div>
           <div id="mo_${code}" style="display:none">
@@ -1786,6 +1796,36 @@ const SKEYS = {
   'F7':'F7','F8':'F8','F9':'F9','F10':'F10','F11':'F11','F12':'F12',
 };
 
+// Chips de teclas especiales para mobile/touch: el teclado en pantalla no tiene
+// flechas, F1-F12, Esc, etc. — y tampoco dispara keydown de forma confiable.
+const SPECIAL_KEY_CHIPS = [
+  {name:'SPACE',label:'Espacio'}, {name:'ENTER',label:'Enter'}, {name:'TAB',label:'Tab'},
+  {name:'ESC',label:'Esc'}, {name:'BACKSPACE',label:'⌫'}, {name:'DELETE',label:'Del'},
+  {name:'UP_ARROW',label:'↑'}, {name:'DOWN_ARROW',label:'↓'}, {name:'LEFT_ARROW',label:'←'}, {name:'RIGHT_ARROW',label:'→'},
+  {name:'HOME',label:'Home'}, {name:'END',label:'End'},
+  {name:'F1',label:'F1'}, {name:'F2',label:'F2'}, {name:'F3',label:'F3'}, {name:'F4',label:'F4'},
+];
+
+// Fija el valor capturado en el input y muestra la confirmación — usado tanto por
+// captura de teclado físico (desktop) como por los chips y el input táctil (mobile).
+function setCapturedKey(code, name) {
+  const inp = document.getElementById('k_' + code);
+  const hint = document.getElementById('kh_' + code);
+  if (!inp || !hint) return;
+  inp.value = name;
+  inp.classList.remove('cap-on');
+  hint.textContent = '✓ "' + name + '" capturada'; hint.className = 'hint ok';
+  setTimeout(() => { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }, 2200);
+}
+
+// Captura en mobile: el teclado en pantalla dispara "input", no "keydown" de forma
+// confiable. Nos quedamos con el último carácter tipeado (así solo queda 1).
+function captureFromInput(code, e) {
+  const raw = e.target.value;
+  if (!raw) return; // el usuario borró el campo — queda vacío = solo modificadores
+  setCapturedKey(code, raw.slice(-1).toLowerCase());
+}
+
 function startCap(code) {
   // Cancelar cualquier captura activa anterior
   if (capActive && capActive !== code) stopCap(capActive);
@@ -1803,10 +1843,8 @@ function startCap(code) {
     if (['Control','Shift','Alt','Meta'].includes(e.key)) return;
     e.preventDefault(); e.stopPropagation();
     const name = SKEYS[e.key] ?? (e.key.length === 1 ? e.key.toLowerCase() : e.key);
-    inp.value = name; inp.classList.remove('cap-on');
-    hint.textContent = '✓ "' + name + '" capturada'; hint.className = 'hint ok';
+    setCapturedKey(code, name);
     capActive = null;
-    setTimeout(() => { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }, 2200);
   };
   document.addEventListener('keydown', capHandlers[code], true);
 }
@@ -2851,6 +2889,11 @@ function isIOS() {
 // Detectar macOS (para sugerir el modo de modificadores ⌘/Ctrl por defecto)
 function isMacOS() {
   return (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).includes('Mac') && !isIOS();
+}
+
+// Detectar dispositivos táctiles sin teclado físico confiable (para la captura de tecla)
+function isTouchDevice() {
+  return (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0;
 }
 
 async function connectBLE() {
