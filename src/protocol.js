@@ -187,15 +187,15 @@ export function buildArrowCommands(spec) {
 }
 
 /**
- * Convierte un `DeviceCfg` (config leída del dispositivo o guardada como preset)
- * en la secuencia de comandos para reaplicarla. Equivale al cuerpo de
- * `applyCustom()`.
+ * Convierte una config (leída del dispositivo, o guardada como preset — donde
+ * los campos globales pueden faltar) en la secuencia de comandos para
+ * reaplicarla. Equivale al cuerpo de `applyCustom()`.
  *
  * QUIRK: cuando no hay modificadores ni flags el separador queda como `'- '`
  * (con espacio final), distinto de `buildButtonCfg` que usa `'-'`. Se preserva
  * el comportamiento actual; ver `tests/protocol.test.js` → "QUIRK".
  *
- * @param {DeviceCfg} cfg
+ * @param {StoredCfg} cfg
  * @returns {string[]}
  */
 export function cfgToCommands(cfg) {
@@ -252,12 +252,25 @@ export function cfgToCommands(cfg) {
  */
 
 /**
+ * Config completa, tal como la produce `emptyCfg()` / `parseDeviceLine()`.
  * @typedef {Object} DeviceCfg
  * @property {number|null} orient
  * @property {number|null} vel
  * @property {number|null} acel
  * @property {number|null} fmode
  * @property {Record<string, ButtonCfg>} btns  clave = índice de botón "0".."7".
+ */
+
+/**
+ * Config posiblemente parcial (un preset guardado puede no tener los campos
+ * globales). Es lo que consume `cfgToCommands()`. Un `DeviceCfg` es un
+ * `StoredCfg` válido.
+ * @typedef {Object} StoredCfg
+ * @property {Record<string, ButtonCfg>} btns
+ * @property {number|null} [fmode]
+ * @property {number|null} [orient]
+ * @property {number|null} [vel]
+ * @property {number|null} [acel]
  */
 
 /**

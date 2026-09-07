@@ -12,8 +12,8 @@
 
 import * as P from '../src/protocol.js';
 
-// `test` y `expect` son globales, provistos por el harness (o por Vitest).
-/* global test, expect */
+// `test` y `expect` son globales: los provee Vitest (globals:true) o, en el
+// runner de navegador, tests/harness.js vía tests/index.html.
 
 // ── Keycodes ────────────────────────────────────────────────────────────────
 
