@@ -1,0 +1,11 @@
+{
+  "name": "configurador-dis-epe",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Configurador web de dispositivos dis+ / EpE. App estática (GitHub Pages); esta config es solo para el tooling de desarrollo.",
+  "scripts": {
+    "test": "echo \"Sin Node/Vitest todavía. Mientras tanto: servir la carpeta y abrir tests/index.html (ver DEV.md).\" && exit 1",
+    "test:browser": "python -m http.server 8899 --bind 127.0.0.1"
+  }
+}
