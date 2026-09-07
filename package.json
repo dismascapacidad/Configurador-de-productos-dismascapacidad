@@ -5,7 +5,21 @@
   "type": "module",
   "description": "Configurador web de dispositivos dis+ / EpE. App estática (GitHub Pages); esta config es solo para el tooling de desarrollo.",
   "scripts": {
-    "test": "echo \"Sin Node/Vitest todavía. Mientras tanto: servir la carpeta y abrir tests/index.html (ver DEV.md).\" && exit 1",
-    "test:browser": "python -m http.server 8899 --bind 127.0.0.1"
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src tests",
+    "format": "prettier --write \"src/**/*.js\" \"tests/**/*.js\"",
+    "format:check": "prettier --check \"src/**/*.js\" \"tests/**/*.js\"",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run typecheck && npm run test",
+    "serve": "python -m http.server 8899 --bind 127.0.0.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "eslint": "^9.15.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.5"
   }
 }
