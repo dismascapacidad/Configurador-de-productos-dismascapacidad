@@ -47,8 +47,8 @@ export function selectProd(id) {
 
   el('mainTitle').textContent = p.cardTitle;
 
-  // Layout centrado para disButton y disHub
-  el('secBtns').classList.toggle('S.prod-centered', !!p.centeredLayout);
+  // Layout centrado para disButton y disHub (clase .prod-centered en src/app.css)
+  el('secBtns').classList.toggle('prod-centered', !!p.centeredLayout);
 
   // Título y ícono de la sección flechas/externos
   const arrowTitle = el('arrowSectionTitle');
