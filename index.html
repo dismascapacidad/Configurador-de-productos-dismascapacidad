@@ -1027,194 +1027,17 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   </div>
 </div>
 
-<script>
-/* ─────────────────────────────────────────────────────────────────────
- * Polyfill Web Serial API sobre WebUSB (perfil CDC-ACM)
- * Adaptado de github.com/google/web-serial-polyfill — Apache-2.0, Google LLC
- *
- * OBJETIVO: permitir la conexión USB del configurador desde tablets Android
- * (Chrome) que todavía no traen navigator.serial nativo, usando WebUSB.
- * Caso de uso: configurar disMouse basados en Arduino Pro Micro sin PC.
- *
- * SEGURIDAD DE REGRESIÓN: este bloque NO se instala si navigator.serial ya
- * existe (todo el desktop) ni si falta WebUSB (iOS). En esos casos
- * window.SerialPolyfill queda undefined y connectUSB() usa el camino nativo
- * exactamente como antes. Solo actúa como fallback en Android.
- * ───────────────────────────────────────────────────────────────────── */
-(function () {
-  'use strict';
-  if ('serial' in navigator || !('usb' in navigator)) return; // nativo disponible, o sin WebUSB → no instalar
-
-  var kSetLineCoding = 0x20, kSetControlLineState = 0x22, kSendBreak = 0x23;
-  var kBufferSize = 255;
-  var CTRL_CLASS = 2;   // CDC Communications
-  var DATA_CLASS = 10;  // CDC-Data
-
-  function findInterface(device, classCode) {
-    var cfg = device.configurations[0];
-    for (var i = 0; i < cfg.interfaces.length; i++) {
-      if (cfg.interfaces[i].alternates[0].interfaceClass === classCode) return cfg.interfaces[i];
-    }
-    throw new TypeError('El dispositivo no expone una interfaz serie CDC (clase ' + classCode + ').');
-  }
-  function findEndpoint(iface, direction) {
-    var eps = iface.alternates[0].endpoints;
-    for (var i = 0; i < eps.length; i++) if (eps[i].direction === direction) return eps[i];
-    throw new TypeError('La interfaz ' + iface.interfaceNumber + ' no tiene endpoint ' + direction + '.');
-  }
-
-  function EndpointSource(device, endpoint, onError) {
-    this.type = 'bytes';
-    this.pull = function (controller) {
-      (async function () {
-        var chunkSize = controller.desiredSize
-          ? Math.ceil(controller.desiredSize / endpoint.packetSize) * endpoint.packetSize
-          : endpoint.packetSize;
-        try {
-          var result = await device.transferIn(endpoint.endpointNumber, chunkSize);
-          if (result.status !== 'ok') { controller.error('USB ' + result.status); onError(); }
-          if (result.data && result.data.buffer) {
-            controller.enqueue(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
-          }
-        } catch (e) { controller.error(String(e)); onError(); }
-      })();
-    };
-  }
-  function EndpointSink(device, endpoint, onError) {
-    this.write = async function (chunk, controller) {
-      try {
-        var result = await device.transferOut(endpoint.endpointNumber, chunk);
-        if (result.status !== 'ok') { controller.error(result.status); onError(); }
-      } catch (e) { controller.error(String(e)); onError(); }
-    };
-  }
-
-  function SerialPort(device) {
-    this._device = device;
-    this._ctrl = findInterface(device, CTRL_CLASS);
-    this._xfer = findInterface(device, DATA_CLASS);
-    this._in  = findEndpoint(this._xfer, 'in');
-    this._out = findEndpoint(this._xfer, 'out');
-    this._readable = null; this._writable = null;
-    this._signals = { dataTerminalReady: false, requestToSend: false, break: false };
-  }
-  Object.defineProperty(SerialPort.prototype, 'readable', {
-    get: function () {
-      var self = this;
-      if (!self._readable && self._device.opened) {
-        self._readable = new ReadableStream(
-          new EndpointSource(self._device, self._in, function () { self._readable = null; }),
-          { highWaterMark: kBufferSize });
-      }
-      return self._readable;
-    }
-  });
-  Object.defineProperty(SerialPort.prototype, 'writable', {
-    get: function () {
-      var self = this;
-      if (!self._writable && self._device.opened) {
-        self._writable = new WritableStream(
-          new EndpointSink(self._device, self._out, function () { self._writable = null; }),
-          new ByteLengthQueuingStrategy({ highWaterMark: kBufferSize }));
-      }
-      return self._writable;
-    }
-  });
-  SerialPort.prototype._setLineCoding = async function (baudRate) {
-    var view = new DataView(new ArrayBuffer(7));
-    view.setUint32(0, baudRate, true); // baudios (little-endian)
-    view.setUint8(4, 0);               // 1 stop bit
-    view.setUint8(5, 0);               // sin paridad
-    view.setUint8(6, 8);               // 8 data bits
-    var r = await this._device.controlTransferOut({
-      requestType: 'class', recipient: 'interface',
-      request: kSetLineCoding, value: 0x00, index: this._ctrl.interfaceNumber
-    }, view.buffer);
-    if (r.status !== 'ok') throw new DOMException('No se pudo fijar el line coding.', 'NetworkError');
-  };
-  SerialPort.prototype.setSignals = async function (signals) {
-    signals = signals || {};
-    Object.assign(this._signals, signals);
-    if (signals.dataTerminalReady !== undefined || signals.requestToSend !== undefined) {
-      var value = (this._signals.dataTerminalReady ? 1 : 0) | (this._signals.requestToSend ? 2 : 0);
-      await this._device.controlTransferOut({
-        requestType: 'class', recipient: 'interface',
-        request: kSetControlLineState, value: value, index: this._ctrl.interfaceNumber
-      });
-    }
-    if (signals.break !== undefined) {
-      await this._device.controlTransferOut({
-        requestType: 'class', recipient: 'interface',
-        request: kSendBreak, value: this._signals.break ? 0xFFFF : 0x0000, index: this._ctrl.interfaceNumber
-      });
-    }
-  };
-  SerialPort.prototype.getInfo = function () {
-    return { usbVendorId: this._device.vendorId, usbProductId: this._device.productId };
-  };
-  SerialPort.prototype.open = async function (options) {
-    var baudRate = (options && options.baudRate) || 9600;
-    try {
-      await this._device.open();
-      if (this._device.configuration === null) await this._device.selectConfiguration(1);
-      await this._device.claimInterface(this._ctrl.interfaceNumber);
-      if (this._ctrl !== this._xfer) await this._device.claimInterface(this._xfer.interfaceNumber);
-      await this._setLineCoding(baudRate);
-      await this.setSignals({ dataTerminalReady: true }); // Arduino: DTR abre el puerto
-    } catch (e) {
-      if (this._device.opened) { try { await this._device.close(); } catch (_) {} }
-      throw new Error((e && e.message) ? e.message : String(e));
-    }
-  };
-  SerialPort.prototype.close = async function () {
-    var p = [];
-    if (this._readable) p.push(this._readable.cancel().catch(function () {}));
-    if (this._writable) p.push(this._writable.abort().catch(function () {}));
-    await Promise.all(p);
-    this._readable = null; this._writable = null;
-    if (this._device.opened) {
-      try { await this.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (_) {}
-      await this._device.close();
-    }
-  };
-  SerialPort.prototype.forget = function () {
-    return this._device.forget ? this._device.forget() : Promise.resolve();
-  };
-
-  var serial = {
-    requestPort: async function (options) {
-      var filters = [];
-      if (options && options.filters) {
-        options.filters.forEach(function (f) {
-          var uf = { classCode: CTRL_CLASS };
-          if (f.usbVendorId  !== undefined) uf.vendorId  = f.usbVendorId;
-          if (f.usbProductId !== undefined) uf.productId = f.usbProductId;
-          filters.push(uf);
-        });
-      }
-      if (!filters.length) filters.push({ classCode: CTRL_CLASS }); // cualquier dispositivo serie CDC
-      var device = await navigator.usb.requestDevice({ filters: filters });
-      return new SerialPort(device);
-    },
-    getPorts: async function () {
-      var devices = await navigator.usb.getDevices();
-      var ports = [];
-      devices.forEach(function (d) { try { ports.push(new SerialPort(d)); } catch (e) {} });
-      return ports;
-    }
-  };
-
-  window.SerialPolyfill = { serial: serial, SerialPort: SerialPort };
-})();
-</script>
-
-<!-- Capa de protocolo serie: módulo ES en src/protocol.js (testeado en tests/).
-     Se expone en window.Protocol para el script clásico de la app.
-     Requiere servir por http(s) — con file:// el import falla (ver DEV.md). -->
+<!-- Módulos ES. Se exponen en window.* para el script clásico de la app.
+     Requiere servir por http(s) — con file:// el import falla (ver DEV.md).
+       Protocol  → armado/parseo de comandos serie (src/protocol.js)
+       Transport → conexión USB (Web Serial + polyfill WebUSB) (src/transport.js)
+       ProductData → catálogo de productos y presets (src/products.js) -->
 <script type="module">
   import * as Protocol from './src/protocol.js';
+  import * as Transport from './src/transport.js';
   import * as ProductData from './src/products.js';
   window.Protocol = Protocol;
+  window.Transport = Transport;
   // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* : se
   // exponen como globales sueltos para no reescribir los ~27 usos del script clásico.
   // Transicional — al modularizar la UI se hará import directo.
@@ -1480,9 +1303,8 @@ let connType  = 'usb';  // 'usb' | 'ble'
 let connected = false;
 let osMode    = 'win'; // 'win' | 'mac' — se resuelve en init() (lee localStorage a salvo de excepciones)
 let activePresetTab = null; // tabId activo en presetsModal
-// USB
-let port = null, reader = null, writer = null;
-// BLE
+let _conn = null;   // handle de transporte USB { send, close } — src/transport.js
+// BLE (todavía inline; pendiente de mover a src/transport.js)
 let bleDevice = null, bleTxChar = null;
 let devCfg    = mkCfg();
 let capActive = null;
@@ -2586,9 +2408,9 @@ function renderCfgModal() {
 async function toggleConn() { connected ? await disconnect() : await connectDevice(); }
 
 async function connectDevice() {
-  if (!window.Protocol) {
-    toast('❌', 'El módulo de protocolo no cargó. Recargá la página servida por http(s) (no file://).');
-    addLog('src/protocol.js no está disponible en window.Protocol — ¿se abrió con file://?', 'w');
+  if (!window.Protocol || !window.Transport) {
+    toast('❌', 'Módulos no cargados. Recargá la página servida por http(s) (no file://).');
+    addLog('window.Protocol / window.Transport no disponibles — ¿se abrió con file://?', 'w');
     return;
   }
   if (connType === 'ble') { await connectBLE(); }
@@ -2596,51 +2418,33 @@ async function connectDevice() {
 }
 
 // USB ─────────────────────────────────────────────────────
+// La mecánica del transporte (Web Serial nativo + polyfill WebUSB, bucle de
+// lectura, framing por '\n') vive en src/transport.js. Acá solo se enganchan
+// los callbacks a la UI y se maneja el resultado.
 async function connectUSB() {
-  // Desktop y Android nuevo: Web Serial nativo. Android sin Web Serial: polyfill sobre WebUSB (cable OTG).
-  const nativeSerial = ('serial' in navigator);
-  const serialApi = nativeSerial ? navigator.serial
-                  : (window.SerialPolyfill ? window.SerialPolyfill.serial : null);
-  if (!serialApi) {
-    if (isIOS()) toast('❌','USB no disponible en iOS/iPadOS. Configurá desde una PC/Mac por cable.');
-    else         toast('❌','USB no disponible. Usá Chrome o Edge en PC, o Chrome en Android con cable OTG.');
-    return;
-  }
-  const viaPolyfill = !nativeSerial;
   try {
-    if (viaPolyfill) addLog('USB vía WebUSB (compatibilidad Web Serial) — modo tablet Android.', 'w');
-    port = await serialApi.requestPort();
-    await port.open({baudRate:9600});
-    reader = port.readable.getReader();
-    writer = port.writable.getWriter();
+    _conn = await window.Transport.connectSerial({
+      log: addLog,
+      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
+      onClosed: (err) => {
+        if (connected) {
+          addLog('Conexión USB interrumpida: ' + (err?.message || ''), 'w');
+          disconnect(true);
+          toast('⚠️', 'El dispositivo USB se desconectó');
+        }
+      },
+    });
     setConnected(true);
-    readLoopUSB();
     await postConnect();
   } catch(e) {
     if (e.name === 'NotFoundError') return; // el usuario cerró el selector sin elegir
+    if (e.code === 'NO_SERIAL') {
+      if (isIOS()) toast('❌','USB no disponible en iOS/iPadOS. Configurá desde una PC/Mac por cable.');
+      else         toast('❌','USB no disponible. Usá Chrome o Edge en PC, o Chrome en Android con cable OTG.');
+      return;
+    }
     addLog('Error USB: ' + e.message, 'w');
-    if (viaPolyfill) {
-      addLog('→ Si el equipo figura en la lista pero no abre: otra app tomó el puerto, o esta', 'w');
-      addLog('  tablet/ROM no permite acceso WebUSB a puertos CDC. Reconectá el cable OTG y reintentá.', 'w');
-    }
     toast('❌', e.message);
-  }
-}
-
-async function readLoopUSB() {
-  const dec = new TextDecoder();
-  let buf = '';
-  try {
-    while (true) {
-      const {value, done} = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, {stream: true});
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines) { const t = line.trim(); if (t) { addLog(t,'in'); parseLine(t); } }
-    }
-  } catch(e) {
-    if (e.name === 'AbortError') return;
-    if (connected) { addLog('Conexión USB interrumpida: ' + e.message, 'w'); await disconnect(true); toast('⚠️', 'El dispositivo USB se desconectó'); }
   }
 }
 
@@ -2786,12 +2590,10 @@ async function connectBLE() {
 // Desconectar ─────────────────────────────────────────────
 async function disconnect(physical = false) {
   const was = connected; connected = false;
-  // USB
-  try { if (reader) { await reader.cancel(); reader.releaseLock(); } } catch(_){}
-  try { if (writer) { await writer.close(); writer.releaseLock(); } } catch(_){}
-  try { if (port)   { await port.close(); } }                        catch(_){}
-  reader = null; writer = null; port = null;
-  // BLE
+  // USB — el handle de src/transport.js hace toda la limpieza (reader/writer/port)
+  try { if (_conn) await _conn.close(); } catch(_){}
+  _conn = null;
+  // BLE (todavía inline)
   try { bleDevice && bleDevice.gatt.connected && bleDevice.gatt.disconnect(); } catch(_){}
   bleDevice = null; bleTxChar = null;
   if (was) setConnected(false, physical);
@@ -2801,8 +2603,8 @@ async function disconnect(physical = false) {
 async function send(cmd) {
   if (!connected) { toast('❌','Sin conexión activa'); return false; }
   try {
-    if (connType === 'usb' && writer) {
-      await writer.write(new TextEncoder().encode(cmd + '\n'));
+    if (connType === 'usb' && _conn) {
+      await _conn.send(cmd);
     } else if (connType === 'ble' && bleTxChar) {
       // BLE: enviar en chunks de 20 bytes (MTU mínimo garantizado)
       const enc = new TextEncoder().encode(cmd + '\n');
