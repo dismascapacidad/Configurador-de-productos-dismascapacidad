@@ -1208,6 +1208,14 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 })();
 </script>
 
+<!-- Capa de protocolo serie: módulo ES en src/protocol.js (testeado en tests/).
+     Se expone en window.Protocol para el script clásico de la app.
+     Requiere servir por http(s) — con file:// el import falla (ver DEV.md). -->
+<script type="module">
+  import * as Protocol from './src/protocol.js';
+  window.Protocol = Protocol;
+</script>
+
 <script>
 // ═══════════════════════════════════════════════════════
 // SUPABASE AUTH
@@ -1702,7 +1710,7 @@ function selectOsMode(mode) {
   if (cfgModal && cfgModal.style.display !== 'none') renderCfgModal();
 }
 
-function primaryMod() { return osMode === 'mac' ? 'G' : 'C'; }
+// (primaryMod / sustitución de %P% en presets: ahora en src/protocol.js — window.Protocol.resolvePreset)
 
 // Cambio manual desde el panel Avanzado de un botón — requiere confirmación porque
 // solo corresponde si el dispositivo se va a usar en una computadora con otro SO
@@ -2039,45 +2047,25 @@ function stopCap(code) {
   if (hint.classList.contains('cap')) { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }
 }
 
-// ── CONVERSIÓN DE KEYCODES ───────────────────────────────
-function cvKey(k) {
-  const MAP = {
-    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
-    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
-    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
-    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
-    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
-  };
-  return MAP[k.toUpperCase()] ?? k.toLowerCase();
-}
-
 // ── APLICAR BOTÓN ────────────────────────────────────────
+// El armado del comando CFG: vive en src/protocol.js (window.Protocol), testeado
+// en tests/protocol.test.js. Acá solo se leen los valores del DOM.
 async function applyBtn(code) {
-  const tipo = document.getElementById('t_' + code).value;
-  const modo = document.getElementById('m_' + code).value;
-  const deb  = document.getElementById('d_' + code).value;
-  let accion, mods = '-', flags = '-';
-
-  if (tipo === 'X') {
-    accion = '0';
-  } else if (tipo === 'M') {
-    const sel = document.getElementById('mact_' + code)?.value || '1';
-    if      (sel === '1D') { accion='1';  flags='D'; }
-    else if (sel === '1M') { accion='1';  flags='M'; }
-    else if (sel === 'SU') { accion='SU'; }
-    else if (sel === 'SD') { accion='SD'; }
-    else                   { accion=sel;  }
-  } else {
-    const raw = (document.getElementById('k_' + code).value || '').trim();
-    accion = raw ? cvKey(raw) : '0';
-    const mc = document.getElementById('mc_' + code).checked;
-    const ms = document.getElementById('ms_' + code).checked;
-    const ma = document.getElementById('ma_' + code).checked;
-    const mg = document.getElementById('mg_' + code).checked;
-    mods = (mc?'C':'') + (ms?'S':'') + (ma?'A':'') + (mg?'G':'') || '-';
-  }
-
-  const ok = await send('CFG:' + code + ':' + tipo + ':' + modo + ':' + deb + ':' + accion + ':' + mods + ':' + flags);
+  const el = id => document.getElementById(id);
+  const tipo = el('t_' + code).value;
+  const cmd = window.Protocol.buildButtonCfg({
+    code,
+    tipo,
+    modo:        el('m_' + code).value,
+    debounce:    el('d_' + code).value,
+    mouseAction: el('mact_' + code)?.value,
+    key:         el('k_' + code)?.value,
+    ctrl:        el('mc_' + code)?.checked,
+    shift:       el('ms_' + code)?.checked,
+    alt:         el('ma_' + code)?.checked,
+    gui:         el('mg_' + code)?.checked,
+  });
+  const ok = await send(cmd);
   if (ok) { toast('✅', code + ' configurado'); updateSummary(code); }
 }
 
@@ -2091,14 +2079,14 @@ function onArrowMode() {
 }
 
 async function applyArrows() {
-  const m   = parseInt(document.getElementById('arrowMode').value);
-  const ori = document.getElementById('orient').value;
-  await send('FMODE:' + m);
-  await send('ORIENT:' + ori);
-  if (m === 0 || m === 1) {
-    await send('VEL:' + document.getElementById('vel').value);
-    await send('ACEL:' + (document.getElementById('acel').checked ? '1' : '0'));
-  }
+  const el = id => document.getElementById(id);
+  const cmds = window.Protocol.buildArrowCommands({
+    fmode:  el('arrowMode').value,
+    orient: el('orient').value,
+    vel:    el('vel').value,
+    acel:   el('acel').checked,
+  });
+  for (const c of cmds) await send(c);
   toast('✅', 'Flechas configuradas');
 }
 
@@ -2113,14 +2101,14 @@ function onDishubCenterMode() {
 }
 
 async function applyDishubCenter() {
-  const m   = parseInt(document.getElementById('dishubCenterMode').value);
-  const ori = document.getElementById('dishubOrient').value;
-  await send('FMODE:' + m);
-  await send('ORIENT:' + ori);
-  if (m === 0 || m === 1) {
-    await send('VEL:' + document.getElementById('dishubVel').value);
-    await send('ACEL:' + (document.getElementById('dishubAcel').checked ? '1' : '0'));
-  }
+  const el = id => document.getElementById(id);
+  const cmds = window.Protocol.buildArrowCommands({
+    fmode:  el('dishubCenterMode').value,
+    orient: el('dishubOrient').value,
+    vel:    el('dishubVel').value,
+    acel:   el('dishubAcel').checked,
+  });
+  for (const c of cmds) await send(c);
   toast('✅', 'Conectores centrales configurados');
 }
 
@@ -2468,7 +2456,7 @@ async function applyPreset(id) {
     toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + prod.name);
     return;
   }
-  for (const c of cmds) await send(c.includes('%P%') ? c.replace('%P%', primaryMod()) : c);
+  for (const c of window.Protocol.resolvePreset(cmds, osMode)) await send(c);
   toast('⚡', 'Configuración aplicada');
   closeModal('presetsModal');
 }
@@ -2794,28 +2782,8 @@ async function applyCustom(p) {
     }
   }
   const cfg = p.cfg; if (!cfg) return;
-  const CODE = {0:'BR',1:'BA',2:'BN',3:'BC',4:'FU',5:'FD',6:'FL',7:'FR'};
-  const TL = {0:'M',1:'K',2:'X'};
-  const ML = {0:'P',1:'R',2:'H'};
-  const cmds = [];
-  for (const [idx, c] of Object.entries(cfg.btns)) {
-    const code = CODE[parseInt(idx)]; if (!code) continue;
-    let ac = String(c.accion);
-    if      (c.accion === 8)  ac = 'SU';
-    else if (c.accion === 16) ac = 'SD';
-    else if (c.tipo === 1 && c.accion > 0 && c.accion < 128) ac = String.fromCharCode(c.accion);
-    const mm = [];
-    if (c.mods & 0x01) mm.push('C'); if (c.mods & 0x02) mm.push('S');
-    if (c.mods & 0x04) mm.push('A'); if (c.mods & 0x08) mm.push('G');
-    const fl = [];
-    if (c.flags & 0x01) fl.push('D'); if (c.flags & 0x02) fl.push('M');
-    cmds.push('CFG:' + code + ':' + (TL[c.tipo]||'X') + ':' + (ML[c.modo]||'P') + ':' + c.debounce + ':' + ac + ':' + (mm.join('')||'- ') + ':' + (fl.join('')||'- '));
-  }
-  if (cfg.fmode  != null) cmds.push('FMODE:'  + cfg.fmode);
-  if (cfg.orient != null) cmds.push('ORIENT:' + cfg.orient);
-  if (cfg.vel    != null) cmds.push('VEL:'    + cfg.vel);
-  if (cfg.acel   != null) cmds.push('ACEL:'   + cfg.acel);
-  for (const c of cmds) await send(c);
+  // Traducción cfg → comandos: src/protocol.js (window.Protocol.cfgToCommands), testeado.
+  for (const c of window.Protocol.cfgToCommands(cfg)) await send(c);
   toast('⭐', '"' + p.name + '" aplicada');
   closeModal('presetsModal');
 }
@@ -2845,18 +2813,13 @@ async function getAllConfig() {
 }
 
 function parseLine(line) {
-  if      (line.startsWith('OK:WHO:')) {
-    const p = line.split(':'); // ['OK','WHO','disMouse','R019']
-    if (_whoResolve) { _whoResolve({model: p[2], version: p[3]}); _whoResolve = null; }
+  if (!window.Protocol) return; // el módulo de protocolo aún no cargó (o falló el import)
+  const who = window.Protocol.parseWho(line);
+  if (who) {
+    if (_whoResolve) { _whoResolve(who); _whoResolve = null; }
+    return;
   }
-  else if (line.startsWith('ORIENT:')) devCfg.orient = parseInt(line.slice(7));
-  else if (line.startsWith('VEL:'))    devCfg.vel    = parseInt(line.slice(4));
-  else if (line.startsWith('ACEL:'))   devCfg.acel   = parseInt(line.slice(5));
-  else if (line.startsWith('FMODE:'))  devCfg.fmode  = parseInt(line.slice(6));
-  else if (line.startsWith('BTN:')) {
-    const p = line.split(':');
-    devCfg.btns[p[1]] = {tipo:+p[2], modo:+p[3], debounce:+p[4], accion:+p[5], mods:+p[6], flags:+p[7]};
-  }
+  window.Protocol.parseDeviceLine(line, devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en devCfg
 }
 
 // ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
@@ -3018,6 +2981,11 @@ function renderCfgModal() {
 async function toggleConn() { connected ? await disconnect() : await connectDevice(); }
 
 async function connectDevice() {
+  if (!window.Protocol) {
+    toast('❌', 'El módulo de protocolo no cargó. Recargá la página servida por http(s) (no file://).');
+    addLog('src/protocol.js no está disponible en window.Protocol — ¿se abrió con file://?', 'w');
+    return;
+  }
   if (connType === 'ble') { await connectBLE(); }
   else                   { await connectUSB(); }
 }
@@ -3533,33 +3501,8 @@ function _connStepDisable(n) {
 }
 
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
-// Mapa inverso de código numérico → nombre de tecla para updateSummary
-const REV_KEY = (() => {
-  // Códigos actuales (firmware R009+)
-  const fwd = {
-    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
-    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
-    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
-    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
-    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
-  };
-  const rev = {};
-  for (const [name, code] of Object.entries(fwd)) rev[String(code)] = name;
-  // ASCII espacio (32) → 'SPACE'
-  rev['32'] = 'SPACE';
-  // Códigos legacy (firmware anterior / presets de fábrica viejos)
-  const legacy = {
-    'ENTER':'176','TAB':'179','ESC':'177','BACKSPACE':'178','DELETE':'212',
-    'INSERT':'209','HOME':'210','END':'213','PAGE_UP':'211','PAGE_DOWN':'214',
-    'UP_ARROW':'218','DOWN_ARROW':'217','LEFT_ARROW':'216','RIGHT_ARROW':'215',
-    'F1':'194','F2':'195','F3':'196','F4':'197','F5':'198','F6':'199',
-    'F7':'200','F8':'201','F9':'202','F10':'203','F11':'204','F12':'205',
-  };
-  for (const [name, code] of Object.entries(legacy)) {
-    if (!rev[String(code)]) rev[String(code)] = name; // no sobreescribir si ya existe
-  }
-  return rev;
-})();
+// Mapa inverso código numérico → nombre de tecla (incluye tabla legacy):
+// src/protocol.js → window.Protocol.REV_KEY
 
 function applyDevCfgToCards() {
   if (!prod) return;
@@ -3623,8 +3566,9 @@ function applyDevCfgToCards() {
       const kInp = document.getElementById('k_' + code);
       if (kInp) {
         const accion = String(c.accion);
-        if (REV_KEY[accion]) {
-          kInp.value = REV_KEY[accion];
+        const revKey = window.Protocol.REV_KEY;
+        if (revKey[accion]) {
+          kInp.value = revKey[accion];
         } else if (c.accion > 31 && c.accion < 127) {
           kInp.value = String.fromCharCode(c.accion);
         } else if (c.accion > 0) {
