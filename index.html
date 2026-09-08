@@ -1303,9 +1303,7 @@ let connType  = 'usb';  // 'usb' | 'ble'
 let connected = false;
 let osMode    = 'win'; // 'win' | 'mac' — se resuelve en init() (lee localStorage a salvo de excepciones)
 let activePresetTab = null; // tabId activo en presetsModal
-let _conn = null;   // handle de transporte USB { send, close } — src/transport.js
-// BLE (todavía inline; pendiente de mover a src/transport.js)
-let bleDevice = null, bleTxChar = null;
+let _conn = null;   // handle de transporte activo { send, close } (USB o BLE) — src/transport.js
 let devCfg    = mkCfg();
 let capActive = null;
 const capHandlers = {};
@@ -2449,10 +2447,8 @@ async function connectUSB() {
 }
 
 // BLE ─────────────────────────────────────────────────────
-// Nordic UART Service (NUS)
-const BLE_SVC  = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const BLE_TX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // escribir
-const BLE_RX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notificaciones
+// La conexión BLE (Nordic UART, diagnóstico de conflicto HID en Windows) vive
+// en src/transport.js → window.Transport.connectBle.
 
 // Detectar iOS/iPadOS (incluye Chrome/otros en iOS, todos usan WKWebView)
 function isIOS() {
@@ -2477,103 +2473,22 @@ async function connectBLE() {
     addLog('→ Conectá el dispositivo por USB a una computadora para configurarlo.', 'w');
     return;
   }
-  if (!('bluetooth' in navigator)) {
-    toast('❌','Web Bluetooth no disponible. Use Chrome en desktop o Android.');
-    addLog('Web Bluetooth requiere Chrome. En Windows puede necesitar habilitar la flag: chrome://flags/#enable-web-bluetooth-new-permissions-backend','w');
-    return;
-  }
   try {
-    // Mostrar ayuda antes del selector
-    addLog('══ Selector BLE ══════════════════════════════');
-    addLog('El dispositivo puede aparecer sin nombre.');
-    addLog('Seleccione el que corresponda y pruebe.');
-    addLog('Si falla, intente con el otro de la lista.');
-    addLog('══════════════════════════════════════════════');
-
-    bleDevice = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      // Incluir todos los UUIDs posibles: UART (para comandos) + HID estándar
-      // El firmware anuncia HID en advertising pero el servicio UART existe en el GATT
-      optionalServices: [
-        BLE_SVC,                                    // Nordic UART (6e400001-...)
-        '00001812-0000-1000-8000-00805f9b34fb',     // HID over GATT
-        '0000180a-0000-1000-8000-00805f9b34fb',     // Device Information
-        '0000180f-0000-1000-8000-00805f9b34fb',     // Battery
-      ]
-    });
-
-    const devName = bleDevice.name || '(sin nombre — seleccione y pruebe)';
-    addLog('Dispositivo seleccionado: ' + devName);
-    addLog('Conectando vía GATT...');
-
-    bleDevice.addEventListener('gattserverdisconnected', () => {
-      if (connected) {
-        addLog('Dispositivo BLE desconectado','w');
-        disconnect(true);
-        toast('⚠️','El dispositivo Bluetooth se desconectó');
-      }
-    });
-
-    const server = await bleDevice.gatt.connect();
-    addLog('GATT OK. Buscando servicio UART (Nordic NUS)...');
-
-    let service;
-    try {
-      service = await server.getPrimaryService(BLE_SVC);
-    } catch(svcErr) {
-      addLog('⚠ Servicio UART no accesible.', 'w');
-      addLog('  Error: ' + svcErr.name + ' — ' + svcErr.message, 'w');
-      // Intentar listar todos los servicios para diagnóstico
-      try {
-        const svcs = await server.getPrimaryServices();
-        if (svcs.length) {
-          addLog('  Servicios GATT disponibles en este dispositivo:', 'w');
-          svcs.forEach(s => addLog('    · ' + s.uuid, 'w'));
-          const hasUart = svcs.some(s => s.uuid.startsWith('6e400001'));
-          if (hasUart) {
-            addLog('  ✓ El servicio UART SÍ existe — posible conflicto con driver HID del OS.', 'w');
-            addLog('  → En Windows: desemparejá el dispositivo del sistema y volvé a intentar.', 'w');
-            addLog('  → O usá conexión USB para configurar (más simple y confiable).', 'w');
-            toast('❌', 'Conflicto HID/BLE en Windows. Ver Registro.');
-          } else {
-            addLog('  → El servicio UART (6e400001-...) NO aparece en este dispositivo.', 'w');
-            addLog('  → Probablemente seleccionaste el dispositivo incorrecto.', 'w');
-            toast('❌', 'Dispositivo sin UART. Ver Registro.');
-          }
-        } else {
-          addLog('  → No se pudieron leer los servicios (emparejado como HID en el OS).', 'w');
-          addLog('  → Desemparejá "disMouse V4" desde Configuración → Bluetooth del sistema.', 'w');
-          addLog('  → Luego conectá desde acá sin emparejarlo al OS.', 'w');
-          toast('❌', 'Sin acceso GATT. Desemparejá del sistema. Ver Registro.');
+    _conn = await window.Transport.connectBle({
+      log: addLog,
+      toast: toast,
+      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
+      onClosed: () => {
+        if (connected) {
+          addLog('Dispositivo BLE desconectado', 'w');
+          disconnect(true);
+          toast('⚠️', 'El dispositivo Bluetooth se desconectó');
         }
-      } catch(listErr) {
-        addLog('  → No se pudo leer el GATT: ' + listErr.message, 'w');
-        addLog('  → Probable causa: emparejado como HID en Windows.', 'w');
-        addLog('  → Solución: desemparejá el dispositivo del sistema operativo.', 'w');
-        toast('❌', 'Sin acceso GATT. Ver Registro.');
-      }
-      try { bleDevice.gatt.disconnect(); } catch(_){}
-      bleDevice = null;
-      return;
-    }
-
-    addLog('Servicio UART encontrado ✓');
-    addLog('Configurando características RX/TX...');
-
-    // RX: recibir datos del dispositivo vía notificaciones
-    const rxChar = await service.getCharacteristic(BLE_RX);
-    await rxChar.startNotifications();
-    rxChar.addEventListener('characteristicvaluechanged', e => {
-      const line = new TextDecoder().decode(e.target.value).trim();
-      if (line) { addLog(line,'in'); parseLine(line); }
+      },
     });
-
-    // TX: enviar comandos al dispositivo
-    bleTxChar = await service.getCharacteristic(BLE_TX);
-    addLog('RX/TX OK. Listo para enviar comandos.');
+    if (!_conn) return; // problema de acceso ya diagnosticado en el Registro
     setConnected(true);
     await postConnect();
-
   } catch(e) {
     if (e.name === 'NotFoundError' || e.name === 'AbortError') return; // usuario canceló
     addLog('Error BLE [' + e.name + ']: ' + e.message, 'w');
@@ -2583,35 +2498,23 @@ async function connectBLE() {
       addLog('  Solución: desemparejar el dispositivo del OS y volver a intentar.', 'w');
     }
     toast('❌', e.message || e.name);
-    bleDevice = null; bleTxChar = null;
   }
 }
 
 // Desconectar ─────────────────────────────────────────────
 async function disconnect(physical = false) {
   const was = connected; connected = false;
-  // USB — el handle de src/transport.js hace toda la limpieza (reader/writer/port)
+  // El handle de src/transport.js (USB o BLE) hace toda la limpieza del enlace.
   try { if (_conn) await _conn.close(); } catch(_){}
   _conn = null;
-  // BLE (todavía inline)
-  try { bleDevice && bleDevice.gatt.connected && bleDevice.gatt.disconnect(); } catch(_){}
-  bleDevice = null; bleTxChar = null;
   if (was) setConnected(false, physical);
 }
 
 // Enviar ──────────────────────────────────────────────────
 async function send(cmd) {
-  if (!connected) { toast('❌','Sin conexión activa'); return false; }
+  if (!connected || !_conn) { toast('❌','Sin conexión activa'); return false; }
   try {
-    if (connType === 'usb' && _conn) {
-      await _conn.send(cmd);
-    } else if (connType === 'ble' && bleTxChar) {
-      // BLE: enviar en chunks de 20 bytes (MTU mínimo garantizado)
-      const enc = new TextEncoder().encode(cmd + '\n');
-      for (let i = 0; i < enc.length; i += 20) {
-        await bleTxChar.writeValue(enc.slice(i, i + 20));
-      }
-    } else { return false; }
+    await _conn.send(cmd);   // USB o BLE — el handle sabe cómo (chunking BLE incluido)
     addLog(cmd, 'out');
     await new Promise(r => setTimeout(r, 90));
     return true;
