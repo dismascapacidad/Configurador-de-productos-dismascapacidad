@@ -8,7 +8,7 @@
  * Traducción cfg ↔ comandos → src/protocol.js. Acá va el render y el pegamento.
  */
 import { S } from './state.js';
-import { toast, addLog, esc, closeModal } from './dom.js';
+import { toast, addLog, esc, closeModal, openModal } from './dom.js';
 import { supa } from '../supabase-client.js';
 import * as PresetsStore from '../presets-store.js';
 import * as Csv from '../csv.js';
@@ -20,9 +20,11 @@ import { PRODUCTS, PRESET_TABS, FACTORY_CMDS, FACTORY_CARDS, TIP_CONTENT } from 
 function el(/** @type {string} */ id) {
   return /** @type {any} */ (document.getElementById(id));
 }
-/** openModal sigue en app.js hasta el cierre del refactor. */
-function openModal(/** @type {string} */ id) {
-  /** @type {any} */ (window).openModal(id);
+
+/** Abre el modal de configuraciones rápidas y arma su contenido. */
+export function openPresetsModal() {
+  openModal('presetsModal');
+  renderPresetTabs();
 }
 
 // ── SYNC PRESETS ─────────────────────────────────────────

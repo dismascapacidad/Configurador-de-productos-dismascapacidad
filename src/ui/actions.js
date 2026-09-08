@@ -8,7 +8,7 @@
  * src/protocol.js (testeado). Acá solo se leen valores del DOM y se manda.
  */
 import { S } from './state.js';
-import { toast } from './dom.js';
+import { toast, openModal } from './dom.js';
 import * as Protocol from '../protocol.js';
 import { send } from './connection.js';
 import { updateSummary, onType } from './cards.js';
@@ -144,7 +144,7 @@ export function renderCfgModal() {
     h += '</div>';
   }
   el('cfgDisplay').innerHTML = h;
-  /** @type {any} */ (window).openModal('cfgModal');
+  openModal('cfgModal');
 }
 
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────

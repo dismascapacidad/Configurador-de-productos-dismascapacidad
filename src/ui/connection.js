@@ -9,7 +9,7 @@
  * producto → GETALL) se orquesta acá.
  */
 import { S } from './state.js';
-import { toast, addLog, closeModal } from './dom.js';
+import { toast, addLog, closeModal, openModal } from './dom.js';
 import { closeDrawer } from './drawer.js';
 import { isIOS } from './platform.js';
 import * as Protocol from '../protocol.js';
@@ -30,8 +30,6 @@ export const connectionHooks = {
   selectProd: () => {},
   /** @type {() => void} */
   onArrowMode: () => {},
-  /** @type {(id: string) => void} */
-  openModal: () => {},
 };
 
 /** getElementById con tipo laxo (transicional). */
@@ -123,7 +121,7 @@ function showWelcomeDev(model, version) {
   if (ttl) ttl.textContent = DEV_WELCOME[key] || '¡Hola, ' + model + '!';
   if (ver) ver.textContent = version ? 'Firmware ' + version : '';
   updateStatusBar(model, version);
-  connectionHooks.openModal('welcomeDevModal');
+  openModal('welcomeDevModal');
   setTimeout(() => closeModal('welcomeDevModal'), 2500);
 }
 
@@ -168,7 +166,7 @@ async function postConnect() {
     // Firmware viejo — sin WHO: pedir selección manual de producto
     const vEl = el('sbFwVersion');
     if (vEl) vEl.textContent = '';
-    connectionHooks.openModal('selectProdModal');
+    openModal('selectProdModal');
     addLog('El dispositivo no respondió WHO — firmware sin soporte de autodetección.', 'w');
   }
 
@@ -367,6 +365,18 @@ export async function sendLogCmd() {
   if (ok) inp.value = '';
 }
 
+// ── GUARDAR / RESET / PING ───────────────────────────────
+export async function saveConfig() {
+  if (await send('SAVE')) toast('💾', 'Guardado en dispositivo');
+}
+export async function resetDevice() {
+  if (!confirm('¿Restaurar todos los valores por defecto?')) return;
+  if (await send('RESET')) toast('🔄', 'Valores restaurados');
+}
+export async function pingDevice() {
+  if (await send('PING')) toast('✅', 'El dispositivo responde');
+}
+
 // ── CONN MODAL ───────────────────────────────────────────
 /** Con WHO el producto se detecta solo → pasos 2 y 3 del connModal siempre activos. */
 export function enableConnModalSteps() {
@@ -408,7 +418,7 @@ export function openConnModal() {
   }
   const sub = el('connSubM');
   if (sub) sub.style.display = S.connected ? 'flex' : 'none';
-  connectionHooks.openModal('connModal');
+  openModal('connModal');
 }
 
 function _connStepEnable(n) {

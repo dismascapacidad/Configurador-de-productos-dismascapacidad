@@ -3,7 +3,15 @@ import globals from 'globals';
 
 export default [
   {
-    ignores: ['node_modules/**', 'dist/**', 'coverage/**', 'index.html', 'assets/**'],
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'coverage/**',
+      'index.html',
+      'assets/**',
+      // Vendored (github.com/google/web-serial-polyfill): no se typechequea ni lintea.
+      'src/webusb-serial-polyfill.js',
+    ],
   },
   js.configs.recommended,
   {

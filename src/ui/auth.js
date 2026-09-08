@@ -8,17 +8,12 @@
  * `supa.auth.onAuthStateChange`.
  */
 import { S } from './state.js';
-import { toast, esc, closeModal } from './dom.js';
+import { toast, esc, closeModal, openModal } from './dom.js';
 import { supa, AUTH_REDIRECT } from '../supabase-client.js';
 
 /** getElementById con tipo laxo (transicional, evita castear cada `.value`). */
 function el(/** @type {string} */ id) {
   return /** @type {any} */ (document.getElementById(id));
-}
-
-/** Abre un modal por id (delegado en app.js mientras la UI se termina de partir). */
-function openModal(/** @type {string} */ id) {
-  /** @type {any} */ (window).openModal(id);
 }
 
 /** Refresca el botón "Cuenta" del topbar, la etiqueta del drawer y el saludo. */
