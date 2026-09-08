@@ -1032,15 +1032,18 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
        Protocol  → armado/parseo de comandos serie (src/protocol.js)
        Transport → conexión USB + BLE (src/transport.js)
        Csv       → import/export de presets en CSV (src/csv.js)
+       PresetsStore → presets propios: localStorage + sync Supabase (src/presets-store.js)
        ProductData → catálogo de productos y presets (src/products.js) -->
 <script type="module">
   import * as Protocol from './src/protocol.js';
   import * as Transport from './src/transport.js';
   import * as Csv from './src/csv.js';
+  import * as PresetsStore from './src/presets-store.js';
   import * as ProductData from './src/products.js';
   window.Protocol = Protocol;
   window.Transport = Transport;
   window.Csv = Csv;
+  window.PresetsStore = PresetsStore;
   // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* : se
   // exponen como globales sueltos para no reescribir los ~27 usos del script clásico.
   // Transicional — al modularizar la UI se hará import directo.
@@ -1232,22 +1235,18 @@ async function signOut() {
 }
 
 // ── SYNC PRESETS ─────────────────────────────────────────
+// El almacenamiento (localStorage + upsert incremental a Supabase) vive en
+// src/presets-store.js (window.PresetsStore). Acá solo el pegamento con la UI.
 async function fetchSupaPresets() {
-  const { data, error } = await supa.from('presets')
-    .select('name, date, cfg, prod_id, notes')
-    .order('created_at', { ascending: true });
-  if (error) { addLog('Error al leer presets de la nube: ' + error.message, 'w'); return []; }
-  return (data || []).map(p => ({ ...p, prodId: p.prod_id }));
+  const { rows, error } = await window.PresetsStore.fetchCloud(supa);
+  if (error) addLog('Error al leer presets de la nube: ' + error, 'w');
+  return rows;
 }
 
-async function pushAllPresetsToSupa(list) {
-  // Reemplaza todos los presets del usuario en Supabase con la lista actual
-  const { error: delErr } = await supa.from('presets').delete().eq('user_id', currentUser.id);
-  if (delErr) { addLog('Error al sincronizar: ' + delErr.message, 'w'); return; }
-  if (list.length === 0) return;
-  const rows = list.map(p => ({ user_id: currentUser.id, name: p.name, date: p.date, cfg: p.cfg, prod_id: p.prodId || null, notes: p.notes || null }));
-  const { error: insErr } = await supa.from('presets').insert(rows);
-  if (insErr) addLog('Error al guardar en la nube: ' + insErr.message, 'w');
+async function syncPresetsToCloud(list) {
+  if (!currentUser) return;
+  const { error } = await window.PresetsStore.pushToCloud(supa, currentUser.id, list);
+  if (error) addLog('Error al sincronizar con la nube: ' + error, 'w');
 }
 
 function showImportDialog(localPresets, supaPresets) {
@@ -1276,24 +1275,25 @@ function showImportDialog(localPresets, supaPresets) {
 
 async function importChoice(choice) {
   closeModal('importModal');
-  const localPresets = loadCustom();
   if (choice === 'merge') {
-    // Combinar: cloud + local (sin duplicados por nombre)
-    const supaPresets  = await fetchSupaPresets();
-    const supaNames    = new Set(supaPresets.map(p => p.name));
-    const newOnes      = localPresets.filter(p => !supaNames.has(p.name));
-    const merged       = [...supaPresets, ...newOnes];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    await pushAllPresetsToSupa(merged);
+    // Combinar nube + local (sin duplicar por nombre). reconcileIds hace que los
+    // locales que ya existen en la nube adopten su id, así el upsert no duplica.
+    const localPresets = loadCustom();
+    const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
+    window.PresetsStore.reconcileIds(localPresets, cloudRows);
+    const cloudIds = new Set(cloudRows.map(p => p.id));
+    const merged   = [...cloudRows, ...localPresets.filter(p => !cloudIds.has(p.id))];
+    window.PresetsStore.saveLocal(merged);
+    await syncPresetsToCloud(merged);
     renderCustom();
     toast('☁️', `${merged.length} configuración${merged.length !== 1 ? 'es' : ''} en tu cuenta`);
   } else {
     // Usar solo las de la nube
-    const supaPresets = await fetchSupaPresets();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
+    window.PresetsStore.saveLocal(cloudRows);
     renderCustom();
-    toast('☁️', supaPresets.length > 0
-      ? `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
+    toast('☁️', cloudRows.length > 0
+      ? `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
       : 'No tenés configuraciones guardadas en tu cuenta todavía');
   }
 }
@@ -1310,7 +1310,7 @@ let _conn = null;   // handle de transporte activo { send, close } (USB o BLE) �
 let devCfg    = mkCfg();
 let capActive = null;
 const capHandlers = {};
-const STORAGE_KEY = 'displus_presets_v1';
+// (STORAGE_KEY y el acceso a localStorage viven en src/presets-store.js)
 
 // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT y los mapas
 // DEV_* viven en src/products.js — window.* vía el <script type="module"> de arriba.
@@ -1922,12 +1922,11 @@ async function applyPreset(id) {
 
 // ── CUSTOM PRESETS ───────────────────────────────────────
 function loadCustom() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
+  return window.PresetsStore.loadLocal();
 }
 function saveCustomList(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  if (currentUser) pushAllPresetsToSupa(list); // sync en background, sin bloquear UI
+  window.PresetsStore.saveLocal(list);
+  syncPresetsToCloud(list); // sync en background, sin bloquear UI (no-op si no hay sesión)
 }
 
 function renderCustom() {
@@ -2942,7 +2941,7 @@ function init() {
 
     if (event === 'SIGNED_OUT') {
       // Limpiar presets locales para no dejar datos del usuario en el navegador
-      localStorage.removeItem('displus_presets_v1');
+      window.PresetsStore.clearLocal();
       renderCustom();
       // Ocultar secciones compartidas
       document.getElementById('sectionShared').style.display    = 'none';
@@ -2957,16 +2956,16 @@ function init() {
 
 async function handleLoginSync() {
   const localPresets = loadCustom();
-  const supaPresets  = await fetchSupaPresets();
+  const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
   if (localPresets.length > 0) {
-    // Hay presets locales: preguntar qué hacer
-    showImportDialog(localPresets, supaPresets);
+    // Hay presets locales: preguntar qué hacer (merge / usar solo la nube)
+    showImportDialog(localPresets, cloudRows);
   } else {
     // Sin presets locales: cargar los de la nube directamente
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    window.PresetsStore.saveLocal(cloudRows);
     renderCustom();
-    if (supaPresets.length > 0)
-      toast('☁️', `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`);
+    if (cloudRows.length > 0)
+      toast('☁️', `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`);
   }
 }
 
