@@ -15,6 +15,7 @@ import * as PresetsStore from './presets-store.js';
 import * as ProductData from './products.js';
 import { isIOS, isMacOS, isTouchDevice } from './ui/platform.js';
 import { toast, addLog, clearLog, esc, closeModal, closeBd } from './ui/dom.js';
+import { S } from './ui/state.js';
 
 // Módulos de lógica: se exponen en window.* para el código que todavía los usa así.
 window.Protocol = Protocol;
@@ -30,21 +31,20 @@ Object.assign(window, ProductData);
 const SUPA_URL  = 'https://lhpewyblvjijpmcxzcod.supabase.co';
 const SUPA_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxocGV3eWJsdmppanBtY3h6Y29kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMzYzNDMsImV4cCI6MjA5MzYxMjM0M30.K5LKmwNOj0gI9UbzxAmozTu3X2eyvP6H2wcFt-s68lE';
 const supa = supabase.createClient(SUPA_URL, SUPA_ANON);
-let currentUser = null;
 
 const AUTH_REDIRECT = window.location.href.split('?')[0].split('#')[0];
 
 function updateAuthBtn() {
-  const name  = currentUser ? (currentUser.user_metadata?.full_name?.split(' ')[0] || currentUser.email.split('@')[0]) : null;
-  const label = currentUser ? '👤 ' + name : '👤 Cuenta';
+  const name  = S.currentUser ? (S.currentUser.user_metadata?.full_name?.split(' ')[0] || S.currentUser.email.split('@')[0]) : null;
+  const label = S.currentUser ? '👤 ' + name : '👤 Cuenta';
   const btn   = document.getElementById('btnAuth');
   if (btn) btn.textContent = label;
   const drwLbl = document.getElementById('drwAuthLbl');
-  if (drwLbl) drwLbl.textContent = currentUser ? name : 'Cuenta';
+  if (drwLbl) drwLbl.textContent = S.currentUser ? name : 'Cuenta';
   // Header del drawer
   const greet = document.getElementById('drwHeadGreet');
   if (greet) {
-    if (currentUser) {
+    if (S.currentUser) {
       greet.innerHTML = `Hola, <em>${esc(name)}</em>`;
     } else {
       greet.innerHTML = `<button class="btn pri sm" onclick="closeDrawer();openAuthModal()">Iniciar sesión</button>`;
@@ -61,10 +61,10 @@ function renderAuthModal(view = 'login') {
   const body  = document.getElementById('authModalBody');
   const title = document.getElementById('authModalTitle');
 
-  if (currentUser) {
+  if (S.currentUser) {
     title.textContent = 'Mi cuenta';
     body.innerHTML = `
-      <p class="auth-info">✅ Sesión iniciada como:<br><strong>${esc(currentUser.email)}</strong></p>
+      <p class="auth-info">✅ Sesión iniciada como:<br><strong>${esc(S.currentUser.email)}</strong></p>
       <button class="btn pri sm" onclick="signOut()">Cerrar sesión</button>`;
     return;
   }
@@ -217,8 +217,8 @@ async function fetchSupaPresets() {
 }
 
 async function syncPresetsToCloud(list) {
-  if (!currentUser) return;
-  const { error } = await window.PresetsStore.pushToCloud(supa, currentUser.id, list);
+  if (!S.currentUser) return;
+  const { error } = await window.PresetsStore.pushToCloud(supa, S.currentUser.id, list);
   if (error) addLog('Error al sincronizar con la nube: ' + error, 'w');
 }
 
@@ -274,13 +274,7 @@ async function importChoice(choice) {
 // PRODUCTS y PRESET_TABS → src/products.js (window.* vía <script type="module">)
 
 // ── ESTADO ──────────────────────────────────────────────
-let prod      = null;
-let connType  = 'usb';  // 'usb' | 'ble'
-let connected = false;
-let osMode    = 'win'; // 'win' | 'mac' — se resuelve en init() (lee localStorage a salvo de excepciones)
-let activePresetTab = null; // tabId activo en presetsModal
-let _conn = null;   // handle de transporte activo { send, close } (USB o BLE) — src/transport.js
-let devCfg    = mkCfg();
+// Estado compartido → src/ui/state.js (objeto S)
 let capActive = null;
 const capHandlers = {};
 // (STORAGE_KEY y el acceso a localStorage viven en src/presets-store.js)
@@ -297,7 +291,7 @@ function mkCfg() { return {orient:null, vel:null, acel:null, fmode:null, btns:{}
 function selectProd(id) {
   const p = PRODUCTS[id];
   if (!p) return;
-  prod = p;
+  S.prod = p;
   document.querySelectorAll('.dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
   const opt = document.getElementById('opt-' + id);
   if (opt) opt.classList.add('active');
@@ -317,7 +311,7 @@ function selectProd(id) {
   document.getElementById('mainTitle').textContent = p.cardTitle;
 
   // Layout centrado para disButton y disHub
-  document.getElementById('secBtns').classList.toggle('prod-centered', !!p.centeredLayout);
+  document.getElementById('secBtns').classList.toggle('S.prod-centered', !!p.centeredLayout);
 
   // Título y ícono de la sección flechas/externos
   const arrowTitle = document.getElementById('arrowSectionTitle');
@@ -338,21 +332,21 @@ function selectProd(id) {
   buildGrid('arrowGrid', p.hasArrows ? p.arrowBtns : []);
   // Auto-seleccionar tab del dispositivo
   const devTab = _tabForProd(p.id);
-  if (devTab) activePresetTab = devTab.tabId;
+  if (devTab) S.activePresetTab = devTab.tabId;
   // Si el modal está abierto, refrescar; si no, solo pre-popular la grid (para cuando abra)
   const presetsOpen = document.getElementById('presetsModal')?.style.display !== 'none';
   if (presetsOpen) renderPresetTabs();
   else buildFactoryPresets(p.presets);
   renderCustom();
-  // Re-evaluar botones ahora que prod está seteado (setConnected se llamó antes que WHO)
-  setSections(connected);
+  // Re-evaluar botones ahora que S.prod está seteado (setConnected se llamó antes que WHO)
+  setSections(S.connected);
   addLog('Producto seleccionado: ' + p.name);
 }
 
 // ── SELECCIÓN TIPO CONEXIÓN ──────────────────────────────
 function selectConnType(type) {
   if (type === 'ble' && isIOS()) return; // bloqueado en iOS
-  connType = type;
+  S.connType = type;
   // Sincronizar en drawer
   const usbEl = document.getElementById('ct-usb');
   const bleEl = document.getElementById('ct-ble');
@@ -375,7 +369,7 @@ function selectConnType(type) {
 // El editor manual de botones ya expone Ctrl y GUI/⌘ por separado, sin ambigüedad —
 // por eso el control de cambio vive en el panel Avanzado de cada botón, junto a esos checkboxes.
 function selectOsMode(mode) {
-  osMode = mode;
+  S.osMode = mode;
   try { localStorage.setItem('displus_os_mode', mode); } catch(_) {}
   // Re-etiquetar el checkbox "GUI" (mg_${code}) y la nota de modo en el panel Avanzado
   // de cada botón, y refrescar el modal de configuración si está abierto.
@@ -392,7 +386,7 @@ function selectOsMode(mode) {
 // distinto al que se está usando ahora mismo para configurarlo.
 function confirmToggleOsMode(e) {
   if (e) e.preventDefault();
-  const next = osMode === 'mac' ? 'win' : 'mac';
+  const next = S.osMode === 'mac' ? 'win' : 'mac';
   const nextLbl = next === 'mac' ? 'Mac (⌘)' : 'Windows (Ctrl)';
   const ok = confirm(
     'Esto va a hacer que los atajos con modificador principal (Copiar/Pegar) usen ' + nextLbl + '.\n\n' +
@@ -412,7 +406,7 @@ function setSections(on) {
   ['secBtns'].forEach(id =>
     document.getElementById(id).classList.toggle('sec-off', !on));
   // secArrows solo se habilita si el producto tiene flechas
-  if (prod && prod.hasArrows)
+  if (S.prod && S.prod.hasArrows)
     document.getElementById('secArrows').classList.toggle('sec-off', !on);
   const btnSave = document.getElementById('btnSave');
   if (btnSave) btnSave.disabled = !on;
@@ -428,8 +422,8 @@ function setSections(on) {
   const drwCfg     = document.getElementById('drwBtnCfg');
   const drwReset   = document.getElementById('drwBtnReset');
   // Solo habilitar si hay conexión Y producto reconocido
-  if (drwCfg)   drwCfg.disabled   = !on || !prod;
-  if (drwReset) drwReset.disabled = !on || !prod;
+  if (drwCfg)   drwCfg.disabled   = !on || !S.prod;
+  if (drwReset) drwReset.disabled = !on || !S.prod;
 }
 
 // ── GRILLAS ───────────────────────────────────────────────
@@ -446,7 +440,7 @@ function buildDishubGrid(containerId, buttons) {
   c.appendChild(rowA);
 
   // Sección conectores centrales
-  if (prod && prod.hasCenterConnectors) c.appendChild(buildDishubCenterSection());
+  if (S.prod && S.prod.hasCenterConnectors) c.appendChild(buildDishubCenterSection());
 
   // Row B: BN + conectores centrales (ocultos por defecto) + BC
   const rowB = document.createElement('div');
@@ -456,11 +450,11 @@ function buildDishubGrid(containerId, buttons) {
   const bn = bBtns.find(b => b.code === 'BN');
   const bc = bBtns.find(b => b.code === 'BC');
   if (bn) rowB.appendChild(mkCard(bn.code, bn.label, bn.color, bn.note));
-  if (prod && prod.centerBtns) {
+  if (S.prod && S.prod.centerBtns) {
     const centerWrap = document.createElement('div');
     centerWrap.id = 'dishubCenterCards';
     centerWrap.className = 'dishub-center-cards';
-    prod.centerBtns.forEach(b => centerWrap.appendChild(mkCard(b.code, b.label, b.color, b.note)));
+    S.prod.centerBtns.forEach(b => centerWrap.appendChild(mkCard(b.code, b.label, b.color, b.note)));
     rowB.appendChild(centerWrap);
   }
   if (bc) rowB.appendChild(mkCard(bc.code, bc.label, bc.color, bc.note));
@@ -601,10 +595,10 @@ function mkCard(code, label, color, note) {
             <label class="mod-cb"><input type="checkbox" id="mc_${code}"><span>Ctrl</span></label>
             <label class="mod-cb"><input type="checkbox" id="ms_${code}"><span>Shift</span></label>
             <label class="mod-cb"><input type="checkbox" id="ma_${code}"><span>Alt</span></label>
-            <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span class="mod-gui-lbl">${osMode === 'mac' ? '⌘ Cmd' : 'Win'}</span></label>
+            <label class="mod-cb"><input type="checkbox" id="mg_${code}"><span class="mod-gui-lbl">${S.osMode === 'mac' ? '⌘ Cmd' : 'Win'}</span></label>
           </div>
           <div class="hint mod-os-row">
-            <span class="mod-os-txt">Los atajos con modificador principal (Copiar/Pegar) usan <b class="mod-os-name">${osMode === 'mac' ? '⌘ (Mac)' : 'Ctrl (Windows)'}</b>, detectado automáticamente.</span>
+            <span class="mod-os-txt">Los atajos con modificador principal (Copiar/Pegar) usan <b class="mod-os-name">${S.osMode === 'mac' ? '⌘ (Mac)' : 'Ctrl (Windows)'}</b>, detectado automáticamente.</span>
             <a href="#" class="mod-os-link" onclick="confirmToggleOsMode(event)">Cambiar</a>
           </div>
         </div>
@@ -633,7 +627,7 @@ function updateSummary(code) {
   }
   const k = document.getElementById('k_' + code)?.value || '';
   const mods = ['mc','ms','ma','mg'].filter(p => document.getElementById(p+'_'+code)?.checked)
-    .map(p => ({mc:'Ctrl',ms:'Shift',ma:'Alt',mg:osMode==='mac'?'⌘':'Win'}[p]));
+    .map(p => ({mc:'Ctrl',ms:'Shift',ma:'Alt',mg:S.osMode==='mac'?'⌘':'Win'}[p]));
   const parts = [...mods, k].filter(Boolean);
   el.textContent = parts.length ? parts.join('+') : 'sin tecla';
 }
@@ -798,16 +792,16 @@ function _tabForProd(prodId) {
 function renderPresetTabs() {
   const container = document.getElementById('presetTabs');
   if (!container) return;
-  const devTab = prod ? _tabForProd(prod.id) : null;
+  const devTab = S.prod ? _tabForProd(S.prod.id) : null;
   // Fallback solo si no hay tab activa todavía
-  if (!activePresetTab) {
-    activePresetTab = devTab ? devTab.tabId : PRESET_TABS[0].tabId;
+  if (!S.activePresetTab) {
+    S.activePresetTab = devTab ? devTab.tabId : PRESET_TABS[0].tabId;
   }
   container.innerHTML = '';
   PRESET_TABS.forEach(tab => {
     const btn = document.createElement('button');
     btn.className = 'preset-tab' +
-      (tab.tabId === activePresetTab ? ' active' : '') +
+      (tab.tabId === S.activePresetTab ? ' active' : '') +
       (devTab && tab.tabId === devTab.tabId ? ' dev-match' : '');
     btn.textContent = tab.label;
     if (devTab && tab.tabId === devTab.tabId) btn.title = 'Dispositivo conectado';
@@ -825,18 +819,18 @@ function renderPresetTabs() {
 }
 
 function switchPresetTab(tabId) {
-  activePresetTab = tabId;
+  S.activePresetTab = tabId;
   renderPresetTabs();
 }
 
 function _refreshPresetContent() {
-  const tab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const tab = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
   if (!tab) return;
   // Factory presets: unir presets de todos los productos del grupo
   const factoryIds = [...new Set(tab.prodIds.flatMap(pid => PRODUCTS[pid]?.presets || []))];
   _buildFactoryPresetsRaw(factoryIds);
   renderCustom();
-  if (currentUser) loadSharedPresets();
+  if (S.currentUser) loadSharedPresets();
 }
 
 function _buildFactoryPresetsRaw(ids) {
@@ -847,9 +841,9 @@ function _buildFactoryPresetsRaw(ids) {
   // Filtrar solo IDs con FACTORY_CARDS definido
   const validIds = ids.filter(id => !!FACTORY_CARDS[id]);
   // Si hay dispositivo conectado y la tab activa no es la suya, ocultar Presets EpE
-  const devTab2    = prod ? _tabForProd(prod.id) : null;
-  const activeTab2 = PRESET_TABS.find(t => t.tabId === activePresetTab);
-  if (connected && devTab2 && activeTab2 && devTab2.tabId !== activeTab2.tabId) {
+  const devTab2    = S.prod ? _tabForProd(S.prod.id) : null;
+  const activeTab2 = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
+  if (S.connected && devTab2 && activeTab2 && devTab2.tabId !== activeTab2.tabId) {
     if (section) section.style.display = 'none';
     return;
   }
@@ -858,9 +852,9 @@ function _buildFactoryPresetsRaw(ids) {
     return;
   }
   if (section) section.style.display = '';
-  const devTab    = prod ? _tabForProd(prod.id) : null;
-  const activeTab = PRESET_TABS.find(t => t.tabId === activePresetTab);
-  const canApply  = !connected || (devTab && activeTab && devTab.tabId === activeTab.tabId);
+  const devTab    = S.prod ? _tabForProd(S.prod.id) : null;
+  const activeTab = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
+  const canApply  = !S.connected || (devTab && activeTab && devTab.tabId === activeTab.tabId);
   validIds.forEach(id => {
     const c = FACTORY_CARDS[id];
     const div = document.createElement('div');
@@ -880,15 +874,15 @@ function buildFactoryPresets(ids) {
 
 async function applyPreset(id) {
   const cmds = FACTORY_CMDS[id]; if (!cmds) return;
-  if (!connected) { openModal('noDeviceModal'); return; }
+  if (!S.connected) { openModal('noDeviceModal'); return; }
   // Validar que el preset es compatible con el dispositivo conectado
-  const devTab = prod ? _tabForProd(prod.id) : null;
-  const activeTab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const devTab = S.prod ? _tabForProd(S.prod.id) : null;
+  const activeTab = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
   if (devTab && activeTab && devTab.tabId !== activeTab.tabId) {
-    toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + prod.name);
+    toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + S.prod.name);
     return;
   }
-  for (const c of window.Protocol.resolvePreset(cmds, osMode)) await send(c);
+  for (const c of window.Protocol.resolvePreset(cmds, S.osMode)) await send(c);
   toast('⚡', 'Configuración aplicada');
   closeModal('presetsModal');
 }
@@ -904,7 +898,7 @@ function saveCustomList(list) {
 
 function renderCustom() {
   const all  = loadCustom();
-  const tab  = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const tab  = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
   const list = tab
     ? all.filter(p => !p.prodId || tab.prodIds.includes(p.prodId))
     : all;
@@ -960,10 +954,10 @@ function openShareModal(p) {
 }
 
 async function shareWithUser() {
-  if (!currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
+  if (!S.currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
   const email = document.getElementById('shareEmail').value.trim().toLowerCase();
   if (!email) { document.getElementById('shareEmail').focus(); return; }
-  if (email === currentUser.email) { showShareMsg('No podés compartir contigo mismo.', 'warn'); return; }
+  if (email === S.currentUser.email) { showShareMsg('No podés compartir contigo mismo.', 'warn'); return; }
 
   // Buscar recipient_id via función RPC (ver instrucciones en README)
   const { data, error: ue } = await supa.rpc('get_user_id_by_email', { p_email: email });
@@ -974,8 +968,8 @@ async function shareWithUser() {
 
   const { error } = await supa.from('shared_presets').insert({
     recipient_id: data,
-    sender_email: currentUser.email,
-    sender_name:  currentUser.user_metadata?.full_name || currentUser.email,
+    sender_email: S.currentUser.email,
+    sender_name:  S.currentUser.user_metadata?.full_name || S.currentUser.email,
     name:         _sharePreset.name,
     date:         _sharePreset.date,
     prod_id:      _sharePreset.prodId || null,
@@ -989,12 +983,12 @@ async function shareWithUser() {
 }
 
 async function shareWithCommunity() {
-  if (!currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
+  if (!S.currentUser) { toast('⚠️','Necesitás estar logueado para compartir'); return; }
   if (!confirm('¿Querés compartir "' + _sharePreset.name + '" con toda la comunidad? Será visible para todos los usuarios.')) return;
   const { error } = await supa.from('shared_presets').insert({
     recipient_id: null,
-    sender_email: currentUser.email,
-    sender_name:  currentUser.user_metadata?.full_name || currentUser.email,
+    sender_email: S.currentUser.email,
+    sender_name:  S.currentUser.user_metadata?.full_name || S.currentUser.email,
     name:         _sharePreset.name,
     date:         _sharePreset.date,
     prod_id:      _sharePreset.prodId || null,
@@ -1047,13 +1041,13 @@ function importCSV() {
 // ── PRESETS COMPARTIDOS Y COMUNIDAD ─────────────────────
 
 async function loadSharedPresets() {
-  if (!currentUser) return;
+  if (!S.currentUser) return;
   const { data, error } = await supa.from('shared_presets')
     .select('*')
     .order('created_at', { ascending: false });
   if (error) { addLog('Error al cargar compartidos: ' + error.message, 'w'); return; }
 
-  const mine      = (data || []).filter(p => p.recipient_id === currentUser.id && !p.is_community);
+  const mine      = (data || []).filter(p => p.recipient_id === S.currentUser.id && !p.is_community);
   const community = (data || []).filter(p => p.is_community);
 
   renderSharedGrid('sharedGrid',    'sectionShared',    mine,      false);
@@ -1064,12 +1058,12 @@ function renderSharedGrid(gridId, sectionId, list, isCommunity) {
   const section = document.getElementById(sectionId);
   const grid    = document.getElementById(gridId);
   // Filtrar por tab activa
-  const tab = PRESET_TABS.find(t => t.tabId === activePresetTab);
+  const tab = PRESET_TABS.find(t => t.tabId === S.activePresetTab);
   const items = tab ? list.filter(p => !p.prod_id || tab.prodIds.includes(p.prod_id)) : list;
   if (!items.length) { section.style.display = 'none'; return; }
   section.style.display = 'block';
   grid.innerHTML = '';
-  const myEmail = currentUser?.email || '';
+  const myEmail = S.currentUser?.email || '';
   items.forEach(p => {
     const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
     const mapped    = { name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes };
@@ -1159,11 +1153,11 @@ async function confirmSave() {
   const name  = document.getElementById('customName').value.trim();
   const notes = document.getElementById('customNotes').value.trim();
   if (!name) { document.getElementById('customName').focus(); return; }
-  devCfg = mkCfg();
+  S.devCfg = mkCfg();
   await send('GETALL');
   await new Promise(r => setTimeout(r, 2400));
   const list = loadCustom();
-  list.push({ name, date: new Date().toLocaleDateString('es-AR'), prodId: prod ? prod.id : null, cfg: JSON.parse(JSON.stringify(devCfg)), notes });
+  list.push({ name, date: new Date().toLocaleDateString('es-AR'), prodId: S.prod ? S.prod.id : null, cfg: JSON.parse(JSON.stringify(S.devCfg)), notes });
   saveCustomList(list);
   renderCustom();
   closeModal('saveModal');
@@ -1171,13 +1165,13 @@ async function confirmSave() {
 }
 
 async function applyCustom(p) {
-  if (!connected) { openModal('noDeviceModal'); return; }
+  if (!S.connected) { openModal('noDeviceModal'); return; }
   // Validar compatibilidad con dispositivo conectado
-  if (p.prodId && prod) {
+  if (p.prodId && S.prod) {
     const presetTab = _tabForProd(p.prodId);
-    const devTab    = _tabForProd(prod.id);
+    const devTab    = _tabForProd(S.prod.id);
     if (presetTab && devTab && presetTab.tabId !== devTab.tabId) {
-      toast('⚠️', 'Este preset es para ' + (PRODUCTS[p.prodId]?.name || p.prodId) + ', pero tenés conectado un ' + prod.name);
+      toast('⚠️', 'Este preset es para ' + (PRODUCTS[p.prodId]?.name || p.prodId) + ', pero tenés conectado un ' + S.prod.name);
       return;
     }
   }
@@ -1206,7 +1200,7 @@ async function pingDevice() { if (await send('PING')) toast('✅','El dispositiv
 
 // ── GETALL + PARSE ───────────────────────────────────────
 async function getAllConfig() {
-  devCfg = mkCfg(); await send('GETALL'); setTimeout(applyDevCfgToCards, 2400);
+  S.devCfg = mkCfg(); await send('GETALL'); setTimeout(applyDevCfgToCards, 2400);
 }
 
 function parseLine(line) {
@@ -1216,7 +1210,7 @@ function parseLine(line) {
     if (_whoResolve) { _whoResolve(who); _whoResolve = null; }
     return;
   }
-  window.Protocol.parseDeviceLine(line, devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en devCfg
+  window.Protocol.parseDeviceLine(line, S.devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en S.devCfg
 }
 
 // ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
@@ -1232,7 +1226,7 @@ function updateStatusBar(model, version) {
   if (sbImg)  { sbImg.src = imgSrc; sbImg.style.display = imgSrc ? '' : 'none'; }
   if (sbName) sbName.textContent = model ? '¡Hola, ' + model + '!' : '';
   if (sbVer)  sbVer.textContent  = version || '';
-  if (sbBadge) sbBadge.textContent = connType.toUpperCase();
+  if (sbBadge) sbBadge.textContent = S.connType.toUpperCase();
 }
 
 function showWelcomeDev(model, version) {
@@ -1292,8 +1286,8 @@ async function postConnect() {
   }
 
   // GETALL solo si el dispositivo fue reconocido
-  if (prod) {
-    devCfg = mkCfg();
+  if (S.prod) {
+    S.devCfg = mkCfg();
     await send('GETALL');
     setTimeout(applyDevCfgToCards, 2400);
   }
@@ -1307,22 +1301,22 @@ function renderCfgModal() {
   const MOU = {1:'clic izq.',2:'clic der.',4:'clic central',8:'scroll ↑',16:'scroll ↓'};
   const hl  = t => '<span class="hl">' + t + '</span>';
   let h = '';
-  if (prod && prod.hasArrows) {
+  if (S.prod && S.prod.hasArrows) {
     h += '<div class="cfg-sec"><div class="cfg-sec-title">⬆️ Flechas</div>';
-    h += '<div class="cfg-row">Las flechas ' + hl(FM[devCfg.fmode]||'—') + '. Orientación: ' + hl(ORI[devCfg.orient]||'—') + '.</div>';
-    if (devCfg.fmode===0||devCfg.fmode===1) h += '<div class="cfg-row">Velocidad ' + hl(devCfg.vel||'—') + ', ' + hl(devCfg.acel===1?'con aceleración':'velocidad constante') + '.</div>';
+    h += '<div class="cfg-row">Las flechas ' + hl(FM[S.devCfg.fmode]||'—') + '. Orientación: ' + hl(ORI[S.devCfg.orient]||'—') + '.</div>';
+    if (S.devCfg.fmode===0||S.devCfg.fmode===1) h += '<div class="cfg-row">Velocidad ' + hl(S.devCfg.vel||'—') + ', ' + hl(S.devCfg.acel===1?'con aceleración':'velocidad constante') + '.</div>';
     h += '</div>';
   }
-  if (prod) {
+  if (S.prod) {
     const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
     const allBtns = [
-      ...prod.mainBtns,
-      ...(prod.hasArrows && devCfg.fmode===0 ? prod.arrowBtns : []),
-      ...(prod.hasCenterConnectors && devCfg.fmode===0 ? prod.centerBtns : []),
+      ...S.prod.mainBtns,
+      ...(S.prod.hasArrows && S.devCfg.fmode===0 ? S.prod.arrowBtns : []),
+      ...(S.prod.hasCenterConnectors && S.devCfg.fmode===0 ? S.prod.centerBtns : []),
     ];
     h += '<div class="cfg-sec"><div class="cfg-sec-title">🎯 Botones</div>';
     allBtns.forEach(({code,label}) => {
-      const c = devCfg.btns[String(codeToIdx[code])];
+      const c = S.devCfg.btns[String(codeToIdx[code])];
       if (!c) { h += '<div class="cfg-row"><b>' + label + '</b>: sin datos.</div>'; return; }
       if (c.tipo===2) { h += '<div class="cfg-row"><b>' + label + '</b>: ' + hl('desactivado') + '.</div>'; return; }
       let row = '<b>' + label + '</b>: ' + hl(TN[c.tipo]) + ', ' + hl(MN[c.modo]);
@@ -1331,7 +1325,7 @@ function renderCfgModal() {
         row += ' — ' + hl(dc + (MOU[c.accion]||'#'+c.accion) + mc);
       } else {
         const ch = c.accion>31&&c.accion<127 ? String.fromCharCode(c.accion) : '#'+c.accion;
-        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push(osMode==='mac'?'⌘':'Win');
+        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push(S.osMode==='mac'?'⌘':'Win');
         row += ' — tecla ' + hl(ch) + (mm.length?' + '+hl(mm.join('+')):'');
       }
       if (c.debounce>0) row += ', debounce ' + hl(c.debounce+'ms');
@@ -1344,7 +1338,7 @@ function renderCfgModal() {
 }
 
 // ── CONEXIÓN ─────────────────────────────────────────────
-async function toggleConn() { connected ? await disconnect() : await connectDevice(); }
+async function toggleConn() { S.connected ? await disconnect() : await connectDevice(); }
 
 async function connectDevice() {
   if (!window.Protocol || !window.Transport) {
@@ -1352,7 +1346,7 @@ async function connectDevice() {
     addLog('window.Protocol / window.Transport no disponibles — ¿se abrió con file://?', 'w');
     return;
   }
-  if (connType === 'ble') { await connectBLE(); }
+  if (S.connType === 'ble') { await connectBLE(); }
   else                   { await connectUSB(); }
 }
 
@@ -1362,11 +1356,11 @@ async function connectDevice() {
 // los callbacks a la UI y se maneja el resultado.
 async function connectUSB() {
   try {
-    _conn = await window.Transport.connectSerial({
+    S.conn = await window.Transport.connectSerial({
       log: addLog,
       onLine: (line) => { addLog(line, 'in'); parseLine(line); },
       onClosed: (err) => {
-        if (connected) {
+        if (S.connected) {
           addLog('Conexión USB interrumpida: ' + (err?.message || ''), 'w');
           disconnect(true);
           toast('⚠️', 'El dispositivo USB se desconectó');
@@ -1400,19 +1394,19 @@ async function connectBLE() {
     return;
   }
   try {
-    _conn = await window.Transport.connectBle({
+    S.conn = await window.Transport.connectBle({
       log: addLog,
       toast: toast,
       onLine: (line) => { addLog(line, 'in'); parseLine(line); },
       onClosed: () => {
-        if (connected) {
+        if (S.connected) {
           addLog('Dispositivo BLE desconectado', 'w');
           disconnect(true);
           toast('⚠️', 'El dispositivo Bluetooth se desconectó');
         }
       },
     });
-    if (!_conn) return; // problema de acceso ya diagnosticado en el Registro
+    if (!S.conn) return; // problema de acceso ya diagnosticado en el Registro
     setConnected(true);
     await postConnect();
   } catch(e) {
@@ -1429,18 +1423,18 @@ async function connectBLE() {
 
 // Desconectar ─────────────────────────────────────────────
 async function disconnect(physical = false) {
-  const was = connected; connected = false;
+  const was = S.connected; S.connected = false;
   // El handle de src/transport.js (USB o BLE) hace toda la limpieza del enlace.
-  try { if (_conn) await _conn.close(); } catch(_){}
-  _conn = null;
+  try { if (S.conn) await S.conn.close(); } catch(_){}
+  S.conn = null;
   if (was) setConnected(false, physical);
 }
 
 // Enviar ──────────────────────────────────────────────────
 async function send(cmd) {
-  if (!connected || !_conn) { toast('❌','Sin conexión activa'); return false; }
+  if (!S.connected || !S.conn) { toast('❌','Sin conexión activa'); return false; }
   try {
-    await _conn.send(cmd);   // USB o BLE — el handle sabe cómo (chunking BLE incluido)
+    await S.conn.send(cmd);   // USB o BLE — el handle sabe cómo (chunking BLE incluido)
     addLog(cmd, 'out');
     await new Promise(r => setTimeout(r, 90));
     return true;
@@ -1453,14 +1447,14 @@ async function send(cmd) {
 }
 
 function setConnected(val, physical = false) {
-  connected = val;
+  S.connected = val;
   ['sdot','sdot2'].forEach(id => { const el=document.getElementById(id); if(el) el.className='sdot'+(val?' on':''); });
   ['stxt','stxt2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=val?'Conectado':'Desconectado'; });
   const btn = document.getElementById('btnConn');
   btn.textContent = val ? 'Desconectar' : 'Conectar';
   btn.className = 'btn sm' + (val ? ' ghost' : ' pri');
   setSections(val);
-  setBanner(val ? 'ok' : (prod ? 'conn' : 'none'));
+  setBanner(val ? 'ok' : (S.prod ? 'conn' : 'none'));
   // Status bar
   const sb = document.getElementById('statusBar');
   if (sb) sb.style.display = val ? '' : 'none';
@@ -1468,12 +1462,12 @@ function setConnected(val, physical = false) {
     // Limpiar status bar al desconectar
     updateStatusBar('', '');
     // Resetear tab activa para que al reconectar se auto-seleccione correctamente
-    activePresetTab = null;
+    S.activePresetTab = null;
     // Refrescar modal de presets si está abierto
     const pm = document.getElementById('presetsModal');
     if (pm && pm.style.display !== 'none') renderPresetTabs();
   }
-  // Drawer: hide setup when connected
+  // Drawer: hide setup when S.connected
   const setup = document.getElementById('drwSetup');
   if (setup) setup.style.display = val ? 'none' : '';
   if (val) { closeDrawer(); closeModal('connModal'); }
@@ -1481,7 +1475,7 @@ function setConnected(val, physical = false) {
   const cq = document.getElementById('btnConnQuick');
   if (cq) {
     cq.textContent = val ? 'Desconectar' : 'Conectar →';
-    cq.className = 'btn-conn-quick' + (val ? ' connected' : '');
+    cq.className = 'btn-conn-quick' + (val ? ' S.connected' : '');
     cq.onclick = val ? toggleConn : openConnModal;
   }
   // Actualizar botón dentro del connModal si está abierto
@@ -1493,7 +1487,7 @@ function setConnected(val, physical = false) {
   }
   const subM = document.getElementById('connSubM');
   if (subM) subM.style.display = val ? 'flex' : 'none';
-  if (val) { addLog('Conectado (' + connType.toUpperCase() + '): ' + (prod ? prod.name : '—')); onArrowMode(); }
+  if (val) { addLog('Conectado (' + S.connType.toUpperCase() + '): ' + (S.prod ? S.prod.name : '—')); onArrowMode(); }
   else addLog(physical ? 'Desconexión física detectada' : 'Desconectado', physical ? 'w' : '');
 }
 
@@ -1510,7 +1504,7 @@ function openModal(id)  {
 async function sendLogCmd() {
   const inp = document.getElementById('logCmdInput');
   const cmd = inp.value.trim();
-  if (!cmd || !connected) return;
+  if (!cmd || !S.connected) return;
   const ok = await send(cmd);
   if (ok) inp.value = '';
 }
@@ -1553,7 +1547,7 @@ function restartTour() {
 }
 function nextStep() {
   // Paso 3 (flechas) solo aplica a disMouse
-  if (tStep === 2 && prod && !prod.hasArrows) { tStep++; }
+  if (tStep === 2 && S.prod && !S.prod.hasArrows) { tStep++; }
   if (tStep < TOUR.length-1) { tStep++; renderStep(); }
   else { endTour(); toast('🎉','¡Recorrido completado!'); }
 }
@@ -1562,7 +1556,7 @@ function prevStep() { if (tStep>0) { tStep--; renderStep(); } }
 function renderStep() {
   const s = TOUR[tStep];
   // Si este paso apunta a secArrows y el producto no tiene flechas, saltar
-  if (s.sel === '#secArrows' && prod && !prod.hasArrows) { nextStep(); return; }
+  if (s.sel === '#secArrows' && S.prod && !S.prod.hasArrows) { nextStep(); return; }
   // En mobile usar selector alternativo si existe
   const isMobile = window.innerWidth <= 600;
   const sel = (isMobile && s.selMobile) ? s.selMobile : s.sel;
@@ -1626,7 +1620,7 @@ function initPresetTooltips() {
       const id = card.getAttribute('data-tip-id');
       const html = TIP_CONTENT[id];
       if (!html) return;
-      gt.innerHTML = html.includes('%PLBL%') ? html.replaceAll('%PLBL%', osMode === 'mac' ? '⌘' : 'Ctrl') : html;
+      gt.innerHTML = html.includes('%PLBL%') ? html.replaceAll('%PLBL%', S.osMode === 'mac' ? '⌘' : 'Ctrl') : html;
       gt.style.display = 'block';
       positionTip(card);
     });
@@ -1670,15 +1664,15 @@ function openConnModal() {
 
   // Sincronizar producto si ya hay uno seleccionado
   document.querySelectorAll('#devListModal .dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
-  if (prod) {
-    const id = 'opt-' + prod.id + '-m';
+  if (S.prod) {
+    const id = 'opt-' + S.prod.id + '-m';
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
   }
   // Sincronizar tipo de conexión
   ['usb','ble'].forEach(t => {
     const el = document.getElementById('ct-'+t+'-m');
-    if (el) el.classList.toggle('active', connType === t);
+    if (el) el.classList.toggle('active', S.connType === t);
   });
   // Si hay BLE: mostrar hints
   if (isIOS()) {
@@ -1690,12 +1684,12 @@ function openConnModal() {
   // btnConn del modal
   const btnM = document.getElementById('btnConnM');
   if (btnM) {
-    btnM.textContent = connected ? 'Desconectar' : 'Conectar';
-    btnM.className = 'btn sm' + (connected ? ' ghost' : ' pri');
+    btnM.textContent = S.connected ? 'Desconectar' : 'Conectar';
+    btnM.className = 'btn sm' + (S.connected ? ' ghost' : ' pri');
     btnM.style.width = '100%';
   }
   const sub = document.getElementById('connSubM');
-  if (sub) sub.style.display = connected ? 'flex' : 'none';
+  if (sub) sub.style.display = S.connected ? 'flex' : 'none';
   openModal('connModal');
 }
 
@@ -1719,12 +1713,12 @@ function _connStepDisable(n) {
 // src/protocol.js → window.Protocol.REV_KEY
 
 function applyDevCfgToCards() {
-  if (!prod) return;
+  if (!S.prod) return;
   const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
   const allBtns = [
-    ...prod.mainBtns,
-    ...(prod.hasArrows ? prod.arrowBtns : []),
-    ...(prod.hasCenterConnectors && devCfg.fmode === 0 ? prod.centerBtns : []),
+    ...S.prod.mainBtns,
+    ...(S.prod.hasArrows ? S.prod.arrowBtns : []),
+    ...(S.prod.hasCenterConnectors && S.devCfg.fmode === 0 ? S.prod.centerBtns : []),
   ];
 
   // Mapa modo numérico → selector value
@@ -1734,7 +1728,7 @@ function applyDevCfgToCards() {
 
   allBtns.forEach(({code}) => {
     const idx = String(codeToIdx[code]);
-    const c = devCfg.btns[idx];
+    const c = S.devCfg.btns[idx];
     if (!c) return;
 
     const tSel = document.getElementById('t_' + code);
@@ -1802,28 +1796,28 @@ function applyDevCfgToCards() {
   });
 
   // Flechas: aplicar si el producto las tiene
-  if (prod.hasArrows) {
+  if (S.prod.hasArrows) {
     const amSel = document.getElementById('arrowMode');
     const oriSel = document.getElementById('orient');
     const velInp = document.getElementById('vel');
     const acelCb = document.getElementById('acel');
-    if (amSel && devCfg.fmode != null)  amSel.value = String(devCfg.fmode);
-    if (oriSel && devCfg.orient != null) oriSel.value = String(devCfg.orient);
-    if (velInp && devCfg.vel != null)    velInp.value = devCfg.vel;
-    if (acelCb && devCfg.acel != null)   acelCb.checked = devCfg.acel === 1;
+    if (amSel && S.devCfg.fmode != null)  amSel.value = String(S.devCfg.fmode);
+    if (oriSel && S.devCfg.orient != null) oriSel.value = String(S.devCfg.orient);
+    if (velInp && S.devCfg.vel != null)    velInp.value = S.devCfg.vel;
+    if (acelCb && S.devCfg.acel != null)   acelCb.checked = S.devCfg.acel === 1;
     onArrowMode();
   }
 
   // Conectores centrales: aplicar si el producto los tiene
-  if (prod.hasCenterConnectors) {
+  if (S.prod.hasCenterConnectors) {
     const cmSel = document.getElementById('dishubCenterMode');
     const oriSel = document.getElementById('dishubOrient');
     const velInp = document.getElementById('dishubVel');
     const acelCb = document.getElementById('dishubAcel');
-    if (cmSel && devCfg.fmode != null)   cmSel.value   = String(devCfg.fmode);
-    if (oriSel && devCfg.orient != null) oriSel.value  = String(devCfg.orient);
-    if (velInp && devCfg.vel != null)    velInp.value  = devCfg.vel;
-    if (acelCb && devCfg.acel != null)   acelCb.checked = devCfg.acel === 1;
+    if (cmSel && S.devCfg.fmode != null)   cmSel.value   = String(S.devCfg.fmode);
+    if (oriSel && S.devCfg.orient != null) oriSel.value  = String(S.devCfg.orient);
+    if (velInp && S.devCfg.vel != null)    velInp.value  = S.devCfg.vel;
+    if (acelCb && S.devCfg.acel != null)   acelCb.checked = S.devCfg.acel === 1;
     onDishubCenterMode();
   }
 
@@ -1868,8 +1862,8 @@ function init() {
   // Supabase: recuperar sesión activa y escuchar cambios
   // Usamos solo onAuthStateChange — incluye INITIAL_SESSION en v2, evita doble llamada
   supa.auth.onAuthStateChange((event, session) => {
-    const prevUser = currentUser;
-    currentUser = session?.user ?? null;
+    const prevUser = S.currentUser;
+    S.currentUser = session?.user ?? null;
     updateAuthBtn();
 
     if (event === 'SIGNED_OUT') {
@@ -1879,7 +1873,7 @@ function init() {
       // Ocultar secciones compartidas
       document.getElementById('sectionShared').style.display    = 'none';
       document.getElementById('sectionCommunity').style.display = 'none';
-    } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && currentUser && !prevUser) {
+    } else if ((event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && S.currentUser && !prevUser) {
       // Login nuevo (no recarga con sesión ya activa desde antes)
       handleLoginSync();
       loadSharedPresets();
