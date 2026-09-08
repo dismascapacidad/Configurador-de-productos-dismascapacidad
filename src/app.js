@@ -31,6 +31,10 @@ import {
   connectionHooks, mkCfg, setSections, send, toggleConn, openConnModal,
   sendLogCmd, getAllConfig, enableConnModalSteps,
 } from './ui/connection.js';
+import {
+  applyBtn, applyArrows, onArrowMode, onDishubCenterMode, applyDishubCenter,
+  renderCfgModal, applyDevCfgToCards,
+} from './ui/actions.js';
 
 // Módulos de lógica: se exponen en window.* para el código que todavía los usa así.
 window.Protocol = Protocol;
@@ -236,70 +240,7 @@ function confirmToggleOsMode(e) {
 
 // ── GRILLAS + CAPTURA DE TECLAS → src/ui/cards.js ──────────
 
-// ── APLICAR BOTÓN ────────────────────────────────────────
-// El armado del comando CFG: vive en src/protocol.js (window.Protocol), testeado
-// en tests/protocol.test.js. Acá solo se leen los valores del DOM.
-async function applyBtn(code) {
-  const el = id => document.getElementById(id);
-  const tipo = el('t_' + code).value;
-  const cmd = window.Protocol.buildButtonCfg({
-    code,
-    tipo,
-    modo:        el('m_' + code).value,
-    debounce:    el('d_' + code).value,
-    mouseAction: el('mact_' + code)?.value,
-    key:         el('k_' + code)?.value,
-    ctrl:        el('mc_' + code)?.checked,
-    shift:       el('ms_' + code)?.checked,
-    alt:         el('ma_' + code)?.checked,
-    gui:         el('mg_' + code)?.checked,
-  });
-  const ok = await send(cmd);
-  if (ok) { toast('✅', code + ' configurado'); updateSummary(code); }
-}
-
-// ── MODO DE FLECHAS ──────────────────────────────────────
-function onArrowMode() {
-  const m = parseInt(document.getElementById('arrowMode').value);
-  const showCursorCfg = (m === 0 || m === 1);
-  document.getElementById('velWrap').style.display  = showCursorCfg ? '' : 'none';
-  document.getElementById('acelWrap').style.display = showCursorCfg ? '' : 'none';
-  document.getElementById('arrowInd').style.display = m === 0 ? '' : 'none';
-}
-
-async function applyArrows() {
-  const el = id => document.getElementById(id);
-  const cmds = window.Protocol.buildArrowCommands({
-    fmode:  el('arrowMode').value,
-    orient: el('orient').value,
-    vel:    el('vel').value,
-    acel:   el('acel').checked,
-  });
-  for (const c of cmds) await send(c);
-  toast('✅', 'Flechas configuradas');
-}
-
-function onDishubCenterMode() {
-  const m = parseInt(document.getElementById('dishubCenterMode').value);
-  const showCursorCfg = (m === 0 || m === 1);
-  const el = id => document.getElementById(id);
-  if (el('dishubVelWrap'))  el('dishubVelWrap').style.display  = showCursorCfg ? '' : 'none';
-  if (el('dishubAcelWrap')) el('dishubAcelWrap').style.display = showCursorCfg ? '' : 'none';
-  const centerWrap = document.getElementById('dishubCenterCards');
-  if (centerWrap) centerWrap.classList.toggle('open', m === 0);
-}
-
-async function applyDishubCenter() {
-  const el = id => document.getElementById(id);
-  const cmds = window.Protocol.buildArrowCommands({
-    fmode:  el('dishubCenterMode').value,
-    orient: el('dishubOrient').value,
-    vel:    el('dishubVel').value,
-    acel:   el('dishubAcel').checked,
-  });
-  for (const c of cmds) await send(c);
-  toast('✅', 'Conectores centrales configurados');
-}
+// ── APLICAR BOTÓN / MODO DE FLECHAS → src/ui/actions.js ─────────────
 
 // ── PRESETS DE FÁBRICA ───────────────────────────────────
 // FACTORY_CMDS, FACTORY_CARDS, TIP_CONTENT → src/products.js (window.*)
@@ -720,49 +661,7 @@ async function pingDevice() { if (await send('PING')) toast('✅','El dispositiv
 
 // ── GETALL / PARSE / STATUS BAR / POST-CONEXIÓN → src/ui/connection.js ──
 
-function renderCfgModal() {
-  const ORI = ['Normal (0°)','Girado derecha','Girado izquierda','Invertido (180°)'];
-  const FM  = {0:'acción individual', 1:'mueven el cursor', 2:'teclas ↑↓←→'};
-  const TN  = {0:'Mouse',1:'Teclado',2:'Desactivado'};
-  const MN  = {0:'al presionar',1:'al soltar',2:'pulsación larga'};
-  const MOU = {1:'clic izq.',2:'clic der.',4:'clic central',8:'scroll ↑',16:'scroll ↓'};
-  const hl  = t => '<span class="hl">' + t + '</span>';
-  let h = '';
-  if (S.prod && S.prod.hasArrows) {
-    h += '<div class="cfg-sec"><div class="cfg-sec-title">⬆️ Flechas</div>';
-    h += '<div class="cfg-row">Las flechas ' + hl(FM[S.devCfg.fmode]||'—') + '. Orientación: ' + hl(ORI[S.devCfg.orient]||'—') + '.</div>';
-    if (S.devCfg.fmode===0||S.devCfg.fmode===1) h += '<div class="cfg-row">Velocidad ' + hl(S.devCfg.vel||'—') + ', ' + hl(S.devCfg.acel===1?'con aceleración':'velocidad constante') + '.</div>';
-    h += '</div>';
-  }
-  if (S.prod) {
-    const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
-    const allBtns = [
-      ...S.prod.mainBtns,
-      ...(S.prod.hasArrows && S.devCfg.fmode===0 ? S.prod.arrowBtns : []),
-      ...(S.prod.hasCenterConnectors && S.devCfg.fmode===0 ? S.prod.centerBtns : []),
-    ];
-    h += '<div class="cfg-sec"><div class="cfg-sec-title">🎯 Botones</div>';
-    allBtns.forEach(({code,label}) => {
-      const c = S.devCfg.btns[String(codeToIdx[code])];
-      if (!c) { h += '<div class="cfg-row"><b>' + label + '</b>: sin datos.</div>'; return; }
-      if (c.tipo===2) { h += '<div class="cfg-row"><b>' + label + '</b>: ' + hl('desactivado') + '.</div>'; return; }
-      let row = '<b>' + label + '</b>: ' + hl(TN[c.tipo]) + ', ' + hl(MN[c.modo]);
-      if (c.tipo===0) {
-        const dc=(c.flags&1)?'doble ':''; const mc=(c.flags&2)?' (toggle)':'';
-        row += ' — ' + hl(dc + (MOU[c.accion]||'#'+c.accion) + mc);
-      } else {
-        const ch = c.accion>31&&c.accion<127 ? String.fromCharCode(c.accion) : '#'+c.accion;
-        const mm=[]; if(c.mods&1)mm.push('Ctrl'); if(c.mods&2)mm.push('Shift'); if(c.mods&4)mm.push('Alt'); if(c.mods&8)mm.push(S.osMode==='mac'?'⌘':'Win');
-        row += ' — tecla ' + hl(ch) + (mm.length?' + '+hl(mm.join('+')):'');
-      }
-      if (c.debounce>0) row += ', debounce ' + hl(c.debounce+'ms');
-      h += '<div class="cfg-row">' + row + '.</div>';
-    });
-    h += '</div>';
-  }
-  document.getElementById('cfgDisplay').innerHTML = h;
-  openModal('cfgModal');
-}
+// renderCfgModal → src/ui/actions.js
 
 // ── CONEXIÓN (transporte, send, setConnected) → src/ui/connection.js ──
 
@@ -815,121 +714,7 @@ function initPresetTooltips() {
 
 // ── CONN MODAL (openConnModal) → src/ui/connection.js ──────────────
 
-// ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
-// Mapa inverso código numérico → nombre de tecla (incluye tabla legacy):
-// src/protocol.js → window.Protocol.REV_KEY
-
-function applyDevCfgToCards() {
-  if (!S.prod) return;
-  const codeToIdx = {BR:0,BA:1,BN:2,BC:3,FU:4,FD:5,FL:6,FR:7};
-  const allBtns = [
-    ...S.prod.mainBtns,
-    ...(S.prod.hasArrows ? S.prod.arrowBtns : []),
-    ...(S.prod.hasCenterConnectors && S.devCfg.fmode === 0 ? S.prod.centerBtns : []),
-  ];
-
-  // Mapa modo numérico → selector value
-  const MODO_MAP = {0:'P', 1:'R', 2:'H', 3:'O'};
-  // Mapa mods bitmask → checkboxes
-  const MODS_BITS = [{bit:1,id:'mc'},{bit:2,id:'ms'},{bit:4,id:'ma'},{bit:8,id:'mg'}];
-
-  allBtns.forEach(({code}) => {
-    const idx = String(codeToIdx[code]);
-    const c = S.devCfg.btns[idx];
-    if (!c) return;
-
-    const tSel = document.getElementById('t_' + code);
-    const mSel = document.getElementById('m_' + code);
-    const dInp = document.getElementById('d_' + code);
-    if (!tSel) return;
-
-    // Tipo
-    if (c.tipo === 2) {
-      tSel.value = 'X';
-    } else if (c.tipo === 0) {
-      tSel.value = 'M';
-    } else {
-      tSel.value = 'K';
-    }
-    onType(code);
-
-    // Modo de activación
-    if (mSel) mSel.value = MODO_MAP[c.modo] ?? 'P';
-
-    // Debounce
-    if (dInp) dInp.value = c.debounce ?? 0;
-
-    if (c.tipo === 0) {
-      // Mouse
-      const mActSel = document.getElementById('mact_' + code);
-      if (mActSel) {
-        const hasDouble = (c.flags & 1);
-        const hasToggle = (c.flags & 2);
-        if (c.accion === 8 || c.accion === 16) {
-          mActSel.value = c.accion === 8 ? 'SU' : 'SD';
-        } else if (hasDouble && c.accion === 1) {
-          mActSel.value = '1D';
-        } else if (hasToggle && c.accion === 1) {
-          mActSel.value = '1M';
-        } else {
-          mActSel.value = String(c.accion);
-          if (!mActSel.value) mActSel.value = '1'; // accion=0 u otro valor sin opción → default clic izquierdo
-        }
-      }
-    } else if (c.tipo === 1) {
-      // Teclado
-      const kInp = document.getElementById('k_' + code);
-      if (kInp) {
-        const accion = String(c.accion);
-        const revKey = window.Protocol.REV_KEY;
-        if (revKey[accion]) {
-          kInp.value = revKey[accion];
-        } else if (c.accion > 31 && c.accion < 127) {
-          kInp.value = String.fromCharCode(c.accion);
-        } else if (c.accion > 0) {
-          kInp.value = '#' + c.accion;
-        } else {
-          kInp.value = '';
-        }
-      }
-      // Modificadores
-      MODS_BITS.forEach(({bit, id}) => {
-        const cb = document.getElementById(id + '_' + code);
-        if (cb) cb.checked = !!(c.mods & bit);
-      });
-    }
-
-    updateSummary(code);
-  });
-
-  // Flechas: aplicar si el producto las tiene
-  if (S.prod.hasArrows) {
-    const amSel = document.getElementById('arrowMode');
-    const oriSel = document.getElementById('orient');
-    const velInp = document.getElementById('vel');
-    const acelCb = document.getElementById('acel');
-    if (amSel && S.devCfg.fmode != null)  amSel.value = String(S.devCfg.fmode);
-    if (oriSel && S.devCfg.orient != null) oriSel.value = String(S.devCfg.orient);
-    if (velInp && S.devCfg.vel != null)    velInp.value = S.devCfg.vel;
-    if (acelCb && S.devCfg.acel != null)   acelCb.checked = S.devCfg.acel === 1;
-    onArrowMode();
-  }
-
-  // Conectores centrales: aplicar si el producto los tiene
-  if (S.prod.hasCenterConnectors) {
-    const cmSel = document.getElementById('dishubCenterMode');
-    const oriSel = document.getElementById('dishubOrient');
-    const velInp = document.getElementById('dishubVel');
-    const acelCb = document.getElementById('dishubAcel');
-    if (cmSel && S.devCfg.fmode != null)   cmSel.value   = String(S.devCfg.fmode);
-    if (oriSel && S.devCfg.orient != null) oriSel.value  = String(S.devCfg.orient);
-    if (velInp && S.devCfg.vel != null)    velInp.value  = S.devCfg.vel;
-    if (acelCb && S.devCfg.acel != null)   acelCb.checked = S.devCfg.acel === 1;
-    onDishubCenterMode();
-  }
-
-  toast('✅', 'Configuración cargada en las tarjetas');
-}
+// ── LEER CONFIGURACIÓN → TARJETAS → src/ui/actions.js ──────────────
 
 // ── INIT ─────────────────────────────────────────────────
 function init() {
