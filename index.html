@@ -1027,185 +1027,27 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
   </div>
 </div>
 
-<script>
-/* ─────────────────────────────────────────────────────────────────────
- * Polyfill Web Serial API sobre WebUSB (perfil CDC-ACM)
- * Adaptado de github.com/google/web-serial-polyfill — Apache-2.0, Google LLC
- *
- * OBJETIVO: permitir la conexión USB del configurador desde tablets Android
- * (Chrome) que todavía no traen navigator.serial nativo, usando WebUSB.
- * Caso de uso: configurar disMouse basados en Arduino Pro Micro sin PC.
- *
- * SEGURIDAD DE REGRESIÓN: este bloque NO se instala si navigator.serial ya
- * existe (todo el desktop) ni si falta WebUSB (iOS). En esos casos
- * window.SerialPolyfill queda undefined y connectUSB() usa el camino nativo
- * exactamente como antes. Solo actúa como fallback en Android.
- * ───────────────────────────────────────────────────────────────────── */
-(function () {
-  'use strict';
-  if ('serial' in navigator || !('usb' in navigator)) return; // nativo disponible, o sin WebUSB → no instalar
-
-  var kSetLineCoding = 0x20, kSetControlLineState = 0x22, kSendBreak = 0x23;
-  var kBufferSize = 255;
-  var CTRL_CLASS = 2;   // CDC Communications
-  var DATA_CLASS = 10;  // CDC-Data
-
-  function findInterface(device, classCode) {
-    var cfg = device.configurations[0];
-    for (var i = 0; i < cfg.interfaces.length; i++) {
-      if (cfg.interfaces[i].alternates[0].interfaceClass === classCode) return cfg.interfaces[i];
-    }
-    throw new TypeError('El dispositivo no expone una interfaz serie CDC (clase ' + classCode + ').');
-  }
-  function findEndpoint(iface, direction) {
-    var eps = iface.alternates[0].endpoints;
-    for (var i = 0; i < eps.length; i++) if (eps[i].direction === direction) return eps[i];
-    throw new TypeError('La interfaz ' + iface.interfaceNumber + ' no tiene endpoint ' + direction + '.');
-  }
-
-  function EndpointSource(device, endpoint, onError) {
-    this.type = 'bytes';
-    this.pull = function (controller) {
-      (async function () {
-        var chunkSize = controller.desiredSize
-          ? Math.ceil(controller.desiredSize / endpoint.packetSize) * endpoint.packetSize
-          : endpoint.packetSize;
-        try {
-          var result = await device.transferIn(endpoint.endpointNumber, chunkSize);
-          if (result.status !== 'ok') { controller.error('USB ' + result.status); onError(); }
-          if (result.data && result.data.buffer) {
-            controller.enqueue(new Uint8Array(result.data.buffer, result.data.byteOffset, result.data.byteLength));
-          }
-        } catch (e) { controller.error(String(e)); onError(); }
-      })();
-    };
-  }
-  function EndpointSink(device, endpoint, onError) {
-    this.write = async function (chunk, controller) {
-      try {
-        var result = await device.transferOut(endpoint.endpointNumber, chunk);
-        if (result.status !== 'ok') { controller.error(result.status); onError(); }
-      } catch (e) { controller.error(String(e)); onError(); }
-    };
-  }
-
-  function SerialPort(device) {
-    this._device = device;
-    this._ctrl = findInterface(device, CTRL_CLASS);
-    this._xfer = findInterface(device, DATA_CLASS);
-    this._in  = findEndpoint(this._xfer, 'in');
-    this._out = findEndpoint(this._xfer, 'out');
-    this._readable = null; this._writable = null;
-    this._signals = { dataTerminalReady: false, requestToSend: false, break: false };
-  }
-  Object.defineProperty(SerialPort.prototype, 'readable', {
-    get: function () {
-      var self = this;
-      if (!self._readable && self._device.opened) {
-        self._readable = new ReadableStream(
-          new EndpointSource(self._device, self._in, function () { self._readable = null; }),
-          { highWaterMark: kBufferSize });
-      }
-      return self._readable;
-    }
-  });
-  Object.defineProperty(SerialPort.prototype, 'writable', {
-    get: function () {
-      var self = this;
-      if (!self._writable && self._device.opened) {
-        self._writable = new WritableStream(
-          new EndpointSink(self._device, self._out, function () { self._writable = null; }),
-          new ByteLengthQueuingStrategy({ highWaterMark: kBufferSize }));
-      }
-      return self._writable;
-    }
-  });
-  SerialPort.prototype._setLineCoding = async function (baudRate) {
-    var view = new DataView(new ArrayBuffer(7));
-    view.setUint32(0, baudRate, true); // baudios (little-endian)
-    view.setUint8(4, 0);               // 1 stop bit
-    view.setUint8(5, 0);               // sin paridad
-    view.setUint8(6, 8);               // 8 data bits
-    var r = await this._device.controlTransferOut({
-      requestType: 'class', recipient: 'interface',
-      request: kSetLineCoding, value: 0x00, index: this._ctrl.interfaceNumber
-    }, view.buffer);
-    if (r.status !== 'ok') throw new DOMException('No se pudo fijar el line coding.', 'NetworkError');
-  };
-  SerialPort.prototype.setSignals = async function (signals) {
-    signals = signals || {};
-    Object.assign(this._signals, signals);
-    if (signals.dataTerminalReady !== undefined || signals.requestToSend !== undefined) {
-      var value = (this._signals.dataTerminalReady ? 1 : 0) | (this._signals.requestToSend ? 2 : 0);
-      await this._device.controlTransferOut({
-        requestType: 'class', recipient: 'interface',
-        request: kSetControlLineState, value: value, index: this._ctrl.interfaceNumber
-      });
-    }
-    if (signals.break !== undefined) {
-      await this._device.controlTransferOut({
-        requestType: 'class', recipient: 'interface',
-        request: kSendBreak, value: this._signals.break ? 0xFFFF : 0x0000, index: this._ctrl.interfaceNumber
-      });
-    }
-  };
-  SerialPort.prototype.getInfo = function () {
-    return { usbVendorId: this._device.vendorId, usbProductId: this._device.productId };
-  };
-  SerialPort.prototype.open = async function (options) {
-    var baudRate = (options && options.baudRate) || 9600;
-    try {
-      await this._device.open();
-      if (this._device.configuration === null) await this._device.selectConfiguration(1);
-      await this._device.claimInterface(this._ctrl.interfaceNumber);
-      if (this._ctrl !== this._xfer) await this._device.claimInterface(this._xfer.interfaceNumber);
-      await this._setLineCoding(baudRate);
-      await this.setSignals({ dataTerminalReady: true }); // Arduino: DTR abre el puerto
-    } catch (e) {
-      if (this._device.opened) { try { await this._device.close(); } catch (_) {} }
-      throw new Error((e && e.message) ? e.message : String(e));
-    }
-  };
-  SerialPort.prototype.close = async function () {
-    var p = [];
-    if (this._readable) p.push(this._readable.cancel().catch(function () {}));
-    if (this._writable) p.push(this._writable.abort().catch(function () {}));
-    await Promise.all(p);
-    this._readable = null; this._writable = null;
-    if (this._device.opened) {
-      try { await this.setSignals({ dataTerminalReady: false, requestToSend: false }); } catch (_) {}
-      await this._device.close();
-    }
-  };
-  SerialPort.prototype.forget = function () {
-    return this._device.forget ? this._device.forget() : Promise.resolve();
-  };
-
-  var serial = {
-    requestPort: async function (options) {
-      var filters = [];
-      if (options && options.filters) {
-        options.filters.forEach(function (f) {
-          var uf = { classCode: CTRL_CLASS };
-          if (f.usbVendorId  !== undefined) uf.vendorId  = f.usbVendorId;
-          if (f.usbProductId !== undefined) uf.productId = f.usbProductId;
-          filters.push(uf);
-        });
-      }
-      if (!filters.length) filters.push({ classCode: CTRL_CLASS }); // cualquier dispositivo serie CDC
-      var device = await navigator.usb.requestDevice({ filters: filters });
-      return new SerialPort(device);
-    },
-    getPorts: async function () {
-      var devices = await navigator.usb.getDevices();
-      var ports = [];
-      devices.forEach(function (d) { try { ports.push(new SerialPort(d)); } catch (e) {} });
-      return ports;
-    }
-  };
-
-  window.SerialPolyfill = { serial: serial, SerialPort: SerialPort };
-})();
+<!-- Módulos ES. Se exponen en window.* para el script clásico de la app.
+     Requiere servir por http(s) — con file:// el import falla (ver DEV.md).
+       Protocol  → armado/parseo de comandos serie (src/protocol.js)
+       Transport → conexión USB + BLE (src/transport.js)
+       Csv       → import/export de presets en CSV (src/csv.js)
+       PresetsStore → presets propios: localStorage + sync Supabase (src/presets-store.js)
+       ProductData → catálogo de productos y presets (src/products.js) -->
+<script type="module">
+  import * as Protocol from './src/protocol.js';
+  import * as Transport from './src/transport.js';
+  import * as Csv from './src/csv.js';
+  import * as PresetsStore from './src/presets-store.js';
+  import * as ProductData from './src/products.js';
+  window.Protocol = Protocol;
+  window.Transport = Transport;
+  window.Csv = Csv;
+  window.PresetsStore = PresetsStore;
+  // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* : se
+  // exponen como globales sueltos para no reescribir los ~27 usos del script clásico.
+  // Transicional — al modularizar la UI se hará import directo.
+  Object.assign(window, ProductData);
 </script>
 
 <script>
@@ -1393,22 +1235,18 @@ async function signOut() {
 }
 
 // ── SYNC PRESETS ─────────────────────────────────────────
+// El almacenamiento (localStorage + upsert incremental a Supabase) vive en
+// src/presets-store.js (window.PresetsStore). Acá solo el pegamento con la UI.
 async function fetchSupaPresets() {
-  const { data, error } = await supa.from('presets')
-    .select('name, date, cfg, prod_id, notes')
-    .order('created_at', { ascending: true });
-  if (error) { addLog('Error al leer presets de la nube: ' + error.message, 'w'); return []; }
-  return (data || []).map(p => ({ ...p, prodId: p.prod_id }));
+  const { rows, error } = await window.PresetsStore.fetchCloud(supa);
+  if (error) addLog('Error al leer presets de la nube: ' + error, 'w');
+  return rows;
 }
 
-async function pushAllPresetsToSupa(list) {
-  // Reemplaza todos los presets del usuario en Supabase con la lista actual
-  const { error: delErr } = await supa.from('presets').delete().eq('user_id', currentUser.id);
-  if (delErr) { addLog('Error al sincronizar: ' + delErr.message, 'w'); return; }
-  if (list.length === 0) return;
-  const rows = list.map(p => ({ user_id: currentUser.id, name: p.name, date: p.date, cfg: p.cfg, prod_id: p.prodId || null, notes: p.notes || null }));
-  const { error: insErr } = await supa.from('presets').insert(rows);
-  if (insErr) addLog('Error al guardar en la nube: ' + insErr.message, 'w');
+async function syncPresetsToCloud(list) {
+  if (!currentUser) return;
+  const { error } = await window.PresetsStore.pushToCloud(supa, currentUser.id, list);
+  if (error) addLog('Error al sincronizar con la nube: ' + error, 'w');
 }
 
 function showImportDialog(localPresets, supaPresets) {
@@ -1437,149 +1275,30 @@ function showImportDialog(localPresets, supaPresets) {
 
 async function importChoice(choice) {
   closeModal('importModal');
-  const localPresets = loadCustom();
   if (choice === 'merge') {
-    // Combinar: cloud + local (sin duplicados por nombre)
-    const supaPresets  = await fetchSupaPresets();
-    const supaNames    = new Set(supaPresets.map(p => p.name));
-    const newOnes      = localPresets.filter(p => !supaNames.has(p.name));
-    const merged       = [...supaPresets, ...newOnes];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
-    await pushAllPresetsToSupa(merged);
+    // Combinar nube + local (sin duplicar por nombre). reconcileIds hace que los
+    // locales que ya existen en la nube adopten su id, así el upsert no duplica.
+    const localPresets = loadCustom();
+    const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
+    window.PresetsStore.reconcileIds(localPresets, cloudRows);
+    const cloudIds = new Set(cloudRows.map(p => p.id));
+    const merged   = [...cloudRows, ...localPresets.filter(p => !cloudIds.has(p.id))];
+    window.PresetsStore.saveLocal(merged);
+    await syncPresetsToCloud(merged);
     renderCustom();
     toast('☁️', `${merged.length} configuración${merged.length !== 1 ? 'es' : ''} en tu cuenta`);
   } else {
     // Usar solo las de la nube
-    const supaPresets = await fetchSupaPresets();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
+    window.PresetsStore.saveLocal(cloudRows);
     renderCustom();
-    toast('☁️', supaPresets.length > 0
-      ? `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
+    toast('☁️', cloudRows.length > 0
+      ? `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
       : 'No tenés configuraciones guardadas en tu cuenta todavía');
   }
 }
 
-// ═══════════════════════════════════════════════════════
-// PERFILES DE PRODUCTOS
-// mainBtns: botones visibles en la UI
-// arrowBtns: flechas (vacío = producto sin flechas)
-// presets: qué presets de fábrica se muestran
-// cardTitle: título de la sección de botones
-// ═══════════════════════════════════════════════════════
-const PRODUCTS = {
-  dismouse: {
-    id: 'dismouse', name: 'disMouse',
-    cardTitle: 'Botones — disMouse',
-    hasArrows: true,
-    mainBtns: [
-      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
-      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
-      {code:'BN', label:'Botón Naranja', color:'#F97316'},
-      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
-    ],
-    arrowBtns: [
-      {code:'FU', label:'Flecha ↑', color:'#EAB308'},
-      {code:'FD', label:'Flecha ↓', color:'#EAB308'},
-      {code:'FL', label:'Flecha ←', color:'#EAB308'},
-      {code:'FR', label:'Flecha →', color:'#EAB308'},
-    ],
-    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
-  },
-  disbutton: {
-    id: 'disbutton', name: 'disButton',
-    cardTitle: 'Configura tu disButton',
-    hasArrows: false,
-    centeredLayout: true,
-    mainBtns: [
-      {code:'BR', label:'disButton', color:'#EF4444'},
-    ],
-    arrowBtns: [],
-    presets: ['db_clic_press','db_clic_release','db_youtube','db_cboard'],
-  },
-  dishub: {
-    id: 'dishub', name: 'disHub',
-    cardTitle: 'Conectores — disHub',
-    hasArrows: false,
-    dishubLayout: true,
-    hasCenterConnectors: true,
-    mainBtns: [
-      {code:'BR', label:'Botón Rojo',  note:'también Conector 1', color:'#EF4444', group:'A'},
-      {code:'BA', label:'Botón Azul',  note:'también Conector 8', color:'#3B82F6', group:'A'},
-      {code:'BN', label:'Conector 2',  color:'#F97316', group:'B'},
-      {code:'BC', label:'Conector 7',  color:'#06B6D4', group:'B'},
-    ],
-    centerBtns: [
-      {code:'FU', label:'Conector 3',  color:'#EAB308'},
-      {code:'FD', label:'Conector 4',  color:'#EAB308'},
-      {code:'FL', label:'Conector 5',  color:'#EAB308'},
-      {code:'FR', label:'Conector 6',  color:'#EAB308'},
-    ],
-    arrowBtns: [],
-    presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
-  },
-  disjoystick: {
-    id: 'disjoystick', name: 'disJoystick',
-    cardTitle: 'Botones — disJoystick',
-    hasArrows: true,
-    mainBtns: [
-      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
-      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
-      {code:'BN', label:'Botón Naranja', color:'#F97316'},
-      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
-    ],
-    arrowBtns: [
-      {code:'FU', label:'Flecha ↑', color:'#EAB308'},
-      {code:'FD', label:'Flecha ↓', color:'#EAB308'},
-      {code:'FL', label:'Flecha ←', color:'#EAB308'},
-      {code:'FR', label:'Flecha →', color:'#EAB308'},
-    ],
-    presets: ['asterics_barrido','asterics_dir','asterics_huffman','asterics_sec','cboard_barrido','juego_flechas','juego_wasd','std_enter','std_drag','std_scroll','std_copy'],
-  },
-  dishubmini: {
-    id: 'dishubmini', name: 'disHub mini',
-    cardTitle: 'Botones — disHub mini',
-    hasArrows: true,
-    centeredLayout: true,
-    arrowSectionTitle: 'Entradas externas',
-    arrowSectionIcon: '🔌',
-    mainBtns: [
-      {code:'BR', label:'Botón Rojo', color:'#EF4444'},
-      {code:'BA', label:'Botón Azul', color:'#3B82F6'},
-    ],
-    arrowBtns: [
-      {code:'FU', label:'Externo 1', color:'#EAB308'},
-      {code:'FD', label:'Externo 2', color:'#EAB308'},
-      {code:'FL', label:'Externo 3', color:'#EAB308'},
-      {code:'FR', label:'Externo 4', color:'#EAB308'},
-    ],
-    presets: ['dh_asterics_barrido','dh_asterics_dir','dh_asterics_huffman','dh_asterics_sec','dh_cboard_barrido','dh_juego_flechas','dh_juego_wasd','dh_std_enter'],
-  },
-  dishubkeys: {
-    id: 'dishubkeys', name: 'disHub keys',
-    cardTitle: 'Botones — disHub keys',
-    hasArrows: false,
-    mainBtns: [
-      {code:'BR', label:'Botón Rojo',    color:'#EF4444'},
-      {code:'BN', label:'Botón Naranja', color:'#F97316'},
-      {code:'BC', label:'Botón Celeste', color:'#06B6D4'},
-      {code:'BA', label:'Botón Azul',    color:'#3B82F6'},
-    ],
-    arrowBtns: [],
-    presets: ['asterics_barrido','asterics_dir','asterics_sec','cboard_barrido'],
-  },
-};
-
-// ── GRUPOS DE TABS DE PRESETS ────────────────────────────
-// prodIds: qué IDs de PRODUCTS agrupa esta tab
-// tabId: identificador único del grupo
-const PRESET_TABS = [
-  { tabId: 'dismouse',   label: 'disMouse',    prodIds: ['dismouse']              },
-  { tabId: 'disjoystick',label: 'disJoystick', prodIds: ['disjoystick']           },
-  { tabId: 'disbutton',  label: 'disButton',   prodIds: ['disbutton','disbuttonbt']},
-  { tabId: 'dishub',     label: 'disHub',      prodIds: ['dishub','dishubbt']     },
-  { tabId: 'dishubmini', label: 'disHub mini', prodIds: ['dishubmini']            },
-  { tabId: 'dishubkeys', label: 'disHub keys', prodIds: ['dishubkeys']            },
-];
+// PRODUCTS y PRESET_TABS → src/products.js (window.* vía <script type="module">)
 
 // ── ESTADO ──────────────────────────────────────────────
 let prod      = null;
@@ -1587,23 +1306,14 @@ let connType  = 'usb';  // 'usb' | 'ble'
 let connected = false;
 let osMode    = 'win'; // 'win' | 'mac' — se resuelve en init() (lee localStorage a salvo de excepciones)
 let activePresetTab = null; // tabId activo en presetsModal
-// USB
-let port = null, reader = null, writer = null;
-// BLE
-let bleDevice = null, bleTxChar = null;
+let _conn = null;   // handle de transporte activo { send, close } (USB o BLE) — src/transport.js
 let devCfg    = mkCfg();
 let capActive = null;
 const capHandlers = {};
-const STORAGE_KEY = 'displus_presets_v1';
+// (STORAGE_KEY y el acceso a localStorage viven en src/presets-store.js)
 
-// ── VERSIONES DE FIRMWARE CONOCIDAS ─────────────────────
-// Actualizar cuando se lance nuevo firmware
-const LATEST_FW = {
-  disMouse:  'R019',
-  disButton: 'R019',
-  disHub:    'R013',
-  disMouth:  'R001',
-};
+// PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT y los mapas
+// DEV_* viven en src/products.js — window.* vía el <script type="module"> de arriba.
 
 // Resolver para la promesa de WHO
 let _whoResolve = null;
@@ -1702,7 +1412,7 @@ function selectOsMode(mode) {
   if (cfgModal && cfgModal.style.display !== 'none') renderCfgModal();
 }
 
-function primaryMod() { return osMode === 'mac' ? 'G' : 'C'; }
+// (primaryMod / sustitución de %P% en presets: ahora en src/protocol.js — window.Protocol.resolvePreset)
 
 // Cambio manual desde el panel Avanzado de un botón — requiere confirmación porque
 // solo corresponde si el dispositivo se va a usar en una computadora con otro SO
@@ -2039,45 +1749,25 @@ function stopCap(code) {
   if (hint.classList.contains('cap')) { hint.textContent = 'Dejar vacío = solo modificadores.'; hint.className = 'hint'; }
 }
 
-// ── CONVERSIÓN DE KEYCODES ───────────────────────────────
-function cvKey(k) {
-  const MAP = {
-    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
-    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
-    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
-    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
-    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
-  };
-  return MAP[k.toUpperCase()] ?? k.toLowerCase();
-}
-
 // ── APLICAR BOTÓN ────────────────────────────────────────
+// El armado del comando CFG: vive en src/protocol.js (window.Protocol), testeado
+// en tests/protocol.test.js. Acá solo se leen los valores del DOM.
 async function applyBtn(code) {
-  const tipo = document.getElementById('t_' + code).value;
-  const modo = document.getElementById('m_' + code).value;
-  const deb  = document.getElementById('d_' + code).value;
-  let accion, mods = '-', flags = '-';
-
-  if (tipo === 'X') {
-    accion = '0';
-  } else if (tipo === 'M') {
-    const sel = document.getElementById('mact_' + code)?.value || '1';
-    if      (sel === '1D') { accion='1';  flags='D'; }
-    else if (sel === '1M') { accion='1';  flags='M'; }
-    else if (sel === 'SU') { accion='SU'; }
-    else if (sel === 'SD') { accion='SD'; }
-    else                   { accion=sel;  }
-  } else {
-    const raw = (document.getElementById('k_' + code).value || '').trim();
-    accion = raw ? cvKey(raw) : '0';
-    const mc = document.getElementById('mc_' + code).checked;
-    const ms = document.getElementById('ms_' + code).checked;
-    const ma = document.getElementById('ma_' + code).checked;
-    const mg = document.getElementById('mg_' + code).checked;
-    mods = (mc?'C':'') + (ms?'S':'') + (ma?'A':'') + (mg?'G':'') || '-';
-  }
-
-  const ok = await send('CFG:' + code + ':' + tipo + ':' + modo + ':' + deb + ':' + accion + ':' + mods + ':' + flags);
+  const el = id => document.getElementById(id);
+  const tipo = el('t_' + code).value;
+  const cmd = window.Protocol.buildButtonCfg({
+    code,
+    tipo,
+    modo:        el('m_' + code).value,
+    debounce:    el('d_' + code).value,
+    mouseAction: el('mact_' + code)?.value,
+    key:         el('k_' + code)?.value,
+    ctrl:        el('mc_' + code)?.checked,
+    shift:       el('ms_' + code)?.checked,
+    alt:         el('ma_' + code)?.checked,
+    gui:         el('mg_' + code)?.checked,
+  });
+  const ok = await send(cmd);
   if (ok) { toast('✅', code + ' configurado'); updateSummary(code); }
 }
 
@@ -2091,14 +1781,14 @@ function onArrowMode() {
 }
 
 async function applyArrows() {
-  const m   = parseInt(document.getElementById('arrowMode').value);
-  const ori = document.getElementById('orient').value;
-  await send('FMODE:' + m);
-  await send('ORIENT:' + ori);
-  if (m === 0 || m === 1) {
-    await send('VEL:' + document.getElementById('vel').value);
-    await send('ACEL:' + (document.getElementById('acel').checked ? '1' : '0'));
-  }
+  const el = id => document.getElementById(id);
+  const cmds = window.Protocol.buildArrowCommands({
+    fmode:  el('arrowMode').value,
+    orient: el('orient').value,
+    vel:    el('vel').value,
+    acel:   el('acel').checked,
+  });
+  for (const c of cmds) await send(c);
   toast('✅', 'Flechas configuradas');
 }
 
@@ -2113,262 +1803,19 @@ function onDishubCenterMode() {
 }
 
 async function applyDishubCenter() {
-  const m   = parseInt(document.getElementById('dishubCenterMode').value);
-  const ori = document.getElementById('dishubOrient').value;
-  await send('FMODE:' + m);
-  await send('ORIENT:' + ori);
-  if (m === 0 || m === 1) {
-    await send('VEL:' + document.getElementById('dishubVel').value);
-    await send('ACEL:' + (document.getElementById('dishubAcel').checked ? '1' : '0'));
-  }
+  const el = id => document.getElementById(id);
+  const cmds = window.Protocol.buildArrowCommands({
+    fmode:  el('dishubCenterMode').value,
+    orient: el('dishubOrient').value,
+    vel:    el('dishubVel').value,
+    acel:   el('dishubAcel').checked,
+  });
+  for (const c of cmds) await send(c);
   toast('✅', 'Conectores centrales configurados');
 }
 
 // ── PRESETS DE FÁBRICA ───────────────────────────────────
-const _SP  = ' ';
-const _ENT = '215'; // ENTER
-const _UP  = '209'; const _DN = '210'; const _LT = '211'; const _RT = '212';
-const _DIS = 'X:P:0:0:-:-'; // botón desactivado
-
-const FACTORY_CMDS = {
-  asterics_barrido: [
-    'CFG:BR:K:P:0:s:-:-', 'CFG:BN:K:P:0:s:-:-',
-    'CFG:BA:K:P:0:c:-:-', 'CFG:BC:K:P:0:c:-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
-  ],
-  asterics_dir: [
-    'CFG:BR:K:P:0:' + _SP + ':-:-', 'CFG:BN:K:P:0:' + _SP + ':-:-',
-    'CFG:BA:K:P:0:' + _SP + ':-:-', 'CFG:BC:K:P:0:' + _SP + ':-:-',
-    'FMODE:2',
-  ],
-  asterics_huffman: [
-    'CFG:BN:K:P:0:1:-:-', 'CFG:BR:K:P:0:2:-:-',
-    'CFG:BC:K:P:0:7:-:-', 'CFG:BA:K:P:0:8:-:-',
-    'CFG:FU:K:P:0:3:-:-', 'CFG:FD:K:P:0:4:-:-',
-    'CFG:FL:K:P:0:5:-:-', 'CFG:FR:K:P:0:6:-:-',
-    'FMODE:0',
-  ],
-  asterics_sec: [
-    'CFG:BR:K:P:0:c:-:-', 'CFG:BA:K:P:0:c:-:-',
-    'CFG:BN:K:P:0:c:-:-', 'CFG:BC:K:P:0:c:-:-',
-    'CFG:FL:K:P:0:a:-:-', 'CFG:FR:K:P:0:s:-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'FMODE:0',
-  ],
-  cboard_barrido: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
-    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
-  ],
-  juego_flechas: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
-    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
-    'FMODE:2',
-  ],
-  juego_wasd: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BN:K:P:0:' + _ENT + ':-:-',
-    'CFG:BA:K:P:0:' + _SP  + ':-:-', 'CFG:BC:K:P:0:' + _SP  + ':-:-',
-    'CFG:FU:K:P:0:w:-:-', 'CFG:FL:K:P:0:a:-:-',
-    'CFG:FD:K:P:0:s:-:-', 'CFG:FR:K:P:0:d:-:-',
-    'FMODE:0',
-  ],
-  std_enter: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:1:-:D',
-    'CFG:BC:K:P:0:' + _ENT + ':-:-', 'CFG:BA:M:P:0:2:-:-',
-    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
-  ],
-  std_drag: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:1:-:D',
-    'CFG:BC:M:P:0:1:-:M', 'CFG:BA:M:P:0:2:-:-',
-    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
-  ],
-  std_scroll: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:M:P:0:SU:-:-',
-    'CFG:BC:M:P:0:SD:-:-', 'CFG:BA:M:P:0:2:-:-',
-    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
-  ],
-  // '%P%' se resuelve en applyPreset() según osMode: 'C' (Ctrl, Windows) o 'G' (GUI/⌘, Mac)
-  std_copy: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BN:K:P:0:c:%P%:-',
-    'CFG:BC:K:P:0:v:%P%:-', 'CFG:BA:M:P:0:2:-:-',
-    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
-  ],
-  // ── disButton (1 botón)
-  db_clic_press:   [ 'CFG:BR:M:P:0:1:-:-' ],
-  db_clic_release: [ 'CFG:BR:M:R:0:1:-:-' ],
-  db_youtube:      [ 'CFG:BR:K:P:0:' + _SP  + ':-:-' ],
-  db_cboard:       [ 'CFG:BR:K:P:0:' + _ENT + ':-:-' ],
-  // ── disHub (rojo BR, azul BA, externos FU/FD/FL/FR)
-  dh_asterics_barrido: [
-    'CFG:BR:K:P:0:s:-:-', 'CFG:BA:K:P:0:c:-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
-  ],
-  dh_asterics_dir: [
-    'CFG:BR:K:P:0:' + _SP + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
-    'FMODE:2',
-  ],
-  dh_asterics_huffman: [
-    'CFG:BR:K:P:0:1:-:-', 'CFG:FU:K:P:0:2:-:-', 'CFG:FD:K:P:0:3:-:-',
-    'CFG:FL:K:P:0:4:-:-', 'CFG:FR:K:P:0:5:-:-', 'CFG:BA:K:P:0:6:-:-',
-    'FMODE:0',
-  ],
-  dh_asterics_sec: [
-    'CFG:BR:K:P:0:c:-:-', 'CFG:BA:K:P:0:c:-:-',
-    'CFG:FL:K:P:0:a:-:-', 'CFG:FR:K:P:0:s:-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'FMODE:0',
-  ],
-  dh_cboard_barrido: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
-    'CFG:FU:'+_DIS, 'CFG:FD:'+_DIS, 'CFG:FL:'+_DIS, 'CFG:FR:'+_DIS, 'FMODE:0',
-  ],
-  dh_juego_flechas: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
-    'FMODE:2',
-  ],
-  dh_juego_wasd: [
-    'CFG:BR:K:P:0:' + _ENT + ':-:-', 'CFG:BA:K:P:0:' + _SP + ':-:-',
-    'CFG:FU:K:P:0:w:-:-', 'CFG:FL:K:P:0:a:-:-',
-    'CFG:FD:K:P:0:s:-:-', 'CFG:FR:K:P:0:d:-:-',
-    'FMODE:0',
-  ],
-  dh_std_enter: [
-    'CFG:BR:M:P:0:1:-:-', 'CFG:BA:M:P:0:2:-:-',
-    'FMODE:1', 'ORIENT:0', 'VEL:35', 'ACEL:1',
-  ],
-};
-
-const FACTORY_CARDS = {
-  asterics_barrido: { icon:'💬', name:'Asterics - Barrido',     sub:'S / C · sin debounce',          tipId:'tip-asterics-barrido' },
-  asterics_dir:     { icon:'🧭', name:'Asterics - Dirección',   sub:'Flechas + Espacio',              tipId:'tip-asterics-dir' },
-  asterics_huffman: { icon:'🔢', name:'Asterics - Huffman',     sub:'Botones 1-8',                    tipId:'tip-asterics-huffman' },
-  asterics_sec:     { icon:'↔️', name:'Asterics - Secuencial',  sub:'A / S / C · sin debounce',       tipId:'tip-asterics-sec' },
-  cboard_barrido:   { icon:'📋', name:'Cboard - Barrido',       sub:'Enter / Espacio · sin debounce', tipId:'tip-cboard-barrido' },
-  juego_flechas:    { icon:'🕹️', name:'Juego - Flechas',        sub:'Enter / Espacio + ↑↓←→',        tipId:'tip-juego-flechas' },
-  juego_wasd:       { icon:'⌨️', name:'Juego - WASD',           sub:'Enter / Espacio + WASD',         tipId:'tip-juego-wasd' },
-  std_enter:        { icon:'🖱️', name:'Estándar + Enter',       sub:'Clic · doble · enter · der.',    tipId:'tip-std-enter' },
-  std_drag:         { icon:'🤏', name:'Estándar + Arrastrar',   sub:'Clic · doble · mantener · der.', tipId:'tip-std-drag' },
-  std_scroll:       { icon:'📜', name:'Estándar + Scroll',      sub:'Clic · scroll ↑↓ · der.',        tipId:'tip-std-scroll' },
-  std_copy:         { icon:'📄', name:'Clics + Copiar/Pegar',   sub:'Clic · Copiar · Pegar · der.',   tipId:'tip-std-copy' },
-  db_clic_press:   { icon:'🖱️', name:'Clic al presionar',      sub:'Clic izq · Press',               tipId:'tip-db-clic-press' },
-  db_clic_release: { icon:'🖱️', name:'Clic al soltar',         sub:'Clic izq · Release',             tipId:'tip-db-clic-release' },
-  db_youtube:      { icon:'▶️',  name:'Causa-Efecto YouTube',   sub:'Espacio · Press',                tipId:'tip-db-youtube' },
-  db_cboard:       { icon:'📋', name:'Cboard - Escaneo auto',  sub:'Enter · Press',                  tipId:'tip-db-cboard' },
-  // ── disHub
-  dh_asterics_barrido: { icon:'💬', name:'Asterics - Barrido',    sub:'Rojo S · Azul C · ext. desact.', tipId:'tip-dh-asterics-barrido' },
-  dh_asterics_dir:     { icon:'🧭', name:'Asterics - Dirección',  sub:'Flechas + Espacio',              tipId:'tip-dh-asterics-dir' },
-  dh_asterics_huffman: { icon:'🔢', name:'Asterics - Huffman',    sub:'Botones 1-6',                    tipId:'tip-dh-asterics-huffman' },
-  dh_asterics_sec:     { icon:'↔️', name:'Asterics - Secuencial', sub:'A / S / C · ext. desact.',       tipId:'tip-dh-asterics-sec' },
-  dh_cboard_barrido:   { icon:'📋', name:'Cboard - Barrido',      sub:'Enter / Espacio · ext. desact.', tipId:'tip-dh-cboard-barrido' },
-  dh_juego_flechas:    { icon:'🕹️', name:'Juego - Flechas',       sub:'Enter / Espacio + ↑↓←→',        tipId:'tip-dh-juego-flechas' },
-  dh_juego_wasd:       { icon:'⌨️', name:'Juego - WASD',          sub:'Enter / Espacio + WASD',         tipId:'tip-dh-juego-wasd' },
-  dh_std_enter:        { icon:'🖱️', name:'Estándar + Enter',      sub:'Clic izq · Clic der · cursor',   tipId:'tip-dh-std-enter' },
-};
-
-const TIP_CONTENT = {
-  'tip-asterics-barrido': `
-    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Tecla S · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Tecla C · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
-  'tip-asterics-dir': `
-    <div class="tip-row"><span class="tip-btn">🔴🟠🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas → teclas de dirección</span></div>`,
-  'tip-asterics-huffman': `
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Tecla 1 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla 2 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">↑</span><span class="tip-val">Tecla 3 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">↓</span><span class="tip-val">Tecla 4 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">←</span><span class="tip-val">Tecla 5 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">→</span><span class="tip-val">Tecla 6 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Tecla 7 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla 8 · Press</span></div>`,
-  'tip-asterics-sec': `
-    <div class="tip-row"><span class="tip-btn">🔴🔵🟠🩵</span><span class="tip-val">Tecla C · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">←</span><span class="tip-val">Tecla A · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">→</span><span class="tip-val">Tecla S · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">↑↓</span><span class="tip-val">Desactivadas</span></div>`,
-  'tip-cboard-barrido': `
-    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas desactivadas</span></div>`,
-  'tip-juego-flechas': `
-    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Flechas → teclas de dirección</span></div>`,
-  'tip-juego-wasd': `
-    <div class="tip-row"><span class="tip-btn">🔴🟠</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵🩵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">↑←↓→</span><span class="tip-val">W A S D</span></div>`,
-  'tip-std-enter': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Doble clic · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
-  'tip-std-drag': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Doble clic · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Mantener clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
-  'tip-std-scroll': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Scroll ↑ · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Scroll ↓ · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
-  'tip-std-copy': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🟠</span><span class="tip-val">Copiar (%PLBL%+C) · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🩵</span><span class="tip-val">Pegar (%PLBL%+V) · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">⬆️</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
-  'tip-db-clic-press': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Press</span></div>`,
-  'tip-db-clic-release': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izquierdo · Release</span></div>`,
-  'tip-db-youtube': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Espacio · Press</span></div>`,
-  'tip-db-cboard': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>`,
-  // ── disHub
-  'tip-dh-asterics-barrido': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla S · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla C · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌1234</span><span class="tip-val">Externos desactivados</span></div>`,
-  'tip-dh-asterics-dir': `
-    <div class="tip-row"><span class="tip-btn">🔴🔵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Externos → teclas de dirección</span></div>`,
-  'tip-dh-asterics-huffman': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Tecla 1 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌1</span><span class="tip-val">Tecla 2 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌2</span><span class="tip-val">Tecla 3 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">Tecla 4 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">Tecla 5 · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Tecla 6 · Press</span></div>`,
-  'tip-dh-asterics-sec': `
-    <div class="tip-row"><span class="tip-btn">🔴🔵</span><span class="tip-val">Tecla C · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">Tecla A · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">Tecla S · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌1🔌2</span><span class="tip-val">Desactivados</span></div>`,
-  'tip-dh-cboard-barrido': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌1234</span><span class="tip-val">Externos desactivados</span></div>`,
-  'tip-dh-juego-flechas': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Externos → teclas de dirección</span></div>`,
-  'tip-dh-juego-wasd': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Enter · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Espacio · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌1</span><span class="tip-val">W</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌3</span><span class="tip-val">A</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌2</span><span class="tip-val">S</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌4</span><span class="tip-val">D</span></div>`,
-  'tip-dh-std-enter': `
-    <div class="tip-row"><span class="tip-btn">🔴</span><span class="tip-val">Clic izq · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔵</span><span class="tip-val">Clic der · Press</span></div>
-    <div class="tip-row"><span class="tip-btn">🔌</span><span class="tip-val">Cursor · vel 35 · aceleración ON</span></div>`,
-};
+// FACTORY_CMDS, FACTORY_CARDS, TIP_CONTENT → src/products.js (window.*)
 
 // ── TABS DE DISPOSITIVO EN MODAL PRESETS ────────────────
 function _tabForProd(prodId) {
@@ -2468,19 +1915,18 @@ async function applyPreset(id) {
     toast('⚠️', 'Este preset es para ' + activeTab.label + ', pero tenés conectado un ' + prod.name);
     return;
   }
-  for (const c of cmds) await send(c.includes('%P%') ? c.replace('%P%', primaryMod()) : c);
+  for (const c of window.Protocol.resolvePreset(cmds, osMode)) await send(c);
   toast('⚡', 'Configuración aplicada');
   closeModal('presetsModal');
 }
 
 // ── CUSTOM PRESETS ───────────────────────────────────────
 function loadCustom() {
-  try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
-  catch { return []; }
+  return window.PresetsStore.loadLocal();
 }
 function saveCustomList(list) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-  if (currentUser) pushAllPresetsToSupa(list); // sync en background, sin bloquear UI
+  window.PresetsStore.saveLocal(list);
+  syncPresetsToCloud(list); // sync en background, sin bloquear UI (no-op si no hay sesión)
 }
 
 function renderCustom() {
@@ -2595,12 +2041,9 @@ function showShareMsg(html, type) {
   el.style.color = type === 'ok' ? 'var(--grn)' : type === 'warn' ? 'var(--acc)' : 'var(--red)';
 }
 
+// Serialización/parseo CSV: src/csv.js (window.Csv). Acá solo el <a download> y el <input file>.
 function downloadCSV(p) {
-  const rows = [
-    ['name','date','prodId','notes','cfg_json'],
-    [p.name, p.date||'', p.prodId||'', p.notes||'', JSON.stringify(p.cfg)]
-  ];
-  const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\r\n');
+  const csv = window.Csv.presetToCsv(p);
   const a   = document.createElement('a');
   a.href    = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
   a.download = (p.name || 'preset').replace(/[^a-z0-9]/gi,'_') + '.csv';
@@ -2612,48 +2055,20 @@ function importCSV() {
   inp.type  = 'file'; inp.accept = '.csv';
   inp.onchange = async e => {
     const file = e.target.files[0]; if (!file) return;
-    const text = await file.text();
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (lines.length < 2) { toast('⚠️','CSV vacío o inválido'); return; }
-    const header = parseCSVLine(lines[0]);
-    const iName  = header.indexOf('name');
-    const iDate  = header.indexOf('date');
-    const iProd  = header.indexOf('prodId');
-    const iNotes = header.indexOf('notes');
-    const iCfg   = header.indexOf('cfg_json');
-    if (iName < 0 || iCfg < 0) { toast('⚠️','El CSV no tiene el formato correcto'); return; }
+    const { presets, error } = window.Csv.parsePresetsCsv(await file.text());
+    if (error) { toast('⚠️', error); return; }
     const existing = loadCustom();
-    const existingNames = new Set(existing.map(p => p.name));
+    const names = new Set(existing.map(p => p.name));
     let added = 0;
-    for (let i = 1; i < lines.length; i++) {
-      const cols = parseCSVLine(lines[i]);
-      const name = cols[iName]?.trim(); if (!name) continue;
-      if (existingNames.has(name)) continue;
-      try {
-        const cfg = JSON.parse(cols[iCfg]);
-        existing.push({ name, date: cols[iDate]||'', prodId: cols[iProd]||null, notes: cols[iNotes]||'', cfg });
-        existingNames.add(name); added++;
-      } catch { /* cfg inválido, ignorar */ }
+    for (const p of presets) {
+      if (names.has(p.name)) continue;   // no duplicar por nombre
+      existing.push(p); names.add(p.name); added++;
     }
     saveCustomList(existing);
     renderCustom();
     toast('⬆️', added + ' configuración' + (added !== 1 ? 'es' : '') + ' importada' + (added !== 1 ? 's' : ''));
   };
   inp.click();
-}
-
-function parseCSVLine(line) {
-  const result = []; let cur = ''; let inQ = false;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (c === '"') {
-      if (inQ && line[i+1] === '"') { cur += '"'; i++; }
-      else inQ = !inQ;
-    } else if (c === ',' && !inQ) { result.push(cur); cur = ''; }
-    else cur += c;
-  }
-  result.push(cur);
-  return result;
 }
 
 // ── PRESETS COMPARTIDOS Y COMUNIDAD ─────────────────────
@@ -2794,28 +2209,8 @@ async function applyCustom(p) {
     }
   }
   const cfg = p.cfg; if (!cfg) return;
-  const CODE = {0:'BR',1:'BA',2:'BN',3:'BC',4:'FU',5:'FD',6:'FL',7:'FR'};
-  const TL = {0:'M',1:'K',2:'X'};
-  const ML = {0:'P',1:'R',2:'H'};
-  const cmds = [];
-  for (const [idx, c] of Object.entries(cfg.btns)) {
-    const code = CODE[parseInt(idx)]; if (!code) continue;
-    let ac = String(c.accion);
-    if      (c.accion === 8)  ac = 'SU';
-    else if (c.accion === 16) ac = 'SD';
-    else if (c.tipo === 1 && c.accion > 0 && c.accion < 128) ac = String.fromCharCode(c.accion);
-    const mm = [];
-    if (c.mods & 0x01) mm.push('C'); if (c.mods & 0x02) mm.push('S');
-    if (c.mods & 0x04) mm.push('A'); if (c.mods & 0x08) mm.push('G');
-    const fl = [];
-    if (c.flags & 0x01) fl.push('D'); if (c.flags & 0x02) fl.push('M');
-    cmds.push('CFG:' + code + ':' + (TL[c.tipo]||'X') + ':' + (ML[c.modo]||'P') + ':' + c.debounce + ':' + ac + ':' + (mm.join('')||'- ') + ':' + (fl.join('')||'- '));
-  }
-  if (cfg.fmode  != null) cmds.push('FMODE:'  + cfg.fmode);
-  if (cfg.orient != null) cmds.push('ORIENT:' + cfg.orient);
-  if (cfg.vel    != null) cmds.push('VEL:'    + cfg.vel);
-  if (cfg.acel   != null) cmds.push('ACEL:'   + cfg.acel);
-  for (const c of cmds) await send(c);
+  // Traducción cfg → comandos: src/protocol.js (window.Protocol.cfgToCommands), testeado.
+  for (const c of window.Protocol.cfgToCommands(cfg)) await send(c);
   toast('⭐', '"' + p.name + '" aplicada');
   closeModal('presetsModal');
 }
@@ -2845,53 +2240,17 @@ async function getAllConfig() {
 }
 
 function parseLine(line) {
-  if      (line.startsWith('OK:WHO:')) {
-    const p = line.split(':'); // ['OK','WHO','disMouse','R019']
-    if (_whoResolve) { _whoResolve({model: p[2], version: p[3]}); _whoResolve = null; }
+  if (!window.Protocol) return; // el módulo de protocolo aún no cargó (o falló el import)
+  const who = window.Protocol.parseWho(line);
+  if (who) {
+    if (_whoResolve) { _whoResolve(who); _whoResolve = null; }
+    return;
   }
-  else if (line.startsWith('ORIENT:')) devCfg.orient = parseInt(line.slice(7));
-  else if (line.startsWith('VEL:'))    devCfg.vel    = parseInt(line.slice(4));
-  else if (line.startsWith('ACEL:'))   devCfg.acel   = parseInt(line.slice(5));
-  else if (line.startsWith('FMODE:'))  devCfg.fmode  = parseInt(line.slice(6));
-  else if (line.startsWith('BTN:')) {
-    const p = line.split(':');
-    devCfg.btns[p[1]] = {tipo:+p[2], modo:+p[3], debounce:+p[4], accion:+p[5], mods:+p[6], flags:+p[7]};
-  }
+  window.Protocol.parseDeviceLine(line, devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en devCfg
 }
 
 // ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
-// Mapa: nombre recibido por WHO (lowercase sin espacios) → imagen
-const DEV_IMAGES = {
-  'dismouse':     'assets/img/dismouse.png',
-  'disbutton':    'assets/img/disbutton.png',
-  'disbuttonbt':  'assets/img/disbutton.png',
-  'disjoystick':  'assets/img/disjoystick.png',
-  'dishub':       'assets/img/dishubs.png',
-  'dishubb':      'assets/img/dishubs.png',   // "disHub BT" → dishubs
-  'dishubbt':     'assets/img/dishubs.png',
-  'dishubble':    'assets/img/dishubs.png',
-  'dishubmini':   'assets/img/dishubmini.png',
-  'dishubkeys':   'assets/img/dishubkeys.png',
-  'admouse':      'assets/img/Logo_EpE.png',
-};
-
-const DEV_WELCOME = {
-  'admouse': '¡Bienvenido a EpE, AdMouse!',
-};
-
-// Mapa: nombre WHO normalizado (lowercase sin espacios) → productKey
-const WHO_TO_PROD = {
-  'dismouse':     'dismouse',
-  'admouse':      'dismouse',
-  'disbutton':    'disbutton',
-  'disbuttonbt':  'disbutton',
-  'disjoystick':  'disjoystick',
-  'dishub':       'dishub',
-  'dishubbt':     'dishub',
-  'dishubble':    'dishub',
-  'dishubmini':   'dishubmini',
-  'dishubkeys':   'dishubkeys',
-};
+// DEV_IMAGES, DEV_WELCOME, WHO_TO_PROD (mapas de nombre WHO) → src/products.js
 
 function updateStatusBar(model, version) {
   const key     = model ? model.toLowerCase().replace(/[\s]/g,'') : '';
@@ -3018,64 +2377,49 @@ function renderCfgModal() {
 async function toggleConn() { connected ? await disconnect() : await connectDevice(); }
 
 async function connectDevice() {
+  if (!window.Protocol || !window.Transport) {
+    toast('❌', 'Módulos no cargados. Recargá la página servida por http(s) (no file://).');
+    addLog('window.Protocol / window.Transport no disponibles — ¿se abrió con file://?', 'w');
+    return;
+  }
   if (connType === 'ble') { await connectBLE(); }
   else                   { await connectUSB(); }
 }
 
 // USB ─────────────────────────────────────────────────────
+// La mecánica del transporte (Web Serial nativo + polyfill WebUSB, bucle de
+// lectura, framing por '\n') vive en src/transport.js. Acá solo se enganchan
+// los callbacks a la UI y se maneja el resultado.
 async function connectUSB() {
-  // Desktop y Android nuevo: Web Serial nativo. Android sin Web Serial: polyfill sobre WebUSB (cable OTG).
-  const nativeSerial = ('serial' in navigator);
-  const serialApi = nativeSerial ? navigator.serial
-                  : (window.SerialPolyfill ? window.SerialPolyfill.serial : null);
-  if (!serialApi) {
-    if (isIOS()) toast('❌','USB no disponible en iOS/iPadOS. Configurá desde una PC/Mac por cable.');
-    else         toast('❌','USB no disponible. Usá Chrome o Edge en PC, o Chrome en Android con cable OTG.');
-    return;
-  }
-  const viaPolyfill = !nativeSerial;
   try {
-    if (viaPolyfill) addLog('USB vía WebUSB (compatibilidad Web Serial) — modo tablet Android.', 'w');
-    port = await serialApi.requestPort();
-    await port.open({baudRate:9600});
-    reader = port.readable.getReader();
-    writer = port.writable.getWriter();
+    _conn = await window.Transport.connectSerial({
+      log: addLog,
+      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
+      onClosed: (err) => {
+        if (connected) {
+          addLog('Conexión USB interrumpida: ' + (err?.message || ''), 'w');
+          disconnect(true);
+          toast('⚠️', 'El dispositivo USB se desconectó');
+        }
+      },
+    });
     setConnected(true);
-    readLoopUSB();
     await postConnect();
   } catch(e) {
     if (e.name === 'NotFoundError') return; // el usuario cerró el selector sin elegir
-    addLog('Error USB: ' + e.message, 'w');
-    if (viaPolyfill) {
-      addLog('→ Si el equipo figura en la lista pero no abre: otra app tomó el puerto, o esta', 'w');
-      addLog('  tablet/ROM no permite acceso WebUSB a puertos CDC. Reconectá el cable OTG y reintentá.', 'w');
+    if (e.code === 'NO_SERIAL') {
+      if (isIOS()) toast('❌','USB no disponible en iOS/iPadOS. Configurá desde una PC/Mac por cable.');
+      else         toast('❌','USB no disponible. Usá Chrome o Edge en PC, o Chrome en Android con cable OTG.');
+      return;
     }
+    addLog('Error USB: ' + e.message, 'w');
     toast('❌', e.message);
   }
 }
 
-async function readLoopUSB() {
-  const dec = new TextDecoder();
-  let buf = '';
-  try {
-    while (true) {
-      const {value, done} = await reader.read();
-      if (done) break;
-      buf += dec.decode(value, {stream: true});
-      const lines = buf.split('\n'); buf = lines.pop();
-      for (const line of lines) { const t = line.trim(); if (t) { addLog(t,'in'); parseLine(t); } }
-    }
-  } catch(e) {
-    if (e.name === 'AbortError') return;
-    if (connected) { addLog('Conexión USB interrumpida: ' + e.message, 'w'); await disconnect(true); toast('⚠️', 'El dispositivo USB se desconectó'); }
-  }
-}
-
 // BLE ─────────────────────────────────────────────────────
-// Nordic UART Service (NUS)
-const BLE_SVC  = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const BLE_TX   = '6e400002-b5a3-f393-e0a9-e50e24dcca9e'; // escribir
-const BLE_RX   = '6e400003-b5a3-f393-e0a9-e50e24dcca9e'; // notificaciones
+// La conexión BLE (Nordic UART, diagnóstico de conflicto HID en Windows) vive
+// en src/transport.js → window.Transport.connectBle.
 
 // Detectar iOS/iPadOS (incluye Chrome/otros en iOS, todos usan WKWebView)
 function isIOS() {
@@ -3100,103 +2444,22 @@ async function connectBLE() {
     addLog('→ Conectá el dispositivo por USB a una computadora para configurarlo.', 'w');
     return;
   }
-  if (!('bluetooth' in navigator)) {
-    toast('❌','Web Bluetooth no disponible. Use Chrome en desktop o Android.');
-    addLog('Web Bluetooth requiere Chrome. En Windows puede necesitar habilitar la flag: chrome://flags/#enable-web-bluetooth-new-permissions-backend','w');
-    return;
-  }
   try {
-    // Mostrar ayuda antes del selector
-    addLog('══ Selector BLE ══════════════════════════════');
-    addLog('El dispositivo puede aparecer sin nombre.');
-    addLog('Seleccione el que corresponda y pruebe.');
-    addLog('Si falla, intente con el otro de la lista.');
-    addLog('══════════════════════════════════════════════');
-
-    bleDevice = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      // Incluir todos los UUIDs posibles: UART (para comandos) + HID estándar
-      // El firmware anuncia HID en advertising pero el servicio UART existe en el GATT
-      optionalServices: [
-        BLE_SVC,                                    // Nordic UART (6e400001-...)
-        '00001812-0000-1000-8000-00805f9b34fb',     // HID over GATT
-        '0000180a-0000-1000-8000-00805f9b34fb',     // Device Information
-        '0000180f-0000-1000-8000-00805f9b34fb',     // Battery
-      ]
-    });
-
-    const devName = bleDevice.name || '(sin nombre — seleccione y pruebe)';
-    addLog('Dispositivo seleccionado: ' + devName);
-    addLog('Conectando vía GATT...');
-
-    bleDevice.addEventListener('gattserverdisconnected', () => {
-      if (connected) {
-        addLog('Dispositivo BLE desconectado','w');
-        disconnect(true);
-        toast('⚠️','El dispositivo Bluetooth se desconectó');
-      }
-    });
-
-    const server = await bleDevice.gatt.connect();
-    addLog('GATT OK. Buscando servicio UART (Nordic NUS)...');
-
-    let service;
-    try {
-      service = await server.getPrimaryService(BLE_SVC);
-    } catch(svcErr) {
-      addLog('⚠ Servicio UART no accesible.', 'w');
-      addLog('  Error: ' + svcErr.name + ' — ' + svcErr.message, 'w');
-      // Intentar listar todos los servicios para diagnóstico
-      try {
-        const svcs = await server.getPrimaryServices();
-        if (svcs.length) {
-          addLog('  Servicios GATT disponibles en este dispositivo:', 'w');
-          svcs.forEach(s => addLog('    · ' + s.uuid, 'w'));
-          const hasUart = svcs.some(s => s.uuid.startsWith('6e400001'));
-          if (hasUart) {
-            addLog('  ✓ El servicio UART SÍ existe — posible conflicto con driver HID del OS.', 'w');
-            addLog('  → En Windows: desemparejá el dispositivo del sistema y volvé a intentar.', 'w');
-            addLog('  → O usá conexión USB para configurar (más simple y confiable).', 'w');
-            toast('❌', 'Conflicto HID/BLE en Windows. Ver Registro.');
-          } else {
-            addLog('  → El servicio UART (6e400001-...) NO aparece en este dispositivo.', 'w');
-            addLog('  → Probablemente seleccionaste el dispositivo incorrecto.', 'w');
-            toast('❌', 'Dispositivo sin UART. Ver Registro.');
-          }
-        } else {
-          addLog('  → No se pudieron leer los servicios (emparejado como HID en el OS).', 'w');
-          addLog('  → Desemparejá "disMouse V4" desde Configuración → Bluetooth del sistema.', 'w');
-          addLog('  → Luego conectá desde acá sin emparejarlo al OS.', 'w');
-          toast('❌', 'Sin acceso GATT. Desemparejá del sistema. Ver Registro.');
+    _conn = await window.Transport.connectBle({
+      log: addLog,
+      toast: toast,
+      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
+      onClosed: () => {
+        if (connected) {
+          addLog('Dispositivo BLE desconectado', 'w');
+          disconnect(true);
+          toast('⚠️', 'El dispositivo Bluetooth se desconectó');
         }
-      } catch(listErr) {
-        addLog('  → No se pudo leer el GATT: ' + listErr.message, 'w');
-        addLog('  → Probable causa: emparejado como HID en Windows.', 'w');
-        addLog('  → Solución: desemparejá el dispositivo del sistema operativo.', 'w');
-        toast('❌', 'Sin acceso GATT. Ver Registro.');
-      }
-      try { bleDevice.gatt.disconnect(); } catch(_){}
-      bleDevice = null;
-      return;
-    }
-
-    addLog('Servicio UART encontrado ✓');
-    addLog('Configurando características RX/TX...');
-
-    // RX: recibir datos del dispositivo vía notificaciones
-    const rxChar = await service.getCharacteristic(BLE_RX);
-    await rxChar.startNotifications();
-    rxChar.addEventListener('characteristicvaluechanged', e => {
-      const line = new TextDecoder().decode(e.target.value).trim();
-      if (line) { addLog(line,'in'); parseLine(line); }
+      },
     });
-
-    // TX: enviar comandos al dispositivo
-    bleTxChar = await service.getCharacteristic(BLE_TX);
-    addLog('RX/TX OK. Listo para enviar comandos.');
+    if (!_conn) return; // problema de acceso ya diagnosticado en el Registro
     setConnected(true);
     await postConnect();
-
   } catch(e) {
     if (e.name === 'NotFoundError' || e.name === 'AbortError') return; // usuario canceló
     addLog('Error BLE [' + e.name + ']: ' + e.message, 'w');
@@ -3206,37 +2469,23 @@ async function connectBLE() {
       addLog('  Solución: desemparejar el dispositivo del OS y volver a intentar.', 'w');
     }
     toast('❌', e.message || e.name);
-    bleDevice = null; bleTxChar = null;
   }
 }
 
 // Desconectar ─────────────────────────────────────────────
 async function disconnect(physical = false) {
   const was = connected; connected = false;
-  // USB
-  try { if (reader) { await reader.cancel(); reader.releaseLock(); } } catch(_){}
-  try { if (writer) { await writer.close(); writer.releaseLock(); } } catch(_){}
-  try { if (port)   { await port.close(); } }                        catch(_){}
-  reader = null; writer = null; port = null;
-  // BLE
-  try { bleDevice && bleDevice.gatt.connected && bleDevice.gatt.disconnect(); } catch(_){}
-  bleDevice = null; bleTxChar = null;
+  // El handle de src/transport.js (USB o BLE) hace toda la limpieza del enlace.
+  try { if (_conn) await _conn.close(); } catch(_){}
+  _conn = null;
   if (was) setConnected(false, physical);
 }
 
 // Enviar ──────────────────────────────────────────────────
 async function send(cmd) {
-  if (!connected) { toast('❌','Sin conexión activa'); return false; }
+  if (!connected || !_conn) { toast('❌','Sin conexión activa'); return false; }
   try {
-    if (connType === 'usb' && writer) {
-      await writer.write(new TextEncoder().encode(cmd + '\n'));
-    } else if (connType === 'ble' && bleTxChar) {
-      // BLE: enviar en chunks de 20 bytes (MTU mínimo garantizado)
-      const enc = new TextEncoder().encode(cmd + '\n');
-      for (let i = 0; i < enc.length; i += 20) {
-        await bleTxChar.writeValue(enc.slice(i, i + 20));
-      }
-    } else { return false; }
+    await _conn.send(cmd);   // USB o BLE — el handle sabe cómo (chunking BLE incluido)
     addLog(cmd, 'out');
     await new Promise(r => setTimeout(r, 90));
     return true;
@@ -3533,33 +2782,8 @@ function _connStepDisable(n) {
 }
 
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
-// Mapa inverso de código numérico → nombre de tecla para updateSummary
-const REV_KEY = (() => {
-  // Códigos actuales (firmware R009+)
-  const fwd = {
-    'SPACE':' ','ENTER':'215','TAB':'214','ESC':'216','BACKSPACE':'213','DELETE':'218',
-    'INSERT':'217','HOME':'221','END':'222','PAGE_UP':'219','PAGE_DOWN':'220',
-    'UP_ARROW':'209','DOWN_ARROW':'210','LEFT_ARROW':'211','RIGHT_ARROW':'212',
-    'F1':'193','F2':'194','F3':'195','F4':'196','F5':'197','F6':'198',
-    'F7':'199','F8':'200','F9':'201','F10':'202','F11':'203','F12':'204',
-  };
-  const rev = {};
-  for (const [name, code] of Object.entries(fwd)) rev[String(code)] = name;
-  // ASCII espacio (32) → 'SPACE'
-  rev['32'] = 'SPACE';
-  // Códigos legacy (firmware anterior / presets de fábrica viejos)
-  const legacy = {
-    'ENTER':'176','TAB':'179','ESC':'177','BACKSPACE':'178','DELETE':'212',
-    'INSERT':'209','HOME':'210','END':'213','PAGE_UP':'211','PAGE_DOWN':'214',
-    'UP_ARROW':'218','DOWN_ARROW':'217','LEFT_ARROW':'216','RIGHT_ARROW':'215',
-    'F1':'194','F2':'195','F3':'196','F4':'197','F5':'198','F6':'199',
-    'F7':'200','F8':'201','F9':'202','F10':'203','F11':'204','F12':'205',
-  };
-  for (const [name, code] of Object.entries(legacy)) {
-    if (!rev[String(code)]) rev[String(code)] = name; // no sobreescribir si ya existe
-  }
-  return rev;
-})();
+// Mapa inverso código numérico → nombre de tecla (incluye tabla legacy):
+// src/protocol.js → window.Protocol.REV_KEY
 
 function applyDevCfgToCards() {
   if (!prod) return;
@@ -3623,8 +2847,9 @@ function applyDevCfgToCards() {
       const kInp = document.getElementById('k_' + code);
       if (kInp) {
         const accion = String(c.accion);
-        if (REV_KEY[accion]) {
-          kInp.value = REV_KEY[accion];
+        const revKey = window.Protocol.REV_KEY;
+        if (revKey[accion]) {
+          kInp.value = revKey[accion];
         } else if (c.accion > 31 && c.accion < 127) {
           kInp.value = String.fromCharCode(c.accion);
         } else if (c.accion > 0) {
@@ -3716,7 +2941,7 @@ function init() {
 
     if (event === 'SIGNED_OUT') {
       // Limpiar presets locales para no dejar datos del usuario en el navegador
-      localStorage.removeItem('displus_presets_v1');
+      window.PresetsStore.clearLocal();
       renderCustom();
       // Ocultar secciones compartidas
       document.getElementById('sectionShared').style.display    = 'none';
@@ -3731,20 +2956,26 @@ function init() {
 
 async function handleLoginSync() {
   const localPresets = loadCustom();
-  const supaPresets  = await fetchSupaPresets();
+  const { rows: cloudRows } = await window.PresetsStore.fetchCloud(supa);
   if (localPresets.length > 0) {
-    // Hay presets locales: preguntar qué hacer
-    showImportDialog(localPresets, supaPresets);
+    // Hay presets locales: preguntar qué hacer (merge / usar solo la nube)
+    showImportDialog(localPresets, cloudRows);
   } else {
     // Sin presets locales: cargar los de la nube directamente
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(supaPresets));
+    window.PresetsStore.saveLocal(cloudRows);
     renderCustom();
-    if (supaPresets.length > 0)
-      toast('☁️', `${supaPresets.length} configuración${supaPresets.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`);
+    if (cloudRows.length > 0)
+      toast('☁️', `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`);
   }
 }
 
-init();
+// init() usa PRODUCTS (de src/products.js, cargado por el <script type="module">
+// diferido). Por eso se espera a DOMContentLoaded, que corre después de los módulos.
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
 </script>
 </body>
 </html>

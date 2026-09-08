@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Tests — protocolo dis+</title>
+<style>
+  body { font: 13px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, monospace; margin: 24px; background: #131210; color: #c8c3bb; }
+  h1 { font-size: 15px; color: #fff; margin: 0 0 4px; }
+  .sub { color: #6b6560; margin-bottom: 16px; }
+  #summary { font-size: 14px; font-weight: 700; margin: 14px 0; padding: 8px 12px; border-radius: 6px; }
+  #summary.pass { background: #05340f; color: #34d399; }
+  #summary.fail { background: #3a0d0d; color: #f87171; }
+  ul { list-style: none; padding: 0; margin: 0; }
+  li { padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+  .ok::before  { content: "✓ "; color: #34d399; }
+  .bad::before { content: "✗ "; color: #f87171; }
+  .bad { color: #f87171; }
+  .err { color: #fbbf24; white-space: pre-wrap; margin: 2px 0 6px 16px; }
+</style>
+</head>
+<body>
+<h1>Tests del protocolo serie</h1>
+<div class="sub">Harness sin dependencias · los mismos <code>*.test.js</code> corren bajo Vitest cuando haya Node.</div>
+<div id="summary">Corriendo…</div>
+<ul id="list"></ul>
+
+<script type="module">
+  import { test, expect, run } from './harness.js';
+  // Exponer como globales para que los archivos *.test.js usen `test`/`expect` sueltos
+  // (misma forma que Vitest con `globals: true`).
+  window.test = test;
+  window.expect = expect;
+
+  await import('./protocol.test.js');
+
+  const results = await run();
+  const list = document.getElementById('list');
+  const summary = document.getElementById('summary');
+  let failed = 0;
+
+  for (const r of results) {
+    const li = document.createElement('li');
+    li.className = r.ok ? 'ok' : 'bad';
+    li.textContent = r.name;
+    list.appendChild(li);
+    if (!r.ok) {
+      failed++;
+      const err = document.createElement('div');
+      err.className = 'err';
+      err.textContent = r.err ?? '';
+      list.appendChild(err);
+    }
+  }
+
+  const total = results.length;
+  summary.textContent = failed === 0
+    ? `${total} tests · todos OK`
+    : `${failed} de ${total} tests FALLARON`;
+  summary.className = failed === 0 ? 'pass' : 'fail';
+  document.title = (failed === 0 ? '✓ ' : `✗ ${failed} `) + document.title;
+</script>
+</body>
+</html>
