@@ -8,19 +8,21 @@
  * Requiere servir por http(s): con file:// fallan los import.
  */
 
-  import * as Protocol from './protocol.js';
-  import * as Transport from './transport.js';
-  import * as Csv from './csv.js';
-  import * as PresetsStore from './presets-store.js';
-  import * as ProductData from './products.js';
-  window.Protocol = Protocol;
-  window.Transport = Transport;
-  window.Csv = Csv;
-  window.PresetsStore = PresetsStore;
-  // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* : se
-  // exponen como globales sueltos para no reescribir los ~27 usos del script clásico.
-  // Transicional — al modularizar la UI se hará import directo.
-  Object.assign(window, ProductData);
+import * as Protocol from './protocol.js';
+import * as Transport from './transport.js';
+import * as Csv from './csv.js';
+import * as PresetsStore from './presets-store.js';
+import * as ProductData from './products.js';
+import { isIOS, isMacOS, isTouchDevice } from './ui/platform.js';
+import { toast, addLog, clearLog, esc, closeModal, closeBd } from './ui/dom.js';
+
+// Módulos de lógica: se exponen en window.* para el código que todavía los usa así.
+window.Protocol = Protocol;
+window.Transport = Transport;
+window.Csv = Csv;
+window.PresetsStore = PresetsStore;
+// PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* como globales sueltos.
+Object.assign(window, ProductData);
 
 // ═══════════════════════════════════════════════════════
 // SUPABASE AUTH
@@ -1193,9 +1195,6 @@ function delCustom(idx, e) {
   list.splice(idx,1); saveCustomList(list); renderCustom();
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
 
 // ── GUARDAR / RESET / PING ───────────────────────────────
 async function saveConfig()  { if (await send('SAVE')) toast('💾','Guardado en dispositivo'); }
@@ -1392,21 +1391,6 @@ async function connectUSB() {
 // La conexión BLE (Nordic UART, diagnóstico de conflicto HID en Windows) vive
 // en src/transport.js → window.Transport.connectBle.
 
-// Detectar iOS/iPadOS (incluye Chrome/otros en iOS, todos usan WKWebView)
-function isIOS() {
-  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS en modo escritorio
-}
-
-// Detectar macOS (para sugerir el modo de modificadores ⌘/Ctrl por defecto)
-function isMacOS() {
-  return (navigator.userAgentData?.platform || navigator.platform || navigator.userAgent).includes('Mac') && !isIOS();
-}
-
-// Detectar dispositivos táctiles sin teclado físico confiable (para la captura de tecla)
-function isTouchDevice() {
-  return (window.matchMedia && matchMedia('(pointer: coarse)').matches) || navigator.maxTouchPoints > 0;
-}
 
 async function connectBLE() {
   if (isIOS()) {
@@ -1520,21 +1504,7 @@ function openModal(id)  {
     renderPresetTabs();   // builds tabs, factory presets, and triggers loadSharedPresets via _refreshPresetContent
   }
 }
-function closeModal(id) { document.getElementById(id).style.display='none'; }
-function closeBd(e,id)  { if (e.target===document.getElementById(id)) closeModal(id); }
 
-// ── LOG ───────────────────────────────────────────────────
-function addLog(msg, dir='') {
-  const p = document.getElementById('logPanel');
-  const n = new Date();
-  const ts = [n.getHours(),n.getMinutes(),n.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');
-  const sym = dir==='out'?'↗':dir==='in'?'↙':dir==='w'?'⚠':'·';
-  const cls = dir==='out'?'lo':dir==='in'?'li':dir==='w'?'lw':'';
-  const e = document.createElement('div'); e.className='le';
-  e.innerHTML='<span class="lt">'+ts+'</span><span class="'+cls+'">'+sym+'</span><span class="lm">'+msg+'</span>';
-  p.appendChild(e); p.scrollTop = p.scrollHeight;
-}
-function clearLog() { document.getElementById('logPanel').innerHTML=''; }
 
 // Canal de comandos crudos: reusa send() (misma escritura RX ya usada por la UI estructurada)
 async function sendLogCmd() {
@@ -1545,14 +1515,6 @@ async function sendLogCmd() {
   if (ok) inp.value = '';
 }
 
-// ── TOASTS ────────────────────────────────────────────────
-function toast(ico, msg) {
-  const c = document.getElementById('toasts');
-  const t = document.createElement('div'); t.className='toast';
-  t.innerHTML='<span class="t-ico">'+ico+'</span><span class="t-msg">'+msg+'</span>';
-  c.appendChild(t);
-  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(),320); }, 3200);
-}
 
 // ── TOUR ─────────────────────────────────────────────────
 let tStep=0, tActive=false;
