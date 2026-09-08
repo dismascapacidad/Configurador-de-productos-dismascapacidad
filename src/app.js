@@ -27,6 +27,10 @@ import {
   buildGrid, buildDishubGrid, updateSummary, onType, toggleAdv,
   setCapturedKey, captureFromInput, startCap, stopCap,
 } from './ui/cards.js';
+import {
+  connectionHooks, mkCfg, setSections, send, toggleConn, openConnModal,
+  sendLogCmd, getAllConfig, enableConnModalSteps,
+} from './ui/connection.js';
 
 // Módulos de lógica: se exponen en window.* para el código que todavía los usa así.
 window.Protocol = Protocol;
@@ -118,10 +122,7 @@ async function importChoice(choice) {
 // PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT y los mapas
 // DEV_* viven en src/products.js — window.* vía el <script type="module"> de arriba.
 
-// Resolver para la promesa de WHO
-let _whoResolve = null;
-
-function mkCfg() { return {orient:null, vel:null, acel:null, fmode:null, btns:{}}; }
+// mkCfg / _whoResolve / parseLine / postConnect → src/ui/connection.js
 
 // ── SELECCIÓN DE PRODUCTO ────────────────────────────────
 function selectProd(id) {
@@ -142,7 +143,7 @@ function selectProd(id) {
   const step3 = document.getElementById('sbConn');
   if (step3) { step3.style.opacity = ''; step3.style.pointerEvents = ''; }
   // Habilitar pasos en connModal
-  _connStepEnable(2); _connStepEnable(3);
+  enableConnModalSteps();
 
   document.getElementById('mainTitle').textContent = p.cardTitle;
 
@@ -162,7 +163,6 @@ function selectProd(id) {
   // Mostrar/ocultar sección flechas
   document.getElementById('secArrows').style.display = p.hasArrows ? '' : 'none';
 
-  setBanner('conn');
   if (p.dishubLayout) buildDishubGrid('mainGrid', p.mainBtns);
   else buildGrid('mainGrid', p.mainBtns);
   buildGrid('arrowGrid', p.hasArrows ? p.arrowBtns : []);
@@ -232,35 +232,7 @@ function confirmToggleOsMode(e) {
   if (ok) selectOsMode(next);
 }
 
-// ── BANNER ───────────────────────────────────────────────
-function setBanner(state) {
-  // Banner eliminado — la status bar y el drawer comunican el estado
-}
-
-// ── HABILITAR / DESHABILITAR ─────────────────────────────
-function setSections(on) {
-  ['secBtns'].forEach(id =>
-    document.getElementById(id).classList.toggle('sec-off', !on));
-  // secArrows solo se habilita si el producto tiene flechas
-  if (S.prod && S.prod.hasArrows)
-    document.getElementById('secArrows').classList.toggle('sec-off', !on);
-  const btnSave = document.getElementById('btnSave');
-  if (btnSave) btnSave.disabled = !on;
-  const btnReset = document.getElementById('btnReset');
-  if (btnReset) btnReset.disabled = !on;
-  document.getElementById('btnSaveCustom').disabled = !on;
-  document.getElementById('connSub').style.display  = on ? 'flex' : 'none';
-  const logInput = document.getElementById('logCmdInput');
-  const btnLogSend = document.getElementById('btnLogSend');
-  if (logInput)   logInput.disabled   = !on;
-  if (btnLogSend) btnLogSend.disabled = !on;
-  // Botones del menú lateral
-  const drwCfg     = document.getElementById('drwBtnCfg');
-  const drwReset   = document.getElementById('drwBtnReset');
-  // Solo habilitar si hay conexión Y producto reconocido
-  if (drwCfg)   drwCfg.disabled   = !on || !S.prod;
-  if (drwReset) drwReset.disabled = !on || !S.prod;
-}
+// ── SECCIONES / BANNER → src/ui/connection.js (setSections) ──────────
 
 // ── GRILLAS + CAPTURA DE TECLAS → src/ui/cards.js ──────────
 
@@ -746,100 +718,7 @@ async function resetDevice() {
 }
 async function pingDevice() { if (await send('PING')) toast('✅','El dispositivo responde'); }
 
-// ── GETALL + PARSE ───────────────────────────────────────
-async function getAllConfig() {
-  S.devCfg = mkCfg(); await send('GETALL'); setTimeout(applyDevCfgToCards, 2400);
-}
-
-function parseLine(line) {
-  if (!window.Protocol) return; // el módulo de protocolo aún no cargó (o falló el import)
-  const who = window.Protocol.parseWho(line);
-  if (who) {
-    if (_whoResolve) { _whoResolve(who); _whoResolve = null; }
-    return;
-  }
-  window.Protocol.parseDeviceLine(line, S.devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en S.devCfg
-}
-
-// ── MODAL DE BIENVENIDA AL DISPOSITIVO ──────────────────
-// DEV_IMAGES, DEV_WELCOME, WHO_TO_PROD (mapas de nombre WHO) → src/products.js
-
-function updateStatusBar(model, version) {
-  const key     = model ? model.toLowerCase().replace(/[\s]/g,'') : '';
-  const imgSrc  = DEV_IMAGES[key] || '';
-  const sbImg   = document.getElementById('sbDevImg');
-  const sbName  = document.getElementById('sbDevName');
-  const sbVer   = document.getElementById('sbFwVersion');
-  const sbBadge = document.getElementById('sbConnType2');
-  if (sbImg)  { sbImg.src = imgSrc; sbImg.style.display = imgSrc ? '' : 'none'; }
-  if (sbName) sbName.textContent = model ? '¡Hola, ' + model + '!' : '';
-  if (sbVer)  sbVer.textContent  = version || '';
-  if (sbBadge) sbBadge.textContent = S.connType.toUpperCase();
-}
-
-function showWelcomeDev(model, version) {
-  const key  = model.toLowerCase().replace(/[\s]/g,'');
-  const img  = document.getElementById('welcomeDevImg');
-  const ttl  = document.getElementById('welcomeDevTitle');
-  const ver  = document.getElementById('welcomeDevVersion');
-  if (img) {
-    img.style.animation = 'none';
-    img.src = DEV_IMAGES[key] || '';
-    requestAnimationFrame(() => { img.style.animation = ''; });
-  }
-  if (ttl) ttl.textContent = DEV_WELCOME[key] || '¡Hola, ' + model + '!';
-  if (ver) ver.textContent = version ? 'Firmware ' + version : '';
-  // Actualizar status bar también
-  updateStatusBar(model, version);
-  openModal('welcomeDevModal');
-  setTimeout(() => closeModal('welcomeDevModal'), 2500);
-}
-
-// ── POST-CONEXIÓN: WHO → selección automática → GETALL ──
-async function postConnect() {
-  // Enviar WHO y esperar respuesta hasta 800ms
-  const whoPromise = new Promise(resolve => {
-    _whoResolve = resolve;
-    setTimeout(() => { if (_whoResolve) { _whoResolve(null); _whoResolve = null; } }, 800);
-  });
-  await send('WHO');
-  const who = await whoPromise;
-
-  if (who && who.model) {
-    // Autodetección exitosa
-    const prodKey = WHO_TO_PROD[who.model.toLowerCase().replace(/[\s]/g,'')];
-    if (prodKey && PRODUCTS[prodKey]) selectProd(prodKey);
-    showWelcomeDev(who.model, who.version);
-
-    // Mostrar versión en status bar
-    const vEl = document.getElementById('sbFwVersion');
-    if (vEl) vEl.textContent = who.version || '';
-
-    // Comparar con versión más reciente conocida
-    const latest = LATEST_FW[who.model];
-    if (latest && who.version) {
-      const cur    = parseInt((who.version || '').replace(/\D/g,''));
-      const latNum = parseInt(latest.replace(/\D/g,''));
-      if (cur < latNum) {
-        toast('⬆️', `Para tener las últimas funcionalidades, actualizá tu ${who.model}. Visitá la sección Actualizaciones para saber más.`);
-        addLog(`Firmware desactualizado: ${who.version} → última versión conocida: ${latest}`, 'w');
-      }
-    }
-  } else {
-    // Firmware viejo — sin WHO: pedir selección manual de producto
-    const vEl = document.getElementById('sbFwVersion');
-    if (vEl) vEl.textContent = '';
-    openModal('selectProdModal');
-    addLog('El dispositivo no respondió WHO — firmware sin soporte de autodetección.', 'w');
-  }
-
-  // GETALL solo si el dispositivo fue reconocido
-  if (S.prod) {
-    S.devCfg = mkCfg();
-    await send('GETALL');
-    setTimeout(applyDevCfgToCards, 2400);
-  }
-}
+// ── GETALL / PARSE / STATUS BAR / POST-CONEXIÓN → src/ui/connection.js ──
 
 function renderCfgModal() {
   const ORI = ['Normal (0°)','Girado derecha','Girado izquierda','Invertido (180°)'];
@@ -885,159 +764,7 @@ function renderCfgModal() {
   openModal('cfgModal');
 }
 
-// ── CONEXIÓN ─────────────────────────────────────────────
-async function toggleConn() { S.connected ? await disconnect() : await connectDevice(); }
-
-async function connectDevice() {
-  if (!window.Protocol || !window.Transport) {
-    toast('❌', 'Módulos no cargados. Recargá la página servida por http(s) (no file://).');
-    addLog('window.Protocol / window.Transport no disponibles — ¿se abrió con file://?', 'w');
-    return;
-  }
-  if (S.connType === 'ble') { await connectBLE(); }
-  else                   { await connectUSB(); }
-}
-
-// USB ─────────────────────────────────────────────────────
-// La mecánica del transporte (Web Serial nativo + polyfill WebUSB, bucle de
-// lectura, framing por '\n') vive en src/transport.js. Acá solo se enganchan
-// los callbacks a la UI y se maneja el resultado.
-async function connectUSB() {
-  try {
-    S.conn = await window.Transport.connectSerial({
-      log: addLog,
-      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
-      onClosed: (err) => {
-        if (S.connected) {
-          addLog('Conexión USB interrumpida: ' + (err?.message || ''), 'w');
-          disconnect(true);
-          toast('⚠️', 'El dispositivo USB se desconectó');
-        }
-      },
-    });
-    setConnected(true);
-    await postConnect();
-  } catch(e) {
-    if (e.name === 'NotFoundError') return; // el usuario cerró el selector sin elegir
-    if (e.code === 'NO_SERIAL') {
-      if (isIOS()) toast('❌','USB no disponible en iOS/iPadOS. Configurá desde una PC/Mac por cable.');
-      else         toast('❌','USB no disponible. Usá Chrome o Edge en PC, o Chrome en Android con cable OTG.');
-      return;
-    }
-    addLog('Error USB: ' + e.message, 'w');
-    toast('❌', e.message);
-  }
-}
-
-// BLE ─────────────────────────────────────────────────────
-// La conexión BLE (Nordic UART, diagnóstico de conflicto HID en Windows) vive
-// en src/transport.js → window.Transport.connectBle.
-
-
-async function connectBLE() {
-  if (isIOS()) {
-    toast('❌', 'BLE no disponible en iOS/iPadOS. Usá USB desde una PC o Mac.');
-    addLog('iOS/iPadOS: Web Bluetooth no está soportado por Apple en ningún navegador.', 'w');
-    addLog('→ Conectá el dispositivo por USB a una computadora para configurarlo.', 'w');
-    return;
-  }
-  try {
-    S.conn = await window.Transport.connectBle({
-      log: addLog,
-      toast: toast,
-      onLine: (line) => { addLog(line, 'in'); parseLine(line); },
-      onClosed: () => {
-        if (S.connected) {
-          addLog('Dispositivo BLE desconectado', 'w');
-          disconnect(true);
-          toast('⚠️', 'El dispositivo Bluetooth se desconectó');
-        }
-      },
-    });
-    if (!S.conn) return; // problema de acceso ya diagnosticado en el Registro
-    setConnected(true);
-    await postConnect();
-  } catch(e) {
-    if (e.name === 'NotFoundError' || e.name === 'AbortError') return; // usuario canceló
-    addLog('Error BLE [' + e.name + ']: ' + e.message, 'w');
-    if (e.name === 'SecurityError') {
-      addLog('→ Causa probable: el dispositivo está emparejado al OS como HID.', 'w');
-      addLog('  Chrome no puede acceder a dispositivos HID vía GATT en Windows.', 'w');
-      addLog('  Solución: desemparejar el dispositivo del OS y volver a intentar.', 'w');
-    }
-    toast('❌', e.message || e.name);
-  }
-}
-
-// Desconectar ─────────────────────────────────────────────
-async function disconnect(physical = false) {
-  const was = S.connected; S.connected = false;
-  // El handle de src/transport.js (USB o BLE) hace toda la limpieza del enlace.
-  try { if (S.conn) await S.conn.close(); } catch(_){}
-  S.conn = null;
-  if (was) setConnected(false, physical);
-}
-
-// Enviar ──────────────────────────────────────────────────
-async function send(cmd) {
-  if (!S.connected || !S.conn) { toast('❌','Sin conexión activa'); return false; }
-  try {
-    await S.conn.send(cmd);   // USB o BLE — el handle sabe cómo (chunking BLE incluido)
-    addLog(cmd, 'out');
-    await new Promise(r => setTimeout(r, 90));
-    return true;
-  } catch(e) {
-    addLog('Error al enviar: ' + e.message, 'w');
-    await disconnect(true);
-    toast('⚠️', 'El dispositivo se desconectó');
-    return false;
-  }
-}
-
-function setConnected(val, physical = false) {
-  S.connected = val;
-  ['sdot','sdot2'].forEach(id => { const el=document.getElementById(id); if(el) el.className='sdot'+(val?' on':''); });
-  ['stxt','stxt2'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=val?'Conectado':'Desconectado'; });
-  const btn = document.getElementById('btnConn');
-  btn.textContent = val ? 'Desconectar' : 'Conectar';
-  btn.className = 'btn sm' + (val ? ' ghost' : ' pri');
-  setSections(val);
-  setBanner(val ? 'ok' : (S.prod ? 'conn' : 'none'));
-  // Status bar
-  const sb = document.getElementById('statusBar');
-  if (sb) sb.style.display = val ? '' : 'none';
-  if (!val) {
-    // Limpiar status bar al desconectar
-    updateStatusBar('', '');
-    // Resetear tab activa para que al reconectar se auto-seleccione correctamente
-    S.activePresetTab = null;
-    // Refrescar modal de presets si está abierto
-    const pm = document.getElementById('presetsModal');
-    if (pm && pm.style.display !== 'none') renderPresetTabs();
-  }
-  // Drawer: hide setup when S.connected
-  const setup = document.getElementById('drwSetup');
-  if (setup) setup.style.display = val ? 'none' : '';
-  if (val) { closeDrawer(); closeModal('connModal'); }
-  // Botón Conectar rápido en topbar
-  const cq = document.getElementById('btnConnQuick');
-  if (cq) {
-    cq.textContent = val ? 'Desconectar' : 'Conectar →';
-    cq.className = 'btn-conn-quick' + (val ? ' S.connected' : '');
-    cq.onclick = val ? toggleConn : openConnModal;
-  }
-  // Actualizar botón dentro del connModal si está abierto
-  const btnM = document.getElementById('btnConnM');
-  if (btnM) {
-    btnM.textContent = val ? 'Desconectar' : 'Conectar';
-    btnM.className = 'btn sm' + (val ? ' ghost' : ' pri');
-    btnM.style.width = '100%';
-  }
-  const subM = document.getElementById('connSubM');
-  if (subM) subM.style.display = val ? 'flex' : 'none';
-  if (val) { addLog('Conectado (' + S.connType.toUpperCase() + '): ' + (S.prod ? S.prod.name : '—')); onArrowMode(); }
-  else addLog(physical ? 'Desconexión física detectada' : 'Desconectado', physical ? 'w' : '');
-}
+// ── CONEXIÓN (transporte, send, setConnected) → src/ui/connection.js ──
 
 // ── MODALS ────────────────────────────────────────────────
 function openModal(id)  {
@@ -1048,15 +775,7 @@ function openModal(id)  {
 }
 
 
-// Canal de comandos crudos: reusa send() (misma escritura RX ya usada por la UI estructurada)
-async function sendLogCmd() {
-  const inp = document.getElementById('logCmdInput');
-  const cmd = inp.value.trim();
-  if (!cmd || !S.connected) return;
-  const ok = await send(cmd);
-  if (ok) inp.value = '';
-}
-
+// sendLogCmd → src/ui/connection.js
 
 // ── TOOLTIP GLOBAL DE PRESETS ────────────────────────────
 // Llamado desde buildFactoryPresets tras crear las cards.
@@ -1094,56 +813,7 @@ function initPresetTooltips() {
   }
 }
 
-// ── CONN MODAL ───────────────────────────────────────────
-function openConnModal() {
-  // Con WHO, el producto se detecta solo → pasos 2 y 3 siempre habilitados
-  _connStepEnable(2); _connStepEnable(3);
-
-  // Sincronizar producto si ya hay uno seleccionado
-  document.querySelectorAll('#devListModal .dev-opt:not(.disabled)').forEach(el => el.classList.remove('active'));
-  if (S.prod) {
-    const id = 'opt-' + S.prod.id + '-m';
-    const el = document.getElementById(id);
-    if (el) el.classList.add('active');
-  }
-  // Sincronizar tipo de conexión
-  ['usb','ble'].forEach(t => {
-    const el = document.getElementById('ct-'+t+'-m');
-    if (el) el.classList.toggle('active', S.connType === t);
-  });
-  // Si hay BLE: mostrar hints
-  if (isIOS()) {
-    const ib = document.getElementById('iosBlockM');
-    if (ib) ib.style.display = '';
-    const ctb = document.getElementById('ct-ble-m');
-    if (ctb) { ctb.classList.add('ct-disabled'); ctb.querySelector('.ct-sub').textContent='No disponible'; }
-  }
-  // btnConn del modal
-  const btnM = document.getElementById('btnConnM');
-  if (btnM) {
-    btnM.textContent = S.connected ? 'Desconectar' : 'Conectar';
-    btnM.className = 'btn sm' + (S.connected ? ' ghost' : ' pri');
-    btnM.style.width = '100%';
-  }
-  const sub = document.getElementById('connSubM');
-  if (sub) sub.style.display = S.connected ? 'flex' : 'none';
-  openModal('connModal');
-}
-
-function _connStepEnable(n) {
-  const el = document.getElementById('cstep' + n);
-  if (!el) return;
-  el.style.opacity = '';
-  el.style.pointerEvents = '';
-  el.classList.add('active');
-}
-function _connStepDisable(n) {
-  const el = document.getElementById('cstep' + n);
-  if (!el) return;
-  el.style.opacity = '.4';
-  el.style.pointerEvents = 'none';
-  el.classList.remove('active');
-}
+// ── CONN MODAL (openConnModal) → src/ui/connection.js ──────────────
 
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
 // Mapa inverso código numérico → nombre de tecla (incluye tabla legacy):
@@ -1263,6 +933,12 @@ function applyDevCfgToCards() {
 
 // ── INIT ─────────────────────────────────────────────────
 function init() {
+  // Enganches que src/ui/connection.js necesita de código aún en app.js.
+  // Transicional: desaparecen a medida que esos bloques se mueven a sus módulos.
+  Object.assign(connectionHooks, {
+    renderPresetTabs, applyDevCfgToCards, selectProd, onArrowMode, openModal,
+  });
+
   // Mover topbar y status-bar al inicio del app-shell (están antes en el DOM por limitaciones del HTML estático)
   const shell = document.getElementById('appShell');
   const topbar = document.getElementById('topbar');
@@ -1275,7 +951,6 @@ function init() {
   buildGrid('arrowGrid', def.arrowBtns);
   buildFactoryPresets(def.presets);
   setSections(false);
-  setBanner('none');
   onArrowMode();
   renderCustom();
   let savedOsMode = null;
