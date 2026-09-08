@@ -32,15 +32,25 @@ export function addLog(msg, dir = '') {
   const p = document.getElementById('logPanel');
   if (!p) return;
   const n = new Date();
-  const ts = [n.getHours(), n.getMinutes(), n.getSeconds()].map((v) => String(v).padStart(2, '0')).join(':');
+  const ts = [n.getHours(), n.getMinutes(), n.getSeconds()]
+    .map((v) => String(v).padStart(2, '0'))
+    .join(':');
   const sym = dir === 'out' ? '↗' : dir === 'in' ? '↙' : dir === 'w' ? '⚠' : '·';
   const cls = dir === 'out' ? 'lo' : dir === 'in' ? 'li' : dir === 'w' ? 'lw' : '';
   const e = document.createElement('div');
   e.className = 'le';
   e.innerHTML =
-    '<span class="lt">' + ts + '</span>' +
-    '<span class="' + cls + '">' + sym + '</span>' +
-    '<span class="lm">' + msg + '</span>';
+    '<span class="lt">' +
+    ts +
+    '</span>' +
+    '<span class="' +
+    cls +
+    '">' +
+    sym +
+    '</span>' +
+    '<span class="lm">' +
+    msg +
+    '</span>';
   p.appendChild(e);
   p.scrollTop = p.scrollHeight;
 }
@@ -53,6 +63,12 @@ export function clearLog() {
 /** Escapa `& < >` para interpolar texto de usuario dentro de innerHTML. */
 export function esc(s) {
   return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+/** Abre un modal por id (display:flex). */
+export function openModal(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'flex';
 }
 
 /** Cierra un modal por id. */
