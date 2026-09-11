@@ -7,6 +7,9 @@
 > **hechas y mergeadas a `main`**, más la separación completa de la UI en módulos
 > (que en el plan original era parte de la Fase 2 pero terminó siendo un bloque
 > propio, más grande). Ver §4 para el estado punto por punto.
+>
+> **2026-09-11:** se probó el polyfill Web Serial en una tablet Android real
+> (Xiaomi) — **no funciona**, con causa identificada. Ver punto #7 abajo.
 
 ---
 
@@ -33,7 +36,7 @@ producto tienen que resolverse antes de tocar código.
 | 2 | Sin tests, tipos ni lint | 1 | ✅ **Hecho** — Vitest (47), ESLint 9, Prettier, tsc `checkJs`; CI en verde, 100% de `src/` cubierto |
 | 3 | Sync de presets "borrar todo + reinsertar" | 3 | ✅ **Hecho** (lo grueso) — `id` uuid + upsert por id + delete selectivo después. Falta diff incremental + merge por `updated_at` (menor) |
 | 1 | Monolito de ~3.750 líneas en un archivo | 2 | ✅ **Hecho** — `index.html` → cáscara 626 líneas; 20 módulos en `src/`; `app.js` orquestador ~150 líneas; todo `@ts-check` + lint |
-| 7 | Web Serial Android sin verificar en hardware | 0 | ⏸️ **Despriorizado** ("no es urgente"). El código está; falta la prueba con la tablet Xiaomi |
+| 7 | Web Serial Android sin verificar en hardware | 0 | ❌ **Probado 2026-09-11 en tablet Xiaomi real — NO funciona.** Causa identificada, ver detalle abajo. No es un bug de la app. |
 | 10 | Protocolo serie sin versión explícita | 4 | ⛔ **Pendiente** — necesita cambio de firmware |
 | 6 | disMouth / AdMouse a medias | 5 | ⛔ **Pendiente** — necesita specs |
 | 5 | "Sección Actualizaciones" inexistente | 5 | ⛔ **Pendiente** — necesita contenido (links firmware, pasos de flasheo) |
@@ -41,6 +44,47 @@ producto tienen que resolverse antes de tocar código.
 | 11 | Sin internacionalización (i18n) | 2 | ⛔ **Pendiente** — el refactor de UI **no** extrajo los strings; sigue siendo "tocar todos los archivos" |
 | 12 | Assets pesados sin optimizar | 0 | ⛔ **Pendiente** — quick win sin bloqueos |
 | 8 | iOS sin solución web posible | 0 (decisión) | ⛔ **Decisión de alcance pendiente** |
+
+### #7 en detalle — por qué falla y qué hacer (hallazgo 2026-09-11)
+
+**Prueba:** disMouse (Pro Micro, USB) conectado por cable OTG a una tablet Xiaomi con
+Chrome. El mouse funciona nativamente (cursor y clicks los maneja Android). La app
+**no encuentra el dispositivo** — el mensaje "no se encuentran dispositivos compatibles"
+es del propio selector del navegador, no de la app; nuestro código nunca llega a
+ejecutarse (el `catch` de `connectUSB()` ni loguea nada porque la promesa se resuelve con
+`NotFoundError` antes).
+
+**Causa más probable:** el Pro Micro expone, en el mismo cable, dos funciones USB: una de
+mouse (HID) y una de puerto serie (CDC-ACM, la que usa la app para mandar comandos). Para
+que Chrome pueda usar la parte serie, esa interfaz tiene que estar libre — sin ningún
+controlador del sistema ya "atendiéndola". Es lo que Google documenta como limitación
+conocida del polyfill: *"solo funciona en hardware/plataformas donde el dispositivo es
+accesible por WebUSB y no fue reclamado por un controlador integrado del sistema."* En
+ROMs Xiaomi/MIUI es conocido que el kernel trae compilado un controlador CDC-ACM (para
+otros usos, ej. módems USB) que se adelanta y reclama esa interfaz antes de que Chrome
+pueda ofrecerla — de ahí la lista vacía. **No es un bug de la app**; es un límite de la
+plataforma Android/MIUI que ya estaba señalado como riesgo sin confirmar.
+
+**Arreglo evaluado — firmware, cambiar la interfaz serie por una "vendor-specific":**
+
+- **Opción A (reemplazar CDC-ACM):** descartada. Rompe la conexión desde PC/Mac tal como
+  funciona hoy (Web Serial en desktop depende de que el SO cree un puerto COM/serie real,
+  y eso requiere CDC-ACM) y el upload de firmware con un click desde Arduino IDE (usa el
+  mismo CDC para el reset a 1200 baudios). Arreglar eso implicaría reescribir también la
+  conexión de escritorio de la app — tocar el camino más probado y confiable que existe
+  hoy a cambio de un caso de uso secundario.
+- **Opción B (agregar una tercera interfaz vendor-specific, sin tocar HID ni CDC):**
+  la única viable si algún día se quiere resolver esto. No debería afectar nada de lo que
+  funciona hoy (mouse + conexión desde PC quedan intactos); la interfaz nueva la usaría la
+  app solo como camino adicional en Android. Costo: firmware nuevo (interfaz USB extra) +
+  un tercer modo de conexión en `src/transport.js`. Incógnita sin resolver: si el
+  ATmega32U4 tiene presupuesto de endpoints USB suficiente para sumar esa interfaz — solo
+  se sabe mirando el descriptor USB actual del firmware (repo aparte, no en este proyecto).
+
+**Decisión:** no se toca el firmware por esto ahora. Para tablet sin PC, la alternativa es
+un dispositivo BLE (nRF52840) si el caso de uso lo permite — el USB por OTG queda como
+limitación de plataforma documentada, no como pendiente de la app. Retomar la Opción B
+(nunca la A) si "configurar desde tablet sin PC" se vuelve una necesidad real.
 
 ### Deuda **nueva** introducida por el refactor (transicional, conocida)
 
@@ -69,8 +113,10 @@ producto tienen que resolverse antes de tocar código.
   lógica de conexión/protocolo en el proyecto mayor. *(Resuelto: módulos con límites
   claros; `protocol.js`/`transport.js`/`products.js`/`presets-store.js`/`csv.js` son puros
   y reutilizables.)*
-- **#7** — El caso de uso que originó este trabajo (configurar desde tablet sin PC)
-  todavía no está confirmado. Media hora de prueba define si el enfoque sirve.
+- **#7** — El caso de uso que originó este trabajo (configurar desde tablet sin PC) **se
+  probó y no funciona** — limitación de plataforma (Android/MIUI reclama la interfaz serie
+  antes que Chrome), no de la app. Ver detalle arriba. Queda PC/Mac o un dispositivo BLE
+  como alternativa para ese caso de uso.
 - **#10** — Cualquier evolución del protocolo obliga a coordinar dos repos a la vez.
 - **#6** — Un AdMouse real se configura como si fuera disMouse (puede estar mal); disMouth
   directamente no se puede configurar.
@@ -191,7 +237,6 @@ Estas destraban Fases 2-bis, 4 y 5:
 - ¿**i18n** es requisito? ¿Qué idiomas? (#11)
 - ¿Cuándo **disMouth** y **AdMouse**? ¿Specs? (#6)
 - ¿Cuántos dispositivos **pre-R009** quedan activos? → fecha de fin de soporte legacy (#9)
-- ¿Se hace la prueba del **polyfill Web Serial en la tablet Xiaomi**? (#7)
 
 Quick win sin decisiones: **comprimir/convertir a WebP los PNG + `loading="lazy"`** (#12).
 Y el fix del `@import` de DM Sans (cae a system-ui).
@@ -201,7 +246,7 @@ Y el fix del `@import` de DM Sans (cae a system-ui).
 ## 5. Resumen de secuencia — estado
 
 ```
-Fase 0  [decisiones + quick wins]     #4 ✅ · #12 ⛔ · #7 ⏸️ · #8 decisión ⛔
+Fase 0  [decisiones + quick wins]     #4 ✅ · #12 ⛔ · #7 ❌ probado, no anda · #8 decisión ⛔
    │
 Fase 1  [red de seguridad]            #2 ✅ + CI ✅
    │
