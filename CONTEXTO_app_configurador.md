@@ -10,6 +10,9 @@
 > en módulos. Hoy `index.html` es una cáscara de 626 líneas y toda la lógica
 > vive en 20 archivos bajo `src/`, cada uno con chequeo de tipos y lint en CI.
 > Ver `PLAN_deuda_tecnica.md` para el detalle de qué se hizo y qué falta.
+>
+> **2026-09-11:** se probó el fallback USB para Android (tablet Xiaomi + disMouse por
+> OTG) — no funciona, es una limitación de plataforma. Ver §6.1 y §11.
 
 ---
 
@@ -124,7 +127,10 @@ el punto de acceso desde otras máquinas.
   - **Web Serial API** (`navigator.serial`) — conexión USB. Chrome/Edge desktop, Chrome 148+ Android.
   - **Polyfill Web Serial sobre WebUSB** (CDC-ACM) — `src/webusb-serial-polyfill.js`,
     fallback para **Chrome en Android** vía cable OTG. Se activa solo si falta
-    `navigator.serial` y hay `navigator.usb`. **Sin verificar contra hardware real.**
+    `navigator.serial` y hay `navigator.usb`. **Probado el 2026-09-11 en hardware real
+    (tablet Xiaomi + disMouse por OTG) — no funciona.** Limitación de plataforma
+    (Android/MIUI reclama la interfaz serie del dispositivo antes que Chrome), no un bug
+    de la app. Detalle y alternativas evaluadas en `PLAN_deuda_tecnica.md` §2 (#7).
   - **Web Bluetooth API** (`navigator.bluetooth`) — conexión BLE (Nordic UART).
   - `localStorage` — presets propios y preferencias.
 - **Backend:** **Supabase** (Postgres + Auth + RPC). Ver sección 8.
@@ -247,9 +253,16 @@ Dos transportes, misma capa de comandos de texto por encima. Toda la mecánica v
 - **Fallback Android:** si no hay `navigator.serial` pero sí `navigator.usb`, se usa
   `makePolyfillSerial()` de `src/webusb-serial-polyfill.js` (mismo API, sobre
   transferencias WebUSB a la interfaz CDC-ACM). Pensado para tablets **Xiaomi Redmi Pad
-  Pro / Pad SE** con cable OTG. **No verificado todavía contra hardware real**; si la ROM
-  engancha el driver `cdc_acm` del kernel, `claimInterface` falla y se muestra un aviso.
-  `connectSerial` tira `Error` con `.code === 'NO_SERIAL'` si no hay ninguna de las dos.
+  Pro / Pad SE** con cable OTG. `connectSerial` tira `Error` con `.code === 'NO_SERIAL'`
+  si no hay ninguna de las dos.
+  **Probado el 2026-09-11 en tablet Xiaomi real — no funciona.** El selector de Chrome
+  muestra "no se encuentran dispositivos compatibles" (mensaje del propio navegador, antes
+  de que corra el código de la app). Causa: la ROM (Android/MIUI) reclama la interfaz
+  serie CDC-ACM del dispositivo con su propio controlador de kernel antes de que Chrome
+  pueda ofrecerla — el mouse (HID) sí funciona porque lo maneja el sistema por otra vía,
+  sin pasar por el navegador. Es una limitación de plataforma, no de esta app ni de
+  `makePolyfillSerial()`. Análisis completo y alternativas de firmware evaluadas
+  (descartadas por ahora) en `PLAN_deuda_tecnica.md` §2 (#7).
 
 ### 6.2 BLE — Web Bluetooth + Nordic UART Service (`connectBle` en `src/transport.js`)
 
@@ -267,7 +280,7 @@ Dos transportes, misma capa de comandos de texto por encima. Toda la mecánica v
 | | USB (Web Serial) | USB (polyfill WebUSB) | BLE (Web Bluetooth) |
 |---|---|---|---|
 | Chrome/Edge **desktop** (Win/Mac/Linux) | ✅ | no se activa | ✅ |
-| Chrome **Android** | ✅ desde Chrome 148 | ✅ (fallback, sin verificar en HW) | ✅ |
+| Chrome **Android** | ✅ desde Chrome 148 | ❌ probado, no funciona (ver 6.1) | ✅ |
 | **iOS / iPadOS** (cualquier navegador) | ❌ | ❌ | ❌ (Apple no lo implementa) |
 | Firefox / Safari | ❌ | ❌ | ❌ |
 
@@ -519,11 +532,17 @@ Referencia cruzada: `PLAN_deuda_tecnica.md` (12 puntos, Fases 0–5).
 | 4 | RLS/RPC de Supabase sin versionar + README faltante | **Hecho.** `db/migrations/001_*.sql` + `db/README.md` (esquema + policies verbatim de `pg_policies`). |
 | 12 | Assets pesados sin optimizar | **Pendiente** (quick win, sin bloqueos). |
 
+### Descartado por limitación de plataforma (no de la app)
+
+- **#7 — Web Serial en Android vía polyfill.** Probado el 2026-09-11 en tablet Xiaomi
+  real con un disMouse por OTG: **no funciona.** Android/MIUI reclama la interfaz serie
+  del dispositivo con un controlador de kernel antes de que Chrome pueda acceder a ella
+  (el mouse HID sí anda porque el sistema lo maneja por otra vía). Detalle y alternativas
+  de firmware evaluadas — y por qué se descartaron por ahora — en `PLAN_deuda_tecnica.md`
+  §2. Para tablet sin PC, la alternativa es un dispositivo BLE.
+
 ### Pendiente
 
-- **#7 — Web Serial en Android vía polyfill: sin verificar contra hardware** (Xiaomi
-  Redmi Pad Pro / Pad SE). Riesgo: driver `cdc_acm` del kernel. Despriorizado ("no es
-  urgente") pero el código está.
 - **#10 — Protocolo serie sin versión explícita.** Necesita cambio de firmware (que `WHO`
   o un comando nuevo reporte versión de protocolo). Fase 4.
 - **#9 — Dos tablas de keycodes** (R009+ y legacy) conviven en `REV_KEY` para leer
