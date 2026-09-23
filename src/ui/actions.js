@@ -10,8 +10,8 @@
 import { S } from './state.js';
 import { toast, openModal } from './dom.js';
 import * as Protocol from '../protocol.js';
-import { send } from './connection.js';
-import { updateSummary, onType } from './cards.js';
+import { send, clearDeviceError, takeDeviceError } from './connection.js';
+import { updateSummary, onType, onMode } from './cards.js';
 
 /** getElementById con tipo laxo (transicional). */
 function el(/** @type {string} */ id) {
@@ -21,10 +21,25 @@ function el(/** @type {string} */ id) {
 // ── APLICAR BOTÓN ────────────────────────────────────────
 export async function applyBtn(code) {
   const tipo = el('t_' + code).value;
+  let modo = el('m_' + code).value;
+  if (modo === 'T' && !S.soportaTapHold) modo = 'P'; // nunca mandar T a firmware viejo
+  const L = code + 'L';
+  const largo =
+    modo === 'T'
+      ? {
+          mouseAction: el('mact_' + L)?.value,
+          mantener: el('mant_' + L)?.checked,
+          key: el('k_' + L)?.value,
+          ctrl: el('mc_' + L)?.checked,
+          shift: el('ms_' + L)?.checked,
+          alt: el('ma_' + L)?.checked,
+          gui: el('mg_' + L)?.checked,
+        }
+      : undefined;
   const cmd = Protocol.buildButtonCfg({
     code,
     tipo,
-    modo: el('m_' + code).value,
+    modo,
     debounce: el('d_' + code).value,
     mouseAction: el('mact_' + code)?.value,
     key: el('k_' + code)?.value,
@@ -32,9 +47,13 @@ export async function applyBtn(code) {
     shift: el('ms_' + code)?.checked,
     alt: el('ma_' + code)?.checked,
     gui: el('mg_' + code)?.checked,
+    largo,
+    umbral: modo === 'T' ? el('th_ms_' + code)?.value : undefined,
   });
+  clearDeviceError();
   const ok = await send(cmd);
-  if (ok) {
+  // Si el firmware contestó ERR:* (ya se mostró como aviso), no marcar éxito.
+  if (ok && !takeDeviceError()) {
     toast('✅', code + ' configurado');
     updateSummary(code);
   }
@@ -85,7 +104,8 @@ export function renderCfgModal() {
   const ORI = ['Normal (0°)', 'Girado derecha', 'Girado izquierda', 'Invertido (180°)'];
   const FM = { 0: 'acción individual', 1: 'mueven el cursor', 2: 'teclas ↑↓←→' };
   const TN = { 0: 'Mouse', 1: 'Teclado', 2: 'Desactivado' };
-  const MN = { 0: 'al presionar', 1: 'al soltar', 2: 'pulsación larga' };
+  // 2 (holdeable heredado) ya lo degrada el parser a 0; se deja el fallback por las dudas.
+  const MN = { 0: 'al presionar', 1: 'al soltar', 2: 'al presionar', 3: 'una vez por pulsación', 4: 'corta / larga' };
   const MOU = { 1: 'clic izq.', 2: 'clic der.', 4: 'clic central', 8: 'scroll ↑', 16: 'scroll ↓' };
   const hl = (t) => '<span class="hl">' + t + '</span>';
   let h = '';
@@ -138,6 +158,24 @@ export function renderCfgModal() {
         if (c.mods & 8) mm.push(S.osMode === 'mac' ? '⌘' : 'Win');
         row += ' — tecla ' + hl(ch) + (mm.length ? ' + ' + hl(mm.join('+')) : '');
       }
+      if (c.modo === 4) {
+        let larga;
+        if (c.tipo === 0) {
+          larga = (MOU[c.accionLarga] || '#' + c.accionLarga) + (c.flagsLarga & 2 ? ' (mantener)' : '');
+        } else {
+          const ch =
+            c.accionLarga > 31 && c.accionLarga < 127
+              ? String.fromCharCode(c.accionLarga)
+              : Protocol.REV_KEY[String(c.accionLarga)] || '#' + c.accionLarga;
+          const mm = [];
+          if (c.modsLarga & 1) mm.push('Ctrl');
+          if (c.modsLarga & 2) mm.push('Shift');
+          if (c.modsLarga & 4) mm.push('Alt');
+          if (c.modsLarga & 8) mm.push(S.osMode === 'mac' ? '⌘' : 'Win');
+          larga = 'tecla ' + ch + (mm.length ? ' + ' + mm.join('+') : '');
+        }
+        row += ', larga: ' + hl(larga) + ' a los ' + hl((c.umbral || Protocol.TH_DEFAULT_MS) + 'ms');
+      }
       if (c.debounce > 0) row += ', debounce ' + hl(c.debounce + 'ms');
       h += '<div class="cfg-row">' + row + '.</div>';
     });
@@ -145,6 +183,15 @@ export function renderCfgModal() {
   }
   el('cfgDisplay').innerHTML = h;
   openModal('cfgModal');
+}
+
+/** Código numérico de tecla → texto del campo "Tecla" (token, carácter o `#código`). */
+function keyName(/** @type {number} */ accion) {
+  const revKey = Protocol.REV_KEY;
+  if (revKey[String(accion)]) return revKey[String(accion)];
+  if (accion > 31 && accion < 127) return String.fromCharCode(accion);
+  if (accion > 0) return '#' + accion;
+  return '';
 }
 
 // ── LEER CONFIGURACIÓN → TARJETAS ────────────────────────
@@ -159,7 +206,8 @@ export function applyDevCfgToCards() {
     ...(S.prod.hasCenterConnectors && S.devCfg.fmode === 0 ? S.prod.centerBtns : []),
   ];
 
-  const MODO_MAP = { 0: 'P', 1: 'R', 2: 'H', 3: 'O' };
+  // 2 (holdeable heredado) no tiene opción: cae en 'P' ("Al presionar"), como el firmware nuevo.
+  const MODO_MAP = { 0: 'P', 1: 'R', 3: 'O', 4: 'T' };
   const MODS_BITS = [
     { bit: 1, id: 'mc' },
     { bit: 2, id: 'ms' },
@@ -188,7 +236,10 @@ export function applyDevCfgToCards() {
     onType(code);
 
     // Modo de activación
-    if (mSel) mSel.value = MODO_MAP[c.modo] ?? 'P';
+    if (mSel) {
+      mSel.value = MODO_MAP[c.modo] ?? 'P';
+      if (!mSel.value) mSel.value = 'P'; // 'T' sin soporte → no queda el select en blanco
+    }
 
     // Debounce
     if (dInp) dInp.value = c.debounce ?? 0;
@@ -213,25 +264,37 @@ export function applyDevCfgToCards() {
     } else if (c.tipo === 1) {
       // Teclado
       const kInp = el('k_' + code);
-      if (kInp) {
-        const accion = String(c.accion);
-        const revKey = Protocol.REV_KEY;
-        if (revKey[accion]) {
-          kInp.value = revKey[accion];
-        } else if (c.accion > 31 && c.accion < 127) {
-          kInp.value = String.fromCharCode(c.accion);
-        } else if (c.accion > 0) {
-          kInp.value = '#' + c.accion;
-        } else {
-          kInp.value = '';
-        }
-      }
+      if (kInp) kInp.value = keyName(c.accion);
       // Modificadores
       MODS_BITS.forEach(({ bit, id }) => {
         const cb = el(id + '_' + code);
         if (cb) cb.checked = !!(c.mods & bit);
       });
     }
+
+    // Tap-Hold: acción larga + umbral (0 → vacío, el placeholder muestra el default)
+    if (S.soportaTapHold && c.modo === 4 && el('th_' + code)) {
+      const L = code + 'L';
+      if (c.tipo === 0) {
+        const mAct = el('mact_' + L);
+        if (mAct) {
+          mAct.value = c.accionLarga === 8 ? 'SU' : c.accionLarga === 16 ? 'SD' : String(c.accionLarga);
+          if (!mAct.value) mAct.value = '1';
+        }
+        const mant = el('mant_' + L);
+        if (mant) mant.checked = !!(c.flagsLarga & 2);
+      } else if (c.tipo === 1) {
+        const kL = el('k_' + L);
+        if (kL) kL.value = keyName(c.accionLarga);
+        MODS_BITS.forEach(({ bit, id }) => {
+          const cb = el(id + '_' + L);
+          if (cb) cb.checked = !!(c.modsLarga & bit);
+        });
+      }
+      const thInp = el('th_ms_' + code);
+      if (thInp) thInp.value = c.umbral > 0 ? c.umbral : '';
+    }
+    onMode(code);
 
     updateSummary(code);
   });

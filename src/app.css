@@ -205,6 +205,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 .btn-adv-toggle.open::before{transform:rotate(90deg)}
 .btn-adv{display:none;border-top:1px solid var(--bdr);margin-top:4px;padding-top:9px}
 .btn-adv.open{display:flex;flex-direction:column;gap:7px}
+.th-block{display:flex;flex-direction:column;gap:7px;border-top:1px dashed var(--bdr);padding-top:9px;margin-top:2px}
 
 /* ── LAYOUT CENTRADO (disButton, disHub) ── */
 .prod-centered .btns-grid{display:flex;justify-content:center;flex-wrap:wrap}

@@ -43,6 +43,8 @@ import {
 import {
   buildGrid,
   onType,
+  onMode,
+  syncTapHoldUI,
   toggleAdv,
   setCapturedKey,
   captureFromInput,
@@ -107,6 +109,7 @@ connectionHooks.renderPresetTabs = renderPresetTabs;
 connectionHooks.applyDevCfgToCards = applyDevCfgToCards;
 connectionHooks.selectProd = selectProd;
 connectionHooks.onArrowMode = onArrowMode;
+connectionHooks.syncTapHoldUI = syncTapHoldUI;
 
 // ── INIT ─────────────────────────────────────────────────
 function init() {
@@ -204,6 +207,7 @@ Object.assign(window, {
   nextStep,
   onArrowMode,
   onDishubCenterMode,
+  onMode,
   onType,
   openAuthModal,
   openConnModal,

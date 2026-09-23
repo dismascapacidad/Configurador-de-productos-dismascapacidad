@@ -8,6 +8,7 @@
  */
 import { S } from './state.js';
 import { isTouchDevice } from './platform.js';
+import { TH_DEFAULT_MS, TH_MIN_MS, TH_MAX_MS } from '../protocol.js';
 
 /** getElementById con tipo laxo (transicional, evita castear cada `.value`). */
 function el(/** @type {string} */ id) {
@@ -134,31 +135,11 @@ function mkCard(code, label, color, note) {
           </select>
         </div>
         <div id="act_${code}">
-          <div id="kb_${code}">
-            <div class="field" style="margin:0">
-              <label class="lbl">Tecla</label>
-              ${
-                isTouchDevice()
-                  ? `<input type="text" id="k_${code}" placeholder="Tocá y escribí la tecla" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-                    oninput="captureFromInput('${code}', event)">`
-                  : `<input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
-                    onfocus="startCap('${code}')" onblur="stopCap('${code}')">`
-              }
-              <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
-              ${
-                isTouchDevice()
-                  ? `<div class="key-chips">${SPECIAL_KEY_CHIPS.map(
-                      (k) =>
-                        `<button type="button" class="key-chip" onclick="setCapturedKey('${code}','${k.name}')">${k.label}</button>`,
-                    ).join('')}</div>`
-                  : ''
-              }
-            </div>
-          </div>
+          <div id="kb_${code}">${keyFieldHtml(code)}</div>
           <div id="mo_${code}" style="display:none">
             <div class="field" style="margin:0">
               <label class="lbl">Acción del mouse</label>
-              <select id="mact_${code}">
+              <select id="mact_${code}" onchange="onMode('${code}')">
                 <option value="1">Clic izquierdo</option>
                 <option value="1D">Doble clic izquierdo</option>
                 <option value="1M">Mantener clic izquierdo (toggle)</option>
@@ -177,11 +158,11 @@ function mkCard(code, label, color, note) {
     <div class="btn-adv" id="adv_${code}">
       <div class="field" style="margin:0">
         <label class="lbl">Se activa</label>
-        <select id="m_${code}">
+        <select id="m_${code}" onchange="onMode('${code}')">
           <option value="P">Al presionar</option>
           <option value="R">Al soltar</option>
-          <option value="H">Pulsación larga (1 seg)</option>
           <option value="O">Una vez por pulsación</option>
+          ${S.soportaTapHold ? TAP_HOLD_OPTION : ''}
         </select>
       </div>
       <div class="field" style="margin:0">
@@ -203,8 +184,130 @@ function mkCard(code, label, color, note) {
           </div>
         </div>
       </div>
+      ${S.soportaTapHold ? tapHoldBlockHtml(code) : ''}
     </div>`;
   return d;
+}
+
+/** Tecla (captura) — la usan la acción corta y la larga (`code` = 'BR' / 'BRL'). */
+function keyFieldHtml(code) {
+  return `
+            <div class="field" style="margin:0">
+              <label class="lbl">Tecla</label>
+              ${
+                isTouchDevice()
+                  ? `<input type="text" id="k_${code}" placeholder="Tocá y escribí la tecla" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+                    oninput="captureFromInput('${code}', event)">`
+                  : `<input type="text" id="k_${code}" placeholder="Clic aquí y presione la tecla" readonly style="cursor:pointer"
+                    onfocus="startCap('${code}')" onblur="stopCap('${code}')">`
+              }
+              <div class="hint" id="kh_${code}">Dejar vacío = solo modificadores.</div>
+              ${
+                isTouchDevice()
+                  ? `<div class="key-chips">${SPECIAL_KEY_CHIPS.map(
+                      (k) =>
+                        `<button type="button" class="key-chip" onclick="setCapturedKey('${code}','${k.name}')">${k.label}</button>`,
+                    ).join('')}</div>`
+                  : ''
+              }
+            </div>`;
+}
+
+// ── TAP-HOLD (solo firmware -TH) ─────────────────────────
+// Sufijo del pseudo-código de la acción larga: reusa ids `k_BRL`, `mact_BRL`, `mc_BRL`…
+// para que la captura de teclas (startCap, setCapturedKey…) funcione sin cambios.
+const LONG = 'L';
+
+const TAP_HOLD_OPTION = '<option value="T">Corta / Larga (Tap-Hold)</option>';
+
+/** Bloque "Acción larga" + umbral de una tarjeta. Oculto hasta elegir modo T. */
+function tapHoldBlockHtml(code) {
+  const L = code + LONG;
+  return `
+      <div class="th-block" id="th_${code}" style="display:none">
+        <div class="lbl">Acción larga (mantener apretado)</div>
+        <div class="hint">La acción corta y la larga comparten tipo (mouse/teclado).</div>
+        <div id="kb_${L}">${keyFieldHtml(L)}</div>
+        <div id="mo_${L}" style="display:none">
+          <div class="field" style="margin:0">
+            <label class="lbl">Acción del mouse</label>
+            <select id="mact_${L}" onchange="onMode('${code}')">
+              <option value="1">Clic izquierdo</option>
+              <option value="2">Clic derecho</option>
+              <option value="4">Clic central</option>
+              <option value="SU">Scroll ↑</option>
+              <option value="SD">Scroll ↓</option>
+            </select>
+          </div>
+          <label class="mod-cb" id="mantwrap_${L}" style="margin-top:6px"><input type="checkbox" id="mant_${L}"><span>Mantener clic</span></label>
+        </div>
+        <div id="kb_mods_${L}">
+          <div class="field" style="margin:0">
+            <label class="lbl">Modificadores</label>
+            <div class="mods-grid">
+              <label class="mod-cb"><input type="checkbox" id="mc_${L}"><span>Ctrl</span></label>
+              <label class="mod-cb"><input type="checkbox" id="ms_${L}"><span>Shift</span></label>
+              <label class="mod-cb"><input type="checkbox" id="ma_${L}"><span>Alt</span></label>
+              <label class="mod-cb"><input type="checkbox" id="mg_${L}"><span class="mod-gui-lbl">${S.osMode === 'mac' ? '⌘ Cmd' : 'Win'}</span></label>
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin:0">
+          <label class="lbl">Umbral de pulsación larga (ms)</label>
+          <input type="number" id="th_ms_${code}" min="${TH_MIN_MS}" max="${TH_MAX_MS}" step="20" placeholder="${TH_DEFAULT_MS} (default)">
+        </div>
+        <div class="hint">La acción corta se ejecuta si soltás el botón antes del umbral. La acción larga se activa apenas mantenés apretado el umbral configurado y se libera al soltar.</div>
+      </div>`;
+}
+
+/**
+ * Agrega o quita, en todas las tarjetas ya construidas, la opción "Tap-Hold" y el
+ * bloque de acción larga según `S.soportaTapHold`. Sin soporte no queda ningún rastro.
+ */
+export function syncTapHoldUI() {
+  document.querySelectorAll('.btn-card').forEach((card) => {
+    const code = card.id.replace(/^card-/, '');
+    const sel = el('m_' + code);
+    const th = el('th_' + code);
+    if (S.soportaTapHold) {
+      if (sel && !sel.querySelector('option[value="T"]')) sel.insertAdjacentHTML('beforeend', TAP_HOLD_OPTION);
+      if (!th) el('adv_' + code)?.insertAdjacentHTML('beforeend', tapHoldBlockHtml(code));
+    } else {
+      if (sel && sel.value === 'T') sel.value = 'P';
+      sel?.querySelector('option[value="T"]')?.remove();
+      th?.remove();
+    }
+    onMode(code);
+  });
+}
+
+/**
+ * Cambio de modo de disparo (o del tipo / acción): muestra el bloque largo solo en
+ * modo T y ajusta lo que Tap-Hold no admite (en la acción corta no aplica
+ * "mantener clic"; en la larga no aplica con scroll).
+ */
+export function onMode(code) {
+  const t = el('t_' + code)?.value;
+  const modoT = el('m_' + code)?.value === 'T';
+  // Acción corta: "mantener clic (toggle)" no tiene efecto en un tap instantáneo.
+  const shortAct = el('mact_' + code);
+  const opt1M = shortAct?.querySelector('option[value="1M"]');
+  if (opt1M) {
+    opt1M.disabled = modoT;
+    opt1M.hidden = modoT;
+    if (modoT && shortAct.value === '1M') shortAct.value = '1';
+  }
+  const th = el('th_' + code);
+  if (!th) return;
+  const L = code + LONG;
+  th.style.display = modoT && t !== 'X' ? '' : 'none';
+  el('kb_' + L).style.display = t === 'K' ? '' : 'none';
+  el('kb_mods_' + L).style.display = t === 'K' ? '' : 'none';
+  el('mo_' + L).style.display = t === 'M' ? '' : 'none';
+  // "Mantener clic" solo si el tipo es mouse y la acción no es scroll.
+  const scroll = ['SU', 'SD'].includes(el('mact_' + L).value);
+  el('mantwrap_' + L).style.display = scroll ? 'none' : '';
+  if (scroll) el('mant_' + L).checked = false;
 }
 
 export function toggleAdv(code) {
@@ -215,6 +318,17 @@ export function toggleAdv(code) {
   tog.classList.toggle('open', open);
 }
 
+/** Texto resumen de una acción (`id` = 'BR' para la corta, 'BRL' para la larga). */
+function actionSummary(id, t) {
+  if (t === 'M') return el('mact_' + id)?.selectedOptions[0]?.text || '';
+  const k = el('k_' + id)?.value || '';
+  const mods = ['mc', 'ms', 'ma', 'mg']
+    .filter((p) => el(p + '_' + id)?.checked)
+    .map((p) => ({ mc: 'Ctrl', ms: 'Shift', ma: 'Alt', mg: S.osMode === 'mac' ? '⌘' : 'Win' })[p]);
+  const parts = [...mods, k].filter(Boolean);
+  return parts.length ? parts.join('+') : 'sin tecla';
+}
+
 export function updateSummary(code) {
   const box = el('sum_' + code);
   if (!box) return;
@@ -223,17 +337,11 @@ export function updateSummary(code) {
     box.textContent = 'Desactivado';
     return;
   }
-  if (t === 'M') {
-    const txt = el('mact_' + code)?.selectedOptions[0]?.text || '';
-    box.textContent = txt;
-    return;
+  let txt = actionSummary(code, t);
+  if (el('m_' + code)?.value === 'T' && el('th_' + code)) {
+    txt += ' / ' + actionSummary(code + LONG, t) + (t === 'M' && el('mant_' + code + LONG)?.checked ? ' (mantener)' : '');
   }
-  const k = el('k_' + code)?.value || '';
-  const mods = ['mc', 'ms', 'ma', 'mg']
-    .filter((p) => el(p + '_' + code)?.checked)
-    .map((p) => ({ mc: 'Ctrl', ms: 'Shift', ma: 'Alt', mg: S.osMode === 'mac' ? '⌘' : 'Win' })[p]);
-  const parts = [...mods, k].filter(Boolean);
-  box.textContent = parts.length ? parts.join('+') : 'sin tecla';
+  box.textContent = txt;
 }
 
 export function onType(code) {
@@ -245,6 +353,7 @@ export function onType(code) {
     const mods = document.getElementById('kb_mods_' + code);
     if (mods) mods.style.display = t === 'K' ? '' : 'none';
   }
+  onMode(code);
 }
 
 // ── CAPTURA DE TECLAS ────────────────────────────────────
