@@ -608,7 +608,7 @@ export async function applyCustom(p) {
   const cfg = p.cfg;
   if (!cfg) return;
   // Traducción cfg → comandos: src/protocol.js (testeado).
-  for (const c of Protocol.cfgToCommands(cfg)) await send(c);
+  for (const c of Protocol.cfgToCommands(cfg, { tapHold: S.soportaTapHold })) await send(c);
   toast('⭐', '"' + p.name + '" aplicada');
   closeModal('presetsModal');
 }

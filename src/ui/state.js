@@ -19,6 +19,11 @@ export const S = {
   osMode: 'win',
   /** Handle del transporte activo `{ send, close }` o `null` (src/transport.js). */
   conn: /** @type {any} */ (null),
+  /**
+   * ¿El firmware conectado soporta Tap-Hold? Se recalcula en cada conexión (WHO con
+   * versión `-TH<n>`, o BTN de 11 campos) y se resetea al desconectar.
+   */
+  soportaTapHold: false,
   /** Config leída del dispositivo (forma de `Protocol.emptyCfg()`). */
   devCfg: /** @type {any} */ ({ orient: null, vel: null, acel: null, fmode: null, btns: {} }),
   /** `tabId` activo en el modal de configuraciones rápidas. */

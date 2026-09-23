@@ -320,11 +320,18 @@ CFG:<code>:<tipo>:<modo>:<debounce>:<accion>:<mods>:<flags>
 |---|---|---|
 | `code` | `BR BA BN BC FU FD FL FR` | Botón / conector. |
 | `tipo` | `K` teclado · `M` mouse · `X` desactivado | |
-| `modo` | `P` al presionar · `R` al soltar · `H` pulsación larga (~1 s) · `O` una vez por pulsación | (en `GETALL` vuelve como `0/1/2/3`) |
+| `modo` | `P` al presionar · `R` al soltar · `O` una vez por pulsación · `T` Tap-Hold (**solo firmware `-TH<n>`**; `H` retirado, no se envía) | (en `GETALL` vuelve como `0/1/3/4`; un `2` heredado se muestra como `0`) |
 | `debounce` | ms (0–5000) | |
 | `accion` | ver abajo | |
 | `mods` | combinación de `C` Ctrl, `S` Shift, `A` Alt, `G` GUI/⌘/Win — o `-` | Solo tipo `K`. |
 | `flags` | `D` doble clic · `M` mantener/toggle — o `-` | Solo tipo `M`. |
+
+**Tap-Hold (solo firmware `-TH<n>`, ej. `R013-TH1`).** El flag `S.soportaTapHold` sale de
+`/-TH\d+$/` sobre la versión de `WHO` (se recalcula en cada conexión y se resetea al
+desconectar); red de seguridad: un `BTN:` de 11 campos lo activa. Sin el flag la UI y los `CFG`
+quedan idénticos a antes. Con modo `T` el `CFG` lleva 4 campos más:
+`...:<accionLarga>:<modsLarga>:<flagsLarga>:<umbralMs>` (umbral 0 = default 1000; rango 100–5000).
+`GETALL` pasa a `BTN:` de 11 campos. Errores: `ERR:MODE/ACTIONLARGA/MODSLARGA/FLAGSLARGA/THRESHOLD`.
 
 **`accion` según tipo:**
 

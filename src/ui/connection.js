@@ -30,7 +30,29 @@ export const connectionHooks = {
   selectProd: () => {},
   /** @type {() => void} */
   onArrowMode: () => {},
+  /** Agrega / quita los elementos de Tap-Hold de las tarjetas según `S.soportaTapHold`.
+   * @type {() => void} */
+  syncTapHoldUI: () => {},
 };
+
+/** Último error ERR:* de Tap-Hold / modo de disparo (para que applyBtn no marque éxito).
+ * @type {string | null} */
+let _lastDeviceError = null;
+export function clearDeviceError() {
+  _lastDeviceError = null;
+}
+export function takeDeviceError() {
+  const e = _lastDeviceError;
+  _lastDeviceError = null;
+  return e;
+}
+
+/** Fija `S.soportaTapHold` y, si cambió, refresca las tarjetas. */
+function setTapHold(on) {
+  if (S.soportaTapHold === on) return;
+  S.soportaTapHold = on;
+  connectionHooks.syncTapHoldUI();
+}
 
 /** getElementById con tipo laxo (transicional). */
 function el(/** @type {string} */ id) {
@@ -62,7 +84,22 @@ export function parseLine(line) {
     }
     return;
   }
-  Protocol.parseDeviceLine(line, S.devCfg); // vuelca ORIENT/VEL/ACEL/FMODE/BTN en S.devCfg
+  const errMsg = Protocol.describeDeviceError(line);
+  if (errMsg) {
+    _lastDeviceError = errMsg;
+    toast('⚠️', errMsg);
+    return;
+  }
+  // Red de seguridad: BTN de 11 campos ⇒ firmware compatible aunque el WHO no lo dijera.
+  if (!S.soportaTapHold && Protocol.isExtendedBtnLine(line)) {
+    addLog('BTN con 11 campos: se trata el dispositivo como compatible con Tap-Hold.', 'w');
+    setTapHold(true);
+  }
+  if (S.soportaTapHold && line.startsWith('BTN:') && !Protocol.isExtendedBtnLine(line)) {
+    addLog('Línea BTN de 7 campos con firmware -TH (se esperan 11): ignorada.', 'w');
+  }
+  // vuelca ORIENT/VEL/ACEL/FMODE/BTN en S.devCfg
+  Protocol.parseDeviceLine(line, S.devCfg, { requireTapHold: S.soportaTapHold });
 }
 
 // ── SECCIONES HABILITADAS / DESHABILITADAS ───────────────
@@ -140,6 +177,10 @@ async function postConnect() {
   await send('WHO');
   const who = await whoPromise;
 
+  // Tap-Hold: se recalcula en cada conexión, ANTES de armar las tarjetas del producto.
+  setTapHold(Protocol.supportsTapHold(who?.version));
+  if (S.soportaTapHold) addLog('Firmware con Tap-Hold detectado: ' + who.version);
+
   if (who && who.model) {
     // Autodetección exitosa
     const prodKey = WHO_TO_PROD[who.model.toLowerCase().replace(/[\s]/g, '')];
@@ -152,7 +193,7 @@ async function postConnect() {
     // Comparar con la versión más reciente conocida
     const latest = LATEST_FW[who.model];
     if (latest && who.version) {
-      const cur = parseInt((who.version || '').replace(/\D/g, ''));
+      const cur = parseInt((who.version || '').replace(/-TH\d+$/, '').replace(/\D/g, ''));
       const latNum = parseInt(latest.replace(/\D/g, ''));
       if (cur < latNum) {
         toast(
@@ -319,6 +360,7 @@ function setConnected(val, physical = false) {
   const sb = el('statusBar');
   if (sb) sb.style.display = val ? '' : 'none';
   if (!val) {
+    setTapHold(false);
     updateStatusBar('', '');
     // Resetear tab activa para que al reconectar se auto-seleccione correctamente
     S.activePresetTab = null;
