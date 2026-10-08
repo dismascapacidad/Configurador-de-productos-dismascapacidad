@@ -1,15 +1,14 @@
 // @ts-check
 /**
  * Configuraciones rápidas: presets de fábrica (EpE), presets propios del
- * usuario (localStorage + sync a Supabase), presets compartidos y de la
- * comunidad, import/export CSV, y el modal de compartir.
+ * usuario (solo en este navegador, localStorage) e import/export CSV. No hay
+ * cuentas ni nube: pasar perfiles a otro equipo se hace con CSV.
  *
- * Almacenamiento y sync → src/presets-store.js. Serialización CSV → src/csv.js.
+ * Almacenamiento → src/presets-store.js. Serialización CSV → src/csv.js.
  * Traducción cfg ↔ comandos → src/protocol.js. Acá va el render y el pegamento.
  */
 import { S } from './state.js';
-import { toast, addLog, esc, closeModal, openModal } from './dom.js';
-import { supa } from '../supabase-client.js';
+import { toast, esc, closeModal, openModal } from './dom.js';
 import * as PresetsStore from '../presets-store.js';
 import * as Csv from '../csv.js';
 import * as Protocol from '../protocol.js';
@@ -25,93 +24,6 @@ function el(/** @type {string} */ id) {
 export function openPresetsModal() {
   openModal('presetsModal');
   renderPresetTabs();
-}
-
-// ── SYNC PRESETS ─────────────────────────────────────────
-// El almacenamiento (localStorage + upsert incremental a Supabase) vive en
-// src/presets-store.js. Acá solo el pegamento con la UI.
-export async function fetchSupaPresets() {
-  const { rows, error } = await PresetsStore.fetchCloud(supa);
-  if (error) addLog('Error al leer presets de la nube: ' + error, 'w');
-  return rows;
-}
-
-async function syncPresetsToCloud(list) {
-  if (!S.currentUser) return;
-  const { error } = await PresetsStore.pushToCloud(supa, S.currentUser.id, list);
-  if (error) addLog('Error al sincronizar con la nube: ' + error, 'w');
-}
-
-function showImportDialog(localPresets, supaPresets) {
-  const body = el('importModalBody');
-  const localCount = localPresets.length;
-  const supaCount = supaPresets.length;
-  body.innerHTML = `
-    <p class="auth-info">
-      Tenés <strong>${localCount} configuración${localCount !== 1 ? 'es' : ''}</strong>
-      guardada${localCount !== 1 ? 's' : ''} en este navegador.<br>
-      ${
-        supaCount > 0
-          ? `Tu cuenta ya tiene <strong>${supaCount} configuración${supaCount !== 1 ? 'es' : ''}</strong>.`
-          : 'Tu cuenta todavía no tiene configuraciones guardadas.'
-      }
-    </p>
-    <p class="auth-info">¿Qué querés hacer con las configuraciones locales?</p>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <button class="btn pri sm" onclick="importChoice('merge')">
-        Agregar las locales a mi cuenta
-      </button>
-      <button class="btn ghost sm" onclick="importChoice('cloud')">
-        Descartar las locales, usar solo las de mi cuenta
-      </button>
-    </div>`;
-  openModal('importModal');
-}
-
-export async function importChoice(choice) {
-  closeModal('importModal');
-  if (choice === 'merge') {
-    // Combinar nube + local (sin duplicar por nombre). reconcileIds hace que los
-    // locales que ya existen en la nube adopten su id, así el upsert no duplica.
-    const localPresets = loadCustom();
-    const { rows: cloudRows } = await PresetsStore.fetchCloud(supa);
-    PresetsStore.reconcileIds(localPresets, cloudRows);
-    const cloudIds = new Set(cloudRows.map((p) => p.id));
-    const merged = [...cloudRows, ...localPresets.filter((p) => !cloudIds.has(p.id))];
-    PresetsStore.saveLocal(merged);
-    await syncPresetsToCloud(merged);
-    renderCustom();
-    toast('☁️', `${merged.length} configuración${merged.length !== 1 ? 'es' : ''} en tu cuenta`);
-  } else {
-    // Usar solo las de la nube
-    const { rows: cloudRows } = await PresetsStore.fetchCloud(supa);
-    PresetsStore.saveLocal(cloudRows);
-    renderCustom();
-    toast(
-      '☁️',
-      cloudRows.length > 0
-        ? `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`
-        : 'No tenés configuraciones guardadas en tu cuenta todavía',
-    );
-  }
-}
-
-export async function handleLoginSync() {
-  const localPresets = loadCustom();
-  const { rows: cloudRows } = await PresetsStore.fetchCloud(supa);
-  if (localPresets.length > 0) {
-    // Hay presets locales: preguntar qué hacer (merge / usar solo la nube)
-    showImportDialog(localPresets, cloudRows);
-  } else {
-    // Sin presets locales: cargar los de la nube directamente
-    PresetsStore.saveLocal(cloudRows);
-    renderCustom();
-    if (cloudRows.length > 0)
-      toast(
-        '☁️',
-        `${cloudRows.length} configuración${cloudRows.length !== 1 ? 'es' : ''} cargadas desde tu cuenta`,
-      );
-  }
 }
 
 // ── TABS DE DISPOSITIVO EN MODAL PRESETS ────────────────
@@ -161,7 +73,6 @@ function _refreshPresetContent() {
   const factoryIds = [...new Set(tab.prodIds.flatMap((pid) => PRODUCTS[pid]?.presets || []))];
   _buildFactoryPresetsRaw(factoryIds);
   renderCustom();
-  if (S.currentUser) loadSharedPresets();
 }
 
 function _buildFactoryPresetsRaw(ids) {
@@ -231,7 +142,6 @@ function loadCustom() {
 }
 function saveCustomList(list) {
   PresetsStore.saveLocal(list);
-  syncPresetsToCloud(list); // sync en background, sin bloquear UI (no-op si no hay sesión)
 }
 
 export function renderCustom() {
@@ -264,7 +174,6 @@ export function renderCustom() {
       <div class="custom-actions" onclick="event.stopPropagation()">
         <button class="btn pri sm"   onclick="applyCustom(_PR['${k}'])">Aplicar</button>
         <button class="btn ghost sm" onclick="openEditPreset(${realIdx})">✏️ Editar</button>
-        <button class="btn ghost sm" onclick="openShareModal(_PR['${k}'])">↗ Compartir</button>
         <button class="btn ghost sm" onclick="downloadCSV(_PR['${k}'])">⬇ CSV</button>
       </div>`;
     grid.appendChild(card);
@@ -279,105 +188,6 @@ function _reg(p) {
   const k = 'p' + _prIdx++;
   _PR[k] = p;
   return k;
-}
-
-// ── COMPARTIR / CSV ──────────────────────────────────────
-let _sharePreset = null;
-
-export function openShareModal(p) {
-  _sharePreset = p;
-  el('sharePresetName').textContent = _sharePreset.name;
-  el('shareEmail').value = '';
-  const msg = el('shareMsg');
-  msg.style.display = 'none';
-  msg.textContent = '';
-  openModal('shareModal');
-}
-
-export async function shareWithUser() {
-  if (!S.currentUser) {
-    toast('⚠️', 'Necesitás estar logueado para compartir');
-    return;
-  }
-  const email = el('shareEmail').value.trim().toLowerCase();
-  if (!email) {
-    el('shareEmail').focus();
-    return;
-  }
-  if (email === S.currentUser.email) {
-    showShareMsg('No podés compartir contigo mismo.', 'warn');
-    return;
-  }
-
-  // Buscar recipient_id via función RPC (ver instrucciones en README)
-  const { data, error: ue } = await supa.rpc('get_user_id_by_email', { p_email: email });
-  if (ue || !data) {
-    showShareMsg(
-      '❌ No encontramos ninguna cuenta con ese email. <button class="btn ghost sm" style="margin-top:6px" onclick="downloadCSV(JSON.stringify(_sharePreset))">⬇ Descargar CSV</button>',
-      'warn',
-    );
-    return;
-  }
-
-  const { error } = await supa.from('shared_presets').insert({
-    recipient_id: data,
-    sender_email: S.currentUser.email,
-    sender_name: S.currentUser.user_metadata?.full_name || S.currentUser.email,
-    name: _sharePreset.name,
-    date: _sharePreset.date,
-    prod_id: _sharePreset.prodId || null,
-    cfg: _sharePreset.cfg,
-    notes: _sharePreset.notes || null,
-    is_community: false,
-  });
-  if (error) {
-    showShareMsg('Error al enviar: ' + error.message, 'error');
-    return;
-  }
-  showShareMsg(
-    '✅ ¡Enviado! El usuario verá el preset la próxima vez que abra sus configuraciones.',
-    'ok',
-  );
-  setTimeout(() => closeModal('shareModal'), 2000);
-}
-
-export async function shareWithCommunity() {
-  if (!S.currentUser) {
-    toast('⚠️', 'Necesitás estar logueado para compartir');
-    return;
-  }
-  if (
-    !confirm(
-      '¿Querés compartir "' +
-        _sharePreset.name +
-        '" con toda la comunidad? Será visible para todos los usuarios.',
-    )
-  )
-    return;
-  const { error } = await supa.from('shared_presets').insert({
-    recipient_id: null,
-    sender_email: S.currentUser.email,
-    sender_name: S.currentUser.user_metadata?.full_name || S.currentUser.email,
-    name: _sharePreset.name,
-    date: _sharePreset.date,
-    prod_id: _sharePreset.prodId || null,
-    cfg: _sharePreset.cfg,
-    notes: _sharePreset.notes || null,
-    is_community: true,
-  });
-  if (error) {
-    showShareMsg('Error: ' + error.message, 'error');
-    return;
-  }
-  showShareMsg('✅ ¡Compartido con la comunidad!', 'ok');
-  setTimeout(() => closeModal('shareModal'), 1800);
-}
-
-function showShareMsg(html, type) {
-  const box = el('shareMsg');
-  box.innerHTML = html;
-  box.style.display = 'block';
-  box.style.color = type === 'ok' ? 'var(--grn)' : type === 'warn' ? 'var(--acc)' : 'var(--red)';
 }
 
 // Serialización/parseo CSV: src/csv.js. Acá solo el <a download> y el <input file>.
@@ -422,95 +232,6 @@ export function importCSV() {
     );
   };
   inp.click();
-}
-
-// ── PRESETS COMPARTIDOS Y COMUNIDAD ─────────────────────
-export async function loadSharedPresets() {
-  if (!S.currentUser) return;
-  const { data, error } = await supa
-    .from('shared_presets')
-    .select('*')
-    .order('created_at', { ascending: false });
-  if (error) {
-    addLog('Error al cargar compartidos: ' + error.message, 'w');
-    return;
-  }
-
-  const mine = (data || []).filter((p) => p.recipient_id === S.currentUser.id && !p.is_community);
-  const community = (data || []).filter((p) => p.is_community);
-
-  renderSharedGrid('sharedGrid', 'sectionShared', mine, false);
-  renderSharedGrid('communityGrid', 'sectionCommunity', community, true);
-}
-
-function renderSharedGrid(gridId, sectionId, list, isCommunity) {
-  const section = el(sectionId);
-  const grid = el(gridId);
-  // Filtrar por tab activa
-  const tab = PRESET_TABS.find((t) => t.tabId === S.activePresetTab);
-  const items = tab ? list.filter((p) => !p.prod_id || tab.prodIds.includes(p.prod_id)) : list;
-  if (!items.length) {
-    section.style.display = 'none';
-    return;
-  }
-  section.style.display = 'block';
-  grid.innerHTML = '';
-  const myEmail = S.currentUser?.email || '';
-  items.forEach((p) => {
-    const prodLabel = PRODUCTS[p.prod_id] ? PRODUCTS[p.prod_id].name : '';
-    const mapped = { name: p.name, date: p.date, prodId: p.prod_id, cfg: p.cfg, notes: p.notes };
-    const k = _reg(mapped);
-    const canDel = !isCommunity || p.sender_email === myEmail;
-    const card = document.createElement('div');
-    card.className = 'custom-card ' + (isCommunity ? 'community' : 'shared');
-    card.innerHTML = `
-      ${canDel ? `<button class="custom-del" title="Eliminar" onclick="delShared('${p.id}',${isCommunity},event)">✕</button>` : ''}
-      <div class="custom-name">${isCommunity ? '🌐' : '📨'} ${esc(p.name)}</div>
-      <div class="custom-date">${p.date || ''}${prodLabel ? ' · ' + prodLabel : ''}</div>
-      <div class="custom-sender">Por: ${esc(p.sender_name || p.sender_email)}</div>
-      ${p.notes ? `<div class="custom-notes">${esc(p.notes)}</div>` : ''}
-      <div class="custom-actions" onclick="event.stopPropagation()">
-        <button class="btn pri sm"   onclick="applyCustom(_PR['${k}'])">Aplicar</button>
-        <button class="btn ghost sm" onclick="saveSharedAsOwn(_PR['${k}'])">💾 Guardar</button>
-        <button class="btn ghost sm" onclick="openShareModal(_PR['${k}'])">↗ Reenviar</button>
-        <button class="btn ghost sm" onclick="downloadCSV(_PR['${k}'])">⬇ CSV</button>
-      </div>`;
-    grid.appendChild(card);
-  });
-}
-
-export async function delShared(id, isCommunity, e) {
-  e.stopPropagation();
-  const msg = isCommunity
-    ? '¿Eliminar este preset? La comunidad ya no podrá verlo.'
-    : '¿Eliminar este preset compartido?';
-  if (!confirm(msg)) return;
-  const { error } = await supa.from('shared_presets').delete().eq('id', id);
-  if (error) {
-    addLog('Error al eliminar shared preset: ' + error.message, 'w');
-    toast('⚠️', 'No se pudo eliminar: ' + error.message);
-    return;
-  }
-  toast('🗑️', 'Preset eliminado');
-  loadSharedPresets();
-}
-
-export function saveSharedAsOwn(p) {
-  const list = loadCustom();
-  if (list.find((x) => x.name === p.name)) {
-    toast('⚠️', 'Ya tenés una configuración con ese nombre');
-    return;
-  }
-  list.push({
-    name: p.name,
-    date: p.date || new Date().toLocaleDateString('es-AR'),
-    prodId: p.prodId || null,
-    cfg: p.cfg,
-    notes: p.notes || '',
-  });
-  saveCustomList(list);
-  renderCustom();
-  toast('⭐', '"' + p.name + '" guardada en tus configuraciones');
 }
 
 // ── EDITAR / GUARDAR CONFIGURACIÓN PROPIA ────────────────

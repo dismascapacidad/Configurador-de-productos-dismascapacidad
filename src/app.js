@@ -6,7 +6,7 @@
  *
  * Selección de producto / tipo de conexión / modo de modificadores →
  * src/ui/product.js. Todo lo demás vive en su módulo (cards, connection,
- * actions, presets, auth, tour, drawer, dom, state).
+ * actions, presets, tour, drawer, dom, state).
  *
  * Requiere servir por http(s): con file:// fallan los import.
  */
@@ -18,7 +18,6 @@ import * as PresetsStore from './presets-store.js';
 import * as ProductData from './products.js';
 import { isIOS, isMacOS } from './ui/platform.js';
 import { addLog, clearLog, closeModal, closeBd, openModal } from './ui/dom.js';
-import { S } from './ui/state.js';
 import { openDrawer, closeDrawer, toggleDrawer } from './ui/drawer.js';
 import {
   showWelcome,
@@ -29,17 +28,6 @@ import {
   nextStep,
   prevStep,
 } from './ui/tour.js';
-import { supa } from './supabase-client.js';
-import {
-  updateAuthBtn,
-  openAuthModal,
-  renderAuthModal,
-  signInWithPassword,
-  signUpWithPassword,
-  signInWithGoogle,
-  sendResetLink,
-  signOut,
-} from './ui/auth.js';
 import {
   buildGrid,
   onType,
@@ -74,23 +62,15 @@ import {
   renderCustom,
   renderPresetTabs,
   buildFactoryPresets,
-  handleLoginSync,
-  loadSharedPresets,
   openPresetsModal,
-  importChoice,
   downloadCSV,
   importCSV,
-  shareWithUser,
-  shareWithCommunity,
   confirmSave,
   confirmEditPreset,
   openSaveModal,
   openEditPreset,
-  openShareModal,
-  saveSharedAsOwn,
   applyCustom,
   delCustom,
-  delShared,
   _PR,
 } from './ui/presets.js';
 import { selectProd, selectConnType, selectOsMode, confirmToggleOsMode } from './ui/product.js';
@@ -153,33 +133,21 @@ function init() {
   }
   setTimeout(showWelcome, 800);
 
+  // Limpieza única: las cuentas se quitaron (08/10/2026). Borra del navegador la sesión
+  // vieja de Supabase (tokens), que ya no sirve para nada. Los presets locales NO se tocan.
+  try {
+    Object.keys(localStorage)
+      .filter((k) => k.startsWith('sb-lhpewyblvjijpmcxzcod-'))
+      .forEach((k) => localStorage.removeItem(k));
+  } catch (_) {
+    /* localStorage no disponible */
+  }
+
   // Escape cierra el drawer.
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeDrawer();
   });
 
-  // Supabase: una sola suscripción (onAuthStateChange incluye INITIAL_SESSION en v2).
-  supa.auth.onAuthStateChange((event, session) => {
-    const prevUser = S.currentUser;
-    S.currentUser = session?.user ?? null;
-    updateAuthBtn();
-
-    if (event === 'SIGNED_OUT') {
-      PresetsStore.clearLocal();
-      renderCustom();
-      const shared = document.getElementById('sectionShared');
-      const community = document.getElementById('sectionCommunity');
-      if (shared) shared.style.display = 'none';
-      if (community) community.style.display = 'none';
-    } else if (
-      (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') &&
-      S.currentUser &&
-      !prevUser
-    ) {
-      handleLoginSync();
-      loadSharedPresets();
-    }
-  });
 }
 
 // ── Puente para los `onclick=""` del HTML ────────────────────────────────────
@@ -198,43 +166,30 @@ Object.assign(window, {
   confirmSave,
   confirmToggleOsMode,
   delCustom,
-  delShared,
   downloadCSV,
   getAllConfig,
   importCSV,
-  importChoice,
   neverShowTour,
   nextStep,
   onArrowMode,
   onDishubCenterMode,
   onMode,
   onType,
-  openAuthModal,
   openConnModal,
   openDrawer,
   openEditPreset,
   openModal,
   openPresetsModal,
   openSaveModal,
-  openShareModal,
   pingDevice,
   prevStep,
-  renderAuthModal,
   resetDevice,
   restartTour,
   saveConfig,
-  saveSharedAsOwn,
   selectConnType,
   selectProd,
   sendLogCmd,
-  sendResetLink,
   setCapturedKey,
-  shareWithCommunity,
-  shareWithUser,
-  signInWithGoogle,
-  signInWithPassword,
-  signOut,
-  signUpWithPassword,
   skipTour,
   startCap,
   startTour,

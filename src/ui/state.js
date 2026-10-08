@@ -28,6 +28,4 @@ export const S = {
   devCfg: /** @type {any} */ ({ orient: null, vel: null, acel: null, fmode: null, btns: {} }),
   /** `tabId` activo en el modal de configuraciones rápidas. */
   activePresetTab: /** @type {string|null} */ (null),
-  /** Sesión de Supabase o `null`. */
-  currentUser: /** @type {any} */ (null),
 };
