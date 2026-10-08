@@ -1,40 +1,33 @@
 /* Estilos del configurador dis+ / EpE.
- * Extraído verbatim de <style> de index.html (refactor de estructura).
- * NOTA: el @import de DM Sans está después de reglas → el navegador lo ignora
- * (la fuente cae a system-ui). Bug preexistente; arreglar aparte si se quiere.
+ * Los colores de marca, la tipografía (DM Sans autoalojada) y los radios vienen del
+ * repo compartido dismascapacidad-design: copia fija en src/diseno/ (ver ORIGEN.md),
+ * cargada en index.html ANTES de este archivo. Acá solo lo propio de este sitio.
  */
 
 :root {
-  --bg:      #ECEEF2;
-  --surf:    #FFFFFF;
-  --surf2:   #F0F1F5;
-  --bdr:     #D8DAE2;
-  --bdr-hi:  #2563EB;
-  --txt:     #1C1917;
-  --txt2:    #6B6560;
-  --txt3:    #A09890;
-  --acc:     #2563EB;
-  --acc-dim: #EFF3FF;
-  --acc-dk:  #1D4ED8;
-  --grn:     #16A34A;
-  --grn-dim: #F0FDF4;
-  --red:     #DC2626;
-  --amb:     #D97706;
-  --teal:    #0D9488;
-  --hdr:     #1A1F2E;
-  --hdr2:    #252B3B;
+  /* Alias con los nombres que usa este sitio → tokens compartidos (src/diseno/tokens.css).
+     --bg, --surf, --bdr, --txt, --grn, --grn-dim, --red y --amb vienen directo de ahí. */
+  --surf2:   var(--surf-2);
+  --txt2:    var(--txt-2);
+  --txt3:    var(--txt-3);
+  --bdr-hi:  var(--teal-600);
+  --acc:     var(--teal-600);
+  --acc-dim: var(--teal-050);
+  --acc-dk:  var(--teal-700);
+  --teal:    var(--teal-600);
+  --hdr:     var(--navy-800);
+  --hdr2:    var(--navy-700);
+  /* Propios de este sitio */
   --hdr-txt: rgba(255,255,255,.9);
   --hdr-sub: rgba(255,255,255,.5);
   --hdr-bdr: rgba(255,255,255,.1);
-  --r:  7px;
-  --rl: 12px;
-  --sh:   0 1px 4px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04);
+  --r:  var(--radius-sm);
+  --rl: var(--radius-md);
+  --sh:   var(--shadow-sm);
   --shl:  0 4px 24px rgba(0,0,0,.13);
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);font-size:13.5px;line-height:1.5;min-height:100vh}
-/* DM Sans desde Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap');
+body{font-family:var(--font-display);background:var(--bg);color:var(--txt);font-size:13.5px;line-height:1.5;min-height:100vh}
 
 /* ── APP SHELL (contenedor centrado con topbar integrada) ── */
 .app-shell{background:var(--surf);border-radius:var(--rl);box-shadow:0 4px 32px rgba(0,0,0,.1);overflow:hidden;margin-bottom:24px;position:relative}
@@ -53,12 +46,12 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .btn-burger:hover{background:var(--surf2);color:var(--txt)}
 
 /* ── STATUS BAR ── */
-.status-bar{background:var(--acc-dim);border-bottom:1px solid rgba(37,99,235,.18);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.status-bar{background:var(--acc-dim);border-bottom:1px solid color-mix(in srgb,var(--acc) 18%,transparent);padding:7px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .sb-device{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--acc-dk)}
-.sb-conn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:rgba(37,99,235,.15);color:var(--acc);border:1px solid rgba(37,99,235,.3)}
+.sb-conn-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;background:color-mix(in srgb,var(--acc) 15%,transparent);color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 30%,transparent)}
 .sb-actions{display:flex;gap:7px}
-.sb-actions button{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:var(--r);cursor:pointer;border:1px solid rgba(37,99,235,.25);background:rgba(37,99,235,.08);color:var(--acc-dk);transition:all .15s}
-.sb-actions button:hover:not(:disabled){background:rgba(37,99,235,.15)}
+.sb-actions button{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:var(--r);cursor:pointer;border:1px solid color-mix(in srgb,var(--acc) 25%,transparent);background:color-mix(in srgb,var(--acc) 8%,transparent);color:var(--acc-dk);transition:all .15s}
+.sb-actions button:hover:not(:disabled){background:color-mix(in srgb,var(--acc) 15%,transparent)}
 .sb-actions button:disabled{opacity:.35;cursor:not-allowed}
 
 /* ── DRAWER ── */
@@ -139,7 +132,7 @@ body{font-family:'DM Sans',system-ui,-apple-system,sans-serif;background:var(--b
 .hint.cap{color:var(--grn);font-weight:600}
 select,input[type=number],input[type=text]{width:100%;padding:6px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);font:13px/1.4 'DM Sans',system-ui,sans-serif;color:var(--txt);background:var(--surf);transition:border-color .15s;-webkit-appearance:none;appearance:none}
 select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%23A09890' d='M5 6L0 0h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center;padding-right:26px;cursor:pointer}
-select:focus,input:focus{outline:none;border-color:var(--bdr-hi);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+select:focus,input:focus{outline:none;border-color:var(--bdr-hi);box-shadow:0 0 0 3px color-mix(in srgb,var(--acc) 10%,transparent)}
 input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163,74,.1)}
 
 /* ── BUTTONS ── */
@@ -313,7 +306,7 @@ input[type=text].cap-on{border-color:var(--grn);box-shadow:0 0 0 3px rgba(22,163
 
 /* ── TOUR ── */
 .tour-bd{position:fixed;inset:0;z-index:8000;display:none}
-.tour-spot{position:fixed;border:2px solid var(--acc);border-radius:var(--rl);box-shadow:0 0 0 9999px rgba(0,0,0,.65),0 0 0 4px rgba(37,99,235,.18);transition:top .3s cubic-bezier(.4,0,.2,1),left .3s cubic-bezier(.4,0,.2,1),width .3s cubic-bezier(.4,0,.2,1),height .3s cubic-bezier(.4,0,.2,1);z-index:8001;pointer-events:none;display:none}
+.tour-spot{position:fixed;border:2px solid var(--acc);border-radius:var(--rl);box-shadow:0 0 0 9999px rgba(0,0,0,.65),0 0 0 4px color-mix(in srgb,var(--acc) 18%,transparent);transition:top .3s cubic-bezier(.4,0,.2,1),left .3s cubic-bezier(.4,0,.2,1),width .3s cubic-bezier(.4,0,.2,1),height .3s cubic-bezier(.4,0,.2,1);z-index:8001;pointer-events:none;display:none}
 .tour-tip{position:fixed;background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rl);padding:13px;width:296px;box-shadow:0 8px 32px rgba(0,0,0,.18);z-index:8002;display:none}
 .tthead{display:flex;align-items:center;gap:8px;margin-bottom:8px}
 .tbadge{width:22px;height:22px;border-radius:50%;background:var(--acc);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0}
