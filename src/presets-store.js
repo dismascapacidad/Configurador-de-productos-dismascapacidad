@@ -1,15 +1,8 @@
 // @ts-check
 /**
- * Almacenamiento de presets propios: localStorage (fuente local) + Supabase
- * (respaldo por cuenta). Sin DOM.
- *
- * Fase 3 del plan de deuda técnica: el sync dejó de ser "DELETE todo + INSERT
- * todo" (que perdía datos si el INSERT fallaba a mitad). Ahora cada preset tiene
- * un `id` estable (uuid) y `pushToCloud()` hace:
- *   1. upsert por id de toda la lista
- *   2. SOLO si (1) salió OK: borra de la nube los id que ya no están en la lista
- * Un fallo en (1) no toca la nube. Un fallo en (2) deja a lo sumo un preset
- * viejo de más, que se limpia en el próximo sync. Nunca se pierden datos.
+ * Almacenamiento de presets propios: solo localStorage (este navegador). Sin DOM.
+ * No hay cuentas ni nube: pasar perfiles a otro equipo se hace con CSV (src/csv.js).
+ * Cada preset tiene un `id` estable (uuid).
  */
 
 const STORAGE_KEY = 'displus_presets_v1';
@@ -83,82 +76,4 @@ export function clearLocal() {
   } catch {
     /* ignore */
   }
-}
-
-/**
- * Trae los presets de la nube del usuario logueado.
- * @param {any} supa  cliente Supabase
- * @returns {Promise<{ rows: Array<any>, error: string | null }>}
- */
-export async function fetchCloud(supa) {
-  const { data, error } = await supa
-    .from('presets')
-    .select('id, name, date, cfg, prod_id, notes, updated_at')
-    .order('created_at', { ascending: true });
-  if (error) return { rows: [], error: error.message };
-  return {
-    rows: (data || []).map((p) => ({
-      id: p.id,
-      name: p.name,
-      date: p.date,
-      cfg: p.cfg,
-      prodId: p.prod_id,
-      notes: p.notes,
-      updatedAt: p.updated_at,
-    })),
-    error: null,
-  };
-}
-
-/**
- * Sincroniza la lista local con la nube de forma incremental y segura.
- * Ver la nota de cabecera del módulo para el porqué del orden.
- * @param {any} supa
- * @param {string} userId
- * @param {Array<any>} list
- * @returns {Promise<{ error: string | null }>}
- */
-export async function pushToCloud(supa, userId, list) {
-  ensureIds(list);
-
-  if (list.length) {
-    const rows = list.map((p) => ({
-      id: p.id,
-      user_id: userId,
-      name: p.name,
-      date: p.date,
-      cfg: p.cfg,
-      prod_id: p.prodId || null,
-      notes: p.notes || null,
-    }));
-    const { error: upErr } = await supa.from('presets').upsert(rows, { onConflict: 'id' });
-    if (upErr) return { error: upErr.message };
-  }
-
-  // Borrado selectivo — SIEMPRE después de que los upserts salieron OK.
-  const ids = list.map((p) => p.id);
-  let del = supa.from('presets').delete().eq('user_id', userId);
-  if (ids.length) del = del.not('id', 'in', '(' + ids.join(',') + ')');
-  const { error: delErr } = await del;
-  if (delErr) return { error: delErr.message };
-
-  return { error: null };
-}
-
-/**
- * Ajusta los ids de `local` para que coincidan con los de la nube cuando hay
- * match por nombre. Se usa al combinar local + nube (importChoice 'merge' / primer
- * login post-migración), para no duplicar en la nube los presets que ya estaban.
- * Muta `local` y lo devuelve.
- * @param {Array<any>} local
- * @param {Array<any>} cloudRows
- * @returns {Array<any>}
- */
-export function reconcileIds(local, cloudRows) {
-  const cloudIdByName = new Map(cloudRows.map((r) => [r.name, r.id]));
-  for (const p of local) {
-    const cloudId = cloudIdByName.get(p.name);
-    if (cloudId) p.id = cloudId;
-  }
-  return local;
 }
