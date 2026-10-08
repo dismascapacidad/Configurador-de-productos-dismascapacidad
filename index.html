@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EpE by dismascapacidad</title>
 <link rel="icon" type="image/x-icon" href="assets/img/mi_icono.ico">
+<!-- TEMPORAL (se quita en el PR 2): ya nada lo usa; queda un día por compatibilidad con páginas en caché -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <link rel="stylesheet" href="./src/app.css">
 </head>
@@ -22,7 +23,6 @@
     <span id="stxt">Desconectado</span>
   </div>
   <button class="btn-conn-quick" id="btnConnQuick" onclick="openConnModal()">Conectar →</button>
-  <button class="btn-tb" id="btnAuth" onclick="openAuthModal()">👤 Cuenta</button>
 </div>
 <!-- STATUS BAR (también dentro de app-shell) -->
 <div class="status-bar" id="statusBar" style="display:none">
@@ -112,10 +112,6 @@
         <span class="drw-item-ico"><span class="sdot" id="sdot2"></span></span>
         <span class="drw-item-lbl" id="stxt2">Desconectado</span>
       </div>
-      <button class="drw-item" onclick="openAuthModal();closeDrawer()">
-        <span class="drw-item-ico">👤</span>
-        <span class="drw-item-lbl" id="drwAuthLbl">Cuenta</span>
-      </button>
     </div>
     <div class="drw-menu-sep drw-mobile-only"></div>
 
@@ -398,41 +394,6 @@
         <div class="custom-grid" id="customGrid"></div>
         <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
       </div>
-      <div class="presets-modal-section" id="sectionShared" style="display:none">
-        <div class="presets-modal-lbl">📨 Compartidos conmigo</div>
-        <div class="custom-grid" id="sharedGrid"></div>
-      </div>
-      <div class="presets-modal-section" id="sectionCommunity" style="display:none">
-        <div class="presets-modal-lbl">🌐 Comunidad</div>
-        <div class="custom-grid" id="communityGrid"></div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: COMPARTIR PRESET -->
-<div class="modal-bd" id="shareModal" style="display:none" onclick="closeBd(event,'shareModal')">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-head">
-      <span class="modal-title">↗ Compartir configuración</span>
-      <button class="modal-x" onclick="closeModal('shareModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <p style="font-size:12.5px;color:var(--txt2);margin:0 0 14px">
-        Compartís: <strong id="sharePresetName"></strong>
-      </p>
-      <div class="share-modal-opts">
-        <div class="field" style="margin:0">
-          <label class="lbl">Compartir con un usuario por email</label>
-          <input type="email" id="shareEmail" placeholder="nombre@email.com" style="width:100%">
-        </div>
-        <button class="btn pri sm" onclick="shareWithUser()">Enviar a este usuario</button>
-        <div class="share-divider">— o —</div>
-        <button class="btn sm" style="background:#9333ea;color:#fff;border-color:#9333ea" onclick="shareWithCommunity()">🌐 Compartir con toda la comunidad</button>
-        <div class="share-divider">— o —</div>
-        <button class="btn ghost sm" onclick="downloadCSV(shareModal._preset)">⬇ Descargar como CSV</button>
-      </div>
-      <div id="shareMsg" style="margin-top:12px;font-size:12px;display:none"></div>
     </div>
   </div>
 </div>
@@ -575,20 +536,6 @@
   </div>
 </div>
 
-<div class="modal-bd" id="importModal" style="display:none">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">☁️ Configuraciones locales</span></div>
-    <div class="modal-body" id="importModalBody"></div>
-  </div>
-</div>
-
-<!-- MODAL: AUTH -->
-<div class="modal-bd" id="authModal" style="display:none" onclick="closeBd(event,'authModal')">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title" id="authModalTitle">Cuenta</span><button class="modal-x" onclick="closeModal('authModal')">✕</button></div>
-    <div class="modal-body" id="authModalBody"></div>
-  </div>
-</div>
 
 <!-- TOUR -->
 <div class="tour-bd" id="tourBd" onclick="skipTour()"></div>
@@ -613,7 +560,7 @@
   <div class="tw-card">
     <div class="tw-emoji">👋</div>
     <div class="tw-title">Bienvenido al Configurador EpE</div>
-    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br><br>Configurá tus dispositivos, guardá perfiles por usuario y compartí configuraciones con toda la comunidad EpE.<br><br>¿Primera vez? Te mostramos todo en un recorrido rápido.</div>
+    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br><br>Configurá tus dispositivos, guardá perfiles de configuración en este navegador y pasalos a otro equipo con un archivo CSV.<br><br>¿Primera vez? Te mostramos todo en un recorrido rápido.</div>
     <div class="tw-btns">
       <button class="btn ghost" onclick="skipTour()">Omitir</button>
       <button class="btn pri" onclick="startTour()">Comenzar recorrido</button>

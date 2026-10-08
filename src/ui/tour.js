@@ -20,9 +20,7 @@ const TOUR = [
   { sel: '#secBtns', pos: 'left', title: 'Configurar cada botón',
     body: 'Cada botón puede emular una tecla del teclado, un clic de mouse, doble clic, scroll o desactivarse. Los cambios se aplican al instante al dispositivo conectado.' },
   { sel: '#drwBtnPresets', pos: 'right', title: 'Configuraciones rápidas',
-    body: 'Aplicá configuraciones prediseñadas para Asterics, Cboard, juegos y más — sin necesidad de conectar el dispositivo para explorarlas. También podés guardar tus propias configuraciones con un nombre y una nota explicativa.' },
-  { sel: '#btnAuth', selMobile: '#drwAuthLbl', pos: 'bottom', title: 'Comunidad EpE',
-    body: 'Iniciá sesión para desbloquear las funciones de comunidad: guardá tus configuraciones en la nube, compartílas con colegas por email, o publicalas para que toda la comunidad EpE pueda usarlas. También podés importar y exportar configuraciones en CSV.' },
+    body: 'Aplicá configuraciones prediseñadas para Asterics, Cboard, juegos y más — sin necesidad de conectar el dispositivo para explorarlas. También podés guardar tus propias configuraciones con un nombre y una nota explicativa, e importarlas o exportarlas en CSV para usarlas en otro equipo.' },
 ];
 
 export function showWelcome() {
@@ -85,7 +83,7 @@ function renderStep() {
   }
   const isMobile = window.innerWidth <= 600;
   const sel = isMobile && s.selMobile ? s.selMobile : s.sel;
-  const needsDrawer = sel === '#drwBtnPresets' || sel === '#drwAuthLbl';
+  const needsDrawer = sel === '#drwBtnPresets';
   if (needsDrawer) openDrawer();
   else if (!isMobile) closeDrawer();
 
