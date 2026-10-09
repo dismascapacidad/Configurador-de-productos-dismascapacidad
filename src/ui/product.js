@@ -2,7 +2,7 @@
 /**
  * Selección de producto, tipo de conexión (USB/BLE) y modo de modificadores
  * (Windows/Mac). Ata la elección del usuario al resto de la UI: reconstruye
- * las grillas, refresca presets y re-evalúa las secciones habilitadas.
+ * las grillas y re-evalúa las secciones habilitadas.
  */
 import { S } from './state.js';
 import { addLog } from './dom.js';
@@ -10,8 +10,6 @@ import { isIOS } from './platform.js';
 import { PRODUCTS } from '../products.js';
 import { buildGrid, buildDishubGrid } from './cards.js';
 import { setSections, enableConnModalSteps } from './connection.js';
-import { tabForProd, renderPresetTabs, renderCustom, buildFactoryPresets } from './presets.js';
-import { renderCfgModal } from './actions.js';
 
 /** getElementById con tipo laxo (transicional). */
 function el(/** @type {string} */ id) {
@@ -68,15 +66,6 @@ export function selectProd(id) {
   else buildGrid('mainGrid', p.mainBtns);
   buildGrid('arrowGrid', p.hasArrows ? p.arrowBtns : []);
 
-  // Auto-seleccionar tab del dispositivo
-  const devTab = tabForProd(p.id);
-  if (devTab) S.activePresetTab = devTab.tabId;
-  // Si el modal está abierto, refrescar; si no, solo pre-popular la grid (para cuando abra)
-  const presetsOpen = el('presetsModal')?.style.display !== 'none';
-  if (presetsOpen) renderPresetTabs();
-  else buildFactoryPresets(p.presets);
-  renderCustom();
-
   // Re-evaluar botones ahora que S.prod está seteado (setConnected corrió antes que WHO)
   setSections(S.connected);
   addLog('Producto seleccionado: ' + p.name);
@@ -103,9 +92,8 @@ export function selectConnType(type) {
 }
 
 // ── MODO DE MODIFICADORES (Windows / Mac) ────────────────
-// Se autodetecta al cargar (isMacOS) y se recuerda en este navegador. Solo afecta
-// a presets con modificador "principal" (hoy: std_copy). El editor manual de
-// botones ya expone Ctrl y GUI/⌘ por separado, así que el control de cambio vive
+// Se autodetecta al cargar (isMacOS) y se recuerda en este navegador. Afecta solo
+// al rótulo de la tecla GUI/⌘. El editor manual de botones ya expone Ctrl y GUI/⌘ por separado, así que el control de cambio vive
 // en el panel Avanzado de cada botón, junto a esos checkboxes.
 export function selectOsMode(mode) {
   S.osMode = mode;
@@ -115,15 +103,13 @@ export function selectOsMode(mode) {
     /* localStorage no disponible */
   }
   // Re-etiquetar el checkbox "GUI" (mg_${code}) y la nota de modo en el panel
-  // Avanzado de cada botón, y refrescar el modal de configuración si está abierto.
+  // Avanzado de cada botón.
   document.querySelectorAll('.mod-gui-lbl').forEach((e) => {
     e.textContent = mode === 'mac' ? '⌘ Cmd' : 'Win';
   });
   document.querySelectorAll('.mod-os-name').forEach((e) => {
     e.textContent = mode === 'mac' ? '⌘ (Mac)' : 'Ctrl (Windows)';
   });
-  const cfgModal = el('cfgModal');
-  if (cfgModal && cfgModal.style.display !== 'none') renderCfgModal();
 }
 
 // Cambio manual desde el panel Avanzado de un botón — requiere confirmación porque

@@ -26,6 +26,4 @@ export const S = {
   soportaTapHold: false,
   /** Config leída del dispositivo (forma de `Protocol.emptyCfg()`). */
   devCfg: /** @type {any} */ ({ orient: null, vel: null, acel: null, fmode: null, btns: {} }),
-  /** `tabId` activo en el modal de configuraciones rápidas. */
-  activePresetTab: /** @type {string|null} */ (null),
 };
