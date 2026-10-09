@@ -1,29 +1,31 @@
 // @ts-check
 /**
- * Estado mutable compartido de la UI.
+ * Estado compartido de la UI. Un único objeto `S`.
  *
- * Un único objeto `S` que los módulos leen y escriben (`S.prod = ...`), en vez
- * de `let` sueltos repartidos por app.js. Transicional mientras se parte la UI:
- * a medida que los módulos queden bien delimitados, varios de estos campos
- * pasarán a ser privados del módulo que los posee.
+ * `cfg` es la configuración que se muestra y edita (ver src/model.js); `devCfg` es lo
+ * crudo que devolvió GETALL, solo mientras se lee.
  */
+import * as Protocol from '../protocol.js';
 
 export const S = {
   /** Producto activo (objeto de `PRODUCTS`) o `null`. */
   prod: /** @type {any} */ (null),
-  /** Transporte elegido en la UI: `'usb'` | `'ble'`. */
-  connType: 'usb',
+  /** Transporte elegido: `'usb'` | `'ble'`. */
+  connType: /** @type {'usb'|'ble'} */ ('usb'),
   /** ¿Hay un dispositivo conectado? */
   connected: false,
-  /** Modificador principal por SO: `'win'` (Ctrl) | `'mac'` (⌘). */
-  osMode: 'win',
-  /** Handle del transporte activo `{ send, close }` o `null` (src/transport.js). */
+  /** Handle del transporte activo `{ send, close }` o `null`. */
   conn: /** @type {any} */ (null),
-  /**
-   * ¿El firmware conectado soporta Tap-Hold? Se recalcula en cada conexión (WHO con
-   * versión `-TH<n>`, o BTN de 11 campos) y se resetea al desconectar.
-   */
+  /** Versión de firmware informada por WHO (texto) o `''`. */
+  fw: '',
+  /** ¿El firmware soporta Tap-Hold (pulsación corta y larga)? Se recalcula en cada conexión. */
   soportaTapHold: false,
-  /** Config leída del dispositivo (forma de `Protocol.emptyCfg()`). */
-  devCfg: /** @type {any} */ ({ orient: null, vel: null, acel: null, fmode: null, btns: {} }),
+  /** Sistema de la computadora donde se USA el dispositivo (solo cambia los nombres de teclas). */
+  target: /** @type {'win'|'mac'} */ ('win'),
+  /** Configuración mostrada y editada. */
+  cfg: /** @type {{ btns: Record<string, any>, arrows: any }} */ ({ btns: {}, arrows: { fmode: 1, orient: 0, vel: 25, acel: true } }),
+  /** Código del botón elegido en la barra lateral. */
+  selected: '',
+  /** Lectura cruda de GETALL. */
+  devCfg: Protocol.emptyCfg(),
 };

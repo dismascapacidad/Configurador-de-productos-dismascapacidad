@@ -2,8 +2,9 @@
 
 Configurador de dispositivos dis+capacidad. Sitio estático (HTML + CSS + JS con módulos
 ES, sin build), publicado con GitHub Pages desde la rama `main` en
-`app.equiparparaequipar.com.ar`. No tiene backend ni cuentas: los perfiles propios se
-guardan en el navegador (`localStorage`) y se pasan a otro equipo con CSV.
+`app.equiparparaequipar.com.ar`. No tiene backend ni cuentas. Lo único que guarda en el navegador (`localStorage`) es el
+tema (claro/oscuro) y el sistema donde se usa el dispositivo (Windows/Mac). La
+configuración vive en el dispositivo: cada cambio se guarda ahí al instante.
 
 ## Requisitos
 
@@ -35,9 +36,13 @@ npm run serve      # http://127.0.0.1:8899/ (WebUSB y Web Serial andan en 127.0.
 
 | Ruta | Qué es |
 |---|---|
-| `index.html` | Estructura de la página. |
-| `src/app.js` | Punto de entrada: arma la UI y expone lo que usan los `onclick`. |
-| `src/ui/` | Módulos de interfaz (tarjetas, conexión, menú…). |
+| `index.html` | Estructura de la página (cabecera, vacío / dispositivo, modales). |
+| `src/app.js` | Punto de entrada: arma las piezas. |
+| `src/model.js` | Lógica pura y testeada: qué se muestra, qué comandos salen, cola de envío (`SendQueue`). |
+| `src/ui/connection.js` | Abrir/cerrar USB y BLE, WHO, GETALL, envío. |
+| `src/ui/view.js` | Pantalla de configuración (flechas, botones, detalle). |
+| `src/ui/chrome.js` | Tema, sistema de destino, modales, barra de estado, Registro. |
+| `src/ui/ayudas.js` + `assets/ayudas.txt` | Textos de ayuda al pasar el mouse (se editan en el `.txt`). |
 | `src/protocol.js`, `src/transport.js` | Protocolo con el dispositivo y transporte USB/BLE. |
 | `src/products.js` | Catálogo de productos. |
 | `src/app.css` | Estilos propios del sitio. |
