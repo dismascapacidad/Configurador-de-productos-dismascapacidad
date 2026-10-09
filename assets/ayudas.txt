@@ -1,0 +1,62 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# TEXTOS DE AYUDA (aparecen al dejar el mouse 0,5 s sobre el elemento, o al
+# enfocarlo con el teclado).
+#
+# Cómo editarlo:
+#   · Una ayuda por línea, con el formato:   clave = texto
+#   · NO cambies la clave (lo que está antes del "="). Cambiá solo el texto.
+#   · Las líneas que empiezan con # son comentarios y se ignoran.
+#   · Guardá el archivo y recargá la página (Ctrl + F5) para ver el cambio.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+# ── Cada botón: "Este botón va a funcionar como…" ────────────────────────────
+# Dónde: los tres botones Teclado / Mouse / Desactivado, arriba del detalle.
+tipo_K = Teclado: el botón escribe una tecla, o un atajo como Ctrl + C, en la computadora, igual que si la apretaras en el teclado.
+tipo_M = Mouse: el botón hace clic, doble clic o scroll, igual que si usaras el mouse.
+tipo_X = Desactivado: el botón no hace nada. Sirve si se aprieta sin querer y molesta.
+
+# ── Acción del botón (Teclado) ───────────────────────────────────────────────
+# Dónde: recuadro "Va a escribir la tecla".
+key = Hacé clic en el recuadro y después apretá, en tu teclado, la tecla que querés asignar.
+# Dónde: fila "Junto con" con Ctrl / Shift / Alt / Win (es opcional).
+mods = Son teclas que se mantienen apretadas junto con otra. Ejemplo: Ctrl + C copia. Dejalas sin marcar si querés una tecla sola.
+
+# ── Acción del botón (Mouse) ─────────────────────────────────────────────────
+# Dónde: menú desplegable "Va a hacer".
+mouse = Qué hace el mouse cada vez que se activa el botón.
+
+# ── Una acción o dos (corta / larga) ─────────────────────────────────────────
+# Dónde: interruptor "Pulsación" arriba a la derecha del detalle del botón.
+pulse_single = Una sola acción: el botón hace siempre lo mismo, sin importar cuánto tiempo lo mantengas apretado.
+pulse_dual = Corta y larga: el botón hace una cosa si lo tocás rápido y otra distinta si lo mantenés apretado. Necesita un firmware compatible.
+
+# ── Cuándo ocurre la acción (solo en "Una sola acción") ──────────────────────
+# Dónde: fila "Y lo va a hacer".
+modo_P = Al presionar: la acción ocurre en cuanto se aprieta el botón. Es lo más común.
+modo_R = Al soltar: la acción ocurre cuando se suelta el botón. Evita acciones por apoyar el botón sin querer.
+modo_O = Una vez por pulsación: aunque mantengas apretado el botón, la acción ocurre una sola vez y no se repite.
+
+# ── Corta y larga ────────────────────────────────────────────────────────────
+# Dónde: número de milisegundos en el título de la tarjeta "Pulsación larga".
+umbral = Cuánto tiempo hay que mantener apretado para que cuente como pulsación larga. Vacío = 1000 ms (1 segundo).
+
+# ── Filtro de rebote ─────────────────────────────────────────────────────────
+# Dónde: fila "Ignorar rebotes durante … ms", dentro de la configuración del botón.
+debounce = Algunos botones “rebotan” y mandan varias pulsaciones por una sola. Durante este tiempo se ignoran las pulsaciones nuevas. 0 = no filtrar.
+
+# ── Flechas ──────────────────────────────────────────────────────────────────
+# Dónde: las tres opciones de "Modo de flechas".
+arrow_1 = Las flechas mueven el puntero del mouse por la pantalla.
+arrow_2 = Las flechas escriben las teclas ↑ ↓ ← → del teclado. Sirve para juegos o para moverse por menús.
+arrow_0 = Cada una hace lo que le asignes, como un botón más. Van a aparecer en la lista de botones.
+# Dónde: menú "Orientación".
+orient = Indica cómo está girado el dispositivo, para que “arriba” siga moviendo hacia arriba aunque lo tengas de costado o al revés.
+# Dónde: deslizador "Velocidad del cursor".
+vel = Qué tan rápido se mueve el puntero. Más a la derecha = más rápido.
+# Dónde: interruptor "Aceleración".
+acel = Si está activada, el puntero arranca lento y va ganando velocidad mientras mantenés apretada la flecha.
+
+# ── Sistema donde se va a usar el dispositivo ────────────────────────────────
+# Dónde: selector "Se usa en" (Windows / Mac), en la cabecera, a la izquierda del estado de conexión.
+destino = Elegí el sistema de la computadora donde vas a usar el dispositivo, no el de la que estás configurando. Solo cambia el nombre de las teclas: en Windows están Ctrl, Alt y Win; en Mac están Control, Option y Command (⌘). Por ejemplo, Copiar es Ctrl + C en Windows y ⌘ + C en Mac.
