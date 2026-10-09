@@ -23,8 +23,6 @@ import { DEV_IMAGES, DEV_WELCOME, WHO_TO_PROD, PRODUCTS, LATEST_FW } from '../pr
  */
 export const connectionHooks = {
   /** @type {() => void} */
-  renderPresetTabs: () => {},
-  /** @type {() => void} */
   applyDevCfgToCards: () => {},
   /** @type {(id: string) => void} */
   selectProd: () => {},
@@ -69,12 +67,6 @@ export function mkCfg() {
 let _whoResolve = null;
 
 // ── GETALL + PARSE ───────────────────────────────────────
-export async function getAllConfig() {
-  S.devCfg = mkCfg();
-  await send('GETALL');
-  setTimeout(connectionHooks.applyDevCfgToCards, 2400);
-}
-
 export function parseLine(line) {
   const who = Protocol.parseWho(line);
   if (who) {
@@ -109,21 +101,12 @@ export function setSections(on) {
   if (S.prod && S.prod.hasArrows) el('secArrows')?.classList.toggle('sec-off', !on);
   const btnSave = el('btnSave');
   if (btnSave) btnSave.disabled = !on;
-  const btnReset = el('btnReset');
-  if (btnReset) btnReset.disabled = !on;
-  const btnSaveCustom = el('btnSaveCustom');
-  if (btnSaveCustom) btnSaveCustom.disabled = !on;
   const connSub = el('connSub');
   if (connSub) connSub.style.display = on ? 'flex' : 'none';
   const logInput = el('logCmdInput');
   const btnLogSend = el('btnLogSend');
   if (logInput) logInput.disabled = !on;
   if (btnLogSend) btnLogSend.disabled = !on;
-  // Botones del menú lateral: solo si hay conexión Y producto reconocido
-  const drwCfg = el('drwBtnCfg');
-  const drwReset = el('drwBtnReset');
-  if (drwCfg) drwCfg.disabled = !on || !S.prod;
-  if (drwReset) drwReset.disabled = !on || !S.prod;
 }
 
 // ── MODAL / STATUS BAR DE BIENVENIDA AL DISPOSITIVO ──────
@@ -362,10 +345,6 @@ function setConnected(val, physical = false) {
   if (!val) {
     setTapHold(false);
     updateStatusBar('', '');
-    // Resetear tab activa para que al reconectar se auto-seleccione correctamente
-    S.activePresetTab = null;
-    const pm = el('presetsModal');
-    if (pm && pm.style.display !== 'none') connectionHooks.renderPresetTabs();
   }
   // Drawer: ocultar setup cuando hay conexión
   const setup = el('drwSetup');
@@ -407,13 +386,9 @@ export async function sendLogCmd() {
   if (ok) inp.value = '';
 }
 
-// ── GUARDAR / RESET / PING ───────────────────────────────
+// ── GUARDAR / PING ───────────────────────────────
 export async function saveConfig() {
   if (await send('SAVE')) toast('💾', 'Guardado en dispositivo');
-}
-export async function resetDevice() {
-  if (!confirm('¿Restaurar todos los valores por defecto?')) return;
-  if (await send('RESET')) toast('🔄', 'Valores restaurados');
 }
 export async function pingDevice() {
   if (await send('PING')) toast('✅', 'El dispositivo responde');

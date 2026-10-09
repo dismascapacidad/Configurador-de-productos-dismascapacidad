@@ -34,9 +34,7 @@
     </div>
     <span id="sbConnType2" class="sb-conn-badge">USB</span>
   </div>
-  <button id="btnReset" disabled onclick="resetDevice()" style="display:none"></button><!-- mantenido por compatibilidad JS -->
 </div>
-
 
 <!-- hidden btnSave for JS compatibility -->
 <button id="btnSave" onclick="saveConfig()" disabled style="display:none"></button>
@@ -96,7 +94,6 @@
         <button class="btn pri sm" id="btnConn" onclick="toggleConn()" style="width:100%;margin-top:6px">Conectar</button>
         <div id="connSub" style="display:none;flex-direction:column;gap:5px;margin-top:6px">
           <button class="btn ghost sm" onclick="pingDevice()" style="width:100%">🔄 Probar conexión</button>
-          <button class="btn ghost sm" onclick="getAllConfig()" style="width:100%">📋 Ver configuración</button>
         </div>
       </div>
     </div>
@@ -115,57 +112,11 @@
     </div>
     <div class="drw-menu-sep drw-mobile-only"></div>
 
-    <div class="drw-section-lbl">Configurá tu dispositivo</div>
-    <div class="drw-menu-group">
-      <button class="drw-item" id="drwBtnPresets" onclick="openPresetsModal();closeDrawer()">
-        <span class="drw-item-ico">⚡</span>
-        <span class="drw-item-lbl">Configuraciones rápidas</span>
-      </button>
-      <button class="drw-item" id="drwBtnCfg" onclick="getAllConfig();closeDrawer()" disabled>
-        <span class="drw-item-ico">📋</span>
-        <span class="drw-item-lbl">Leer configuración actual</span>
-      </button>
-      <button class="drw-item" id="drwBtnReset" onclick="resetDevice();closeDrawer()" disabled>
-        <span class="drw-item-ico">↺</span>
-        <span class="drw-item-lbl">Cargar configuración de fábrica</span>
-      </button>
-    </div>
-
-    <div class="drw-menu-sep"></div>
-
-    <div class="drw-section-lbl">Formación</div>
-    <div class="drw-menu-group">
-      <button class="drw-item" onclick="openModal('formacionModal');closeDrawer()">
-        <span class="drw-item-ico">📚</span>
-        <span class="drw-item-lbl">Materiales de formación</span>
-      </button>
-    </div>
-
-    <div class="drw-menu-sep"></div>
-
-    <div class="drw-section-lbl">Comunidad</div>
-    <div class="drw-menu-group">
-      <a class="drw-item" href="https://www.dismascapacidad.com.ar" target="_blank">
-        <span class="drw-item-ico">🛒</span>
-        <span class="drw-item-lbl">Tienda dis+capacidad</span>
-      </a>
-      <a class="drw-item" href="https://chat.whatsapp.com/BPgeRpJ2TUv4BZIBUM7vaU?mode=gi_t" target="_blank">
-        <span class="drw-item-ico">💬</span>
-        <span class="drw-item-lbl">Comunidad EpE en WhatsApp</span>
-      </a>
-    </div>
-
-    <div class="drw-menu-sep"></div>
-
     <div class="drw-section-lbl">Ayuda</div>
     <div class="drw-menu-group">
       <button class="drw-item" onclick="openModal('logModal');closeDrawer()">
         <span class="drw-item-ico">🗒️</span>
         <span class="drw-item-lbl">Registro de actividad</span>
-      </button>
-      <button class="drw-item" onclick="closeDrawer();restartTour()">
-        <span class="drw-item-ico">👋</span>
-        <span class="drw-item-lbl">Ver recorrido</span>
       </button>
     </div>
 
@@ -246,9 +197,6 @@
 </div><!-- /app-shell -->
 </div><!-- /page-wrap -->
 
-<!-- TOOLTIP GLOBAL -->
-<div id="globalTip"></div>
-
 <!-- MODAL: LOG -->
 <div class="modal-bd" id="logModal" style="display:none" onclick="closeBd(event,'logModal')">
   <div class="modal">
@@ -263,61 +211,6 @@
     <div class="modal-foot">
       <button class="btn ghost sm" onclick="clearLog()">Limpiar</button>
       <button class="btn pri sm" onclick="closeModal('logModal')">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: CONFIG -->
-<div class="modal-bd" id="cfgModal" style="display:none" onclick="closeBd(event,'cfgModal')">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">📋 Configuración actual</span><button class="modal-x" onclick="closeModal('cfgModal')">✕</button></div>
-    <div class="modal-body" id="cfgDisplay" style="max-height:62vh;overflow-y:auto"></div>
-    <div class="modal-foot"><button class="btn pri sm" onclick="closeModal('cfgModal')">Cerrar</button></div>
-  </div>
-</div>
-
-<!-- MODAL: PRESETS -->
-<div class="modal-bd" id="formacionModal" style="display:none" onclick="closeBd(event,'formacionModal')">
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <span class="modal-title">📚 Materiales de formación</span>
-      <button class="modal-x" onclick="closeModal('formacionModal')">✕</button>
-    </div>
-    <div class="modal-body" style="max-height:72vh;overflow-y:auto;padding:16px">
-      <p style="font-size:12.5px;color:var(--txt2);margin:0 0 16px">Recursos del curso <strong>Tecnología Asistiva + Equipar para Equipar</strong>. Podés descargarlos libremente.</p>
-      <div class="formacion-list">
-
-        <div class="formacion-card">
-          <div class="formacion-card-ico">📄</div>
-          <div class="formacion-card-body">
-            <div class="formacion-card-badge">PDF</div>
-            <div class="formacion-card-title">Acceso Indirecto en Android e iOS</div>
-            <div class="formacion-card-desc">Conocé las opciones de accesibilidad disponibles en dispositivos Android e iOS.</div>
-            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 2_ Anexo Acceso Indirecto Android e iOS_wm.pdf" target="_blank" download>⬇ Descargar</a>
-          </div>
-        </div>
-
-        <div class="formacion-card">
-          <div class="formacion-card-ico">📄</div>
-          <div class="formacion-card-body">
-            <div class="formacion-card-badge">PDF</div>
-            <div class="formacion-card-title">Acceso Indirecto en Windows y MacOS</div>
-            <div class="formacion-card-desc">Conocé las opciones de accesibilidad disponibles en PC y Mac.</div>
-            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 2_ Anexo Acceso Indirecto Windows y MacOS_wm.pdf" target="_blank" download>⬇ Descargar</a>
-          </div>
-        </div>
-
-        <div class="formacion-card">
-          <div class="formacion-card-ico">📄</div>
-          <div class="formacion-card-body">
-            <div class="formacion-card-badge">PDF</div>
-            <div class="formacion-card-title">AsTeRICS Grid: opciones de acceso</div>
-            <div class="formacion-card-desc">Conocé las opciones de acceso que tiene AsTeRICS Grid AAC.</div>
-            <a class="formacion-card-btn" href="assets/docs/Curso TA + EpE - Bloque 4_ Anexo AsTeRICS Grid_wm.pdf" target="_blank" download>⬇ Descargar</a>
-          </div>
-        </div>
-
-      </div>
     </div>
   </div>
 </div>
@@ -352,47 +245,6 @@
           <div class="dev-ico"><img src="assets/img/disbutton.png" alt="disButton"></div>
           <div><div class="dev-name">disButton</div></div>
         </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="modal-bd" id="noDeviceModal" style="display:none" onclick="closeBd(event,'noDeviceModal')">
-  <div class="modal" style="max-width:360px;text-align:center">
-    <div class="modal-head">
-      <span class="modal-title">🔌 Sin dispositivo conectado</span>
-      <button class="modal-x" onclick="closeModal('noDeviceModal')">✕</button>
-    </div>
-    <div class="modal-body" style="padding:24px 20px">
-      <p style="margin:0 0 18px">Para aplicar una configuración necesitás tener un dispositivo conectado.</p>
-      <button class="btn pri full" onclick="closeModal('noDeviceModal');connectUSB()">Conectar ahora</button>
-      <button class="btn ghost full" style="margin-top:8px" onclick="closeModal('noDeviceModal')">Cerrar</button>
-    </div>
-  </div>
-</div>
-
-<div class="modal-bd" id="presetsModal" style="display:none" onclick="closeBd(event,'presetsModal')">
-  <div class="modal modal-wide">
-    <div class="modal-head">
-      <span class="modal-title">⚡ Configuraciones rápidas</span>
-      <button class="modal-x" onclick="closeModal('presetsModal')">✕</button>
-    </div>
-    <div class="modal-body" style="max-height:70vh;overflow-y:auto;display:flex;flex-direction:column">
-      <div class="preset-tabs" id="presetTabs"></div>
-      <div class="presets-modal-section">
-        <div class="presets-modal-lbl">Presets EpE</div>
-        <div class="factory-grid" id="factoryGrid"></div>
-      </div>
-      <div class="presets-modal-section">
-        <div class="presets-modal-bar">
-          <span class="presets-modal-lbl">⭐ Mis configuraciones</span>
-          <div style="display:flex;gap:6px">
-            <button class="btn ghost sm" onclick="importCSV()" title="Importar desde CSV">⬆ CSV</button>
-            <button class="btn pri sm" id="btnSaveCustom" onclick="closeModal('presetsModal');openSaveModal()" disabled>+ Guardar actual</button>
-          </div>
-        </div>
-        <div class="custom-grid" id="customGrid"></div>
-        <div class="no-custom" id="noCustom">Conecte el dispositivo, configure a gusto y guarde con el botón de arriba.</div>
       </div>
     </div>
   </div>
@@ -477,95 +329,12 @@
             <button class="btn pri sm" id="btnConnM" onclick="toggleConn()" style="width:100%">Conectar</button>
             <div id="connSubM" style="display:none;flex-direction:column;gap:5px;margin-top:8px">
               <button class="btn ghost sm" onclick="pingDevice()" style="width:100%">🔄 Probar conexión</button>
-              <button class="btn ghost sm" onclick="getAllConfig();closeModal('connModal')" style="width:100%">📋 Leer configuración actual</button>
             </div>
           </div>
         </div>
 
       </div>
     </div>
-  </div>
-</div>
-
-<!-- MODAL: SAVE CUSTOM -->
-<div class="modal-bd" id="saveModal" style="display:none" onclick="closeBd(event,'saveModal')">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">💾 Guardar configuración</span><button class="modal-x" onclick="closeModal('saveModal')">✕</button></div>
-    <div class="modal-body">
-      <div class="field">
-        <label class="lbl">Nombre de la configuración</label>
-        <input type="text" id="customName" placeholder="Ej: Juan · semana 3, Exploración switch rojo…" maxlength="60">
-        <div class="hint">Aparecerá como configuración rápida en este navegador/dispositivo.</div>
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label class="lbl">Nota <span style="font-weight:400;color:var(--txt3)">(opcional)</span></label>
-        <textarea id="customNotes" placeholder="Ej: Usar en modo barrido automático con AsTeRICS Grid. Ajustar velocidad según el usuario." maxlength="300" rows="3" style="width:100%;resize:vertical;font-size:12.5px;padding:7px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);background:var(--surf2);color:var(--txt);font-family:inherit"></textarea>
-        <div class="hint" id="notesCount" style="text-align:right">0 / 300</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn ghost sm" onclick="closeModal('saveModal')">Cancelar</button>
-      <button class="btn pri sm" onclick="confirmSave()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL: IMPORT PRESETS -->
-<!-- MODAL: EDITAR PRESET -->
-<div class="modal-bd" id="editPresetModal" style="display:none" onclick="closeBd(event,'editPresetModal')">
-  <div class="modal">
-    <div class="modal-head">
-      <span class="modal-title">✏️ Editar configuración</span>
-      <button class="modal-x" onclick="closeModal('editPresetModal')">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="field">
-        <label class="lbl">Nombre</label>
-        <input type="text" id="editPresetName" maxlength="60" style="width:100%">
-      </div>
-      <div class="field" style="margin-top:10px">
-        <label class="lbl">Nota <span style="font-weight:400;color:var(--txt3)">(opcional)</span></label>
-        <textarea id="editPresetNotes" maxlength="300" rows="3" style="width:100%;resize:vertical;font-size:12.5px;padding:7px 9px;border:1.5px solid var(--bdr);border-radius:var(--r);background:var(--surf2);color:var(--txt);font-family:inherit"></textarea>
-        <div class="hint" id="editNotesCount" style="text-align:right">0 / 300</div>
-      </div>
-    </div>
-    <div class="modal-foot">
-      <button class="btn ghost sm" onclick="closeModal('editPresetModal')">Cancelar</button>
-      <button class="btn pri sm" onclick="confirmEditPreset()">Guardar</button>
-    </div>
-  </div>
-</div>
-
-
-<!-- TOUR -->
-<div class="tour-bd" id="tourBd" onclick="skipTour()"></div>
-<div class="tour-spot" id="tourSpot"></div>
-<div class="tour-tip" id="tourTip">
-  <div class="tthead">
-    <div class="tbadge" id="tBadge">1</div>
-    <div class="tttitle" id="tTitle"></div>
-  </div>
-  <div class="ttbody" id="tBody"></div>
-  <div class="ttfoot">
-    <span class="tprog" id="tProg"></span>
-    <div class="tnav">
-      <button class="btn ghost sm" onclick="skipTour()">Omitir</button>
-      <button class="btn ghost sm" id="tPrev" onclick="prevStep()" style="display:none">Anterior</button>
-      <button class="btn pri sm" id="tNext" onclick="nextStep()">Siguiente</button>
-    </div>
-  </div>
-</div>
-<div class="tw-bd" id="twBd" onclick="skipTour()"></div>
-<div class="tw" id="twCard">
-  <div class="tw-card">
-    <div class="tw-emoji">👋</div>
-    <div class="tw-title">Bienvenido al Configurador EpE</div>
-    <div class="tw-desc">Herramienta para terapistas, fonoaudiólogos y docentes de educación especial.<br><br>Configurá tus dispositivos, guardá perfiles de configuración en este navegador y pasalos a otro equipo con un archivo CSV.<br><br>¿Primera vez? Te mostramos todo en un recorrido rápido.</div>
-    <div class="tw-btns">
-      <button class="btn ghost" onclick="skipTour()">Omitir</button>
-      <button class="btn pri" onclick="startTour()">Comenzar recorrido</button>
-    </div>
-    <button class="btn ghost" style="font-size:11px;color:var(--txt3);margin-top:8px;width:100%" onclick="neverShowTour()">No volver a mostrar</button>
   </div>
 </div>
 

@@ -37,10 +37,9 @@ npm run serve      # http://127.0.0.1:8899/ (WebUSB y Web Serial andan en 127.0.
 |---|---|
 | `index.html` | Estructura de la página. |
 | `src/app.js` | Punto de entrada: arma la UI y expone lo que usan los `onclick`. |
-| `src/ui/` | Módulos de interfaz (tarjetas, conexión, presets, tour, menú…). |
+| `src/ui/` | Módulos de interfaz (tarjetas, conexión, menú…). |
 | `src/protocol.js`, `src/transport.js` | Protocolo con el dispositivo y transporte USB/BLE. |
-| `src/presets-store.js`, `src/csv.js` | Perfiles propios (localStorage) e import/export CSV. |
-| `src/products.js` | Catálogo de productos y presets de fábrica. |
+| `src/products.js` | Catálogo de productos. |
 | `src/app.css` | Estilos propios del sitio. |
 | `src/diseno/` | Copia fija del repo `dismascapacidad-design` (colores y fuente). **No editar a mano**: ver `src/diseno/ORIGEN.md`. |
 | `tests/` | Tests (Vitest) y un runner para navegador (`tests/index.html`). |

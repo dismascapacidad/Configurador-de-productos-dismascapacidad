@@ -2,13 +2,13 @@
 /**
  * Acciones que escriben al dispositivo: aplicar la config de un botón, el modo
  * de flechas / conectores centrales, volcar la config leída (`S.devCfg`) a las
- * tarjetas y el modal de resumen de configuración.
+ * tarjetas.
  *
  * El armado de los comandos `CFG:` / `FMODE:` / `ORIENT:` … vive en
  * src/protocol.js (testeado). Acá solo se leen valores del DOM y se manda.
  */
 import { S } from './state.js';
-import { toast, openModal } from './dom.js';
+import { toast } from './dom.js';
 import * as Protocol from '../protocol.js';
 import { send, clearDeviceError, takeDeviceError } from './connection.js';
 import { updateSummary, onType, onMode } from './cards.js';
@@ -97,92 +97,6 @@ export async function applyDishubCenter() {
   });
   for (const c of cmds) await send(c);
   toast('✅', 'Conectores centrales configurados');
-}
-
-// ── MODAL DE RESUMEN DE CONFIGURACIÓN ────────────────────
-export function renderCfgModal() {
-  const ORI = ['Normal (0°)', 'Girado derecha', 'Girado izquierda', 'Invertido (180°)'];
-  const FM = { 0: 'acción individual', 1: 'mueven el cursor', 2: 'teclas ↑↓←→' };
-  const TN = { 0: 'Mouse', 1: 'Teclado', 2: 'Desactivado' };
-  // 2 (holdeable heredado) ya lo degrada el parser a 0; se deja el fallback por las dudas.
-  const MN = { 0: 'al presionar', 1: 'al soltar', 2: 'al presionar', 3: 'una vez por pulsación', 4: 'corta / larga' };
-  const MOU = { 1: 'clic izq.', 2: 'clic der.', 4: 'clic central', 8: 'scroll ↑', 16: 'scroll ↓' };
-  const hl = (t) => '<span class="hl">' + t + '</span>';
-  let h = '';
-  if (S.prod && S.prod.hasArrows) {
-    h += '<div class="cfg-sec"><div class="cfg-sec-title">⬆️ Flechas</div>';
-    h +=
-      '<div class="cfg-row">Las flechas ' +
-      hl(FM[S.devCfg.fmode] || '—') +
-      '. Orientación: ' +
-      hl(ORI[S.devCfg.orient] || '—') +
-      '.</div>';
-    if (S.devCfg.fmode === 0 || S.devCfg.fmode === 1)
-      h +=
-        '<div class="cfg-row">Velocidad ' +
-        hl(S.devCfg.vel || '—') +
-        ', ' +
-        hl(S.devCfg.acel === 1 ? 'con aceleración' : 'velocidad constante') +
-        '.</div>';
-    h += '</div>';
-  }
-  if (S.prod) {
-    const codeToIdx = { BR: 0, BA: 1, BN: 2, BC: 3, FU: 4, FD: 5, FL: 6, FR: 7 };
-    const allBtns = [
-      ...S.prod.mainBtns,
-      ...(S.prod.hasArrows && S.devCfg.fmode === 0 ? S.prod.arrowBtns : []),
-      ...(S.prod.hasCenterConnectors && S.devCfg.fmode === 0 ? S.prod.centerBtns : []),
-    ];
-    h += '<div class="cfg-sec"><div class="cfg-sec-title">🎯 Botones</div>';
-    allBtns.forEach(({ code, label }) => {
-      const c = S.devCfg.btns[String(codeToIdx[code])];
-      if (!c) {
-        h += '<div class="cfg-row"><b>' + label + '</b>: sin datos.</div>';
-        return;
-      }
-      if (c.tipo === 2) {
-        h += '<div class="cfg-row"><b>' + label + '</b>: ' + hl('desactivado') + '.</div>';
-        return;
-      }
-      let row = '<b>' + label + '</b>: ' + hl(TN[c.tipo]) + ', ' + hl(MN[c.modo]);
-      if (c.tipo === 0) {
-        const dc = c.flags & 1 ? 'doble ' : '';
-        const mc = c.flags & 2 ? ' (toggle)' : '';
-        row += ' — ' + hl(dc + (MOU[c.accion] || '#' + c.accion) + mc);
-      } else {
-        const ch = c.accion > 31 && c.accion < 127 ? String.fromCharCode(c.accion) : '#' + c.accion;
-        const mm = [];
-        if (c.mods & 1) mm.push('Ctrl');
-        if (c.mods & 2) mm.push('Shift');
-        if (c.mods & 4) mm.push('Alt');
-        if (c.mods & 8) mm.push(S.osMode === 'mac' ? '⌘' : 'Win');
-        row += ' — tecla ' + hl(ch) + (mm.length ? ' + ' + hl(mm.join('+')) : '');
-      }
-      if (c.modo === 4) {
-        let larga;
-        if (c.tipo === 0) {
-          larga = (MOU[c.accionLarga] || '#' + c.accionLarga) + (c.flagsLarga & 2 ? ' (mantener)' : '');
-        } else {
-          const ch =
-            c.accionLarga > 31 && c.accionLarga < 127
-              ? String.fromCharCode(c.accionLarga)
-              : Protocol.REV_KEY[String(c.accionLarga)] || '#' + c.accionLarga;
-          const mm = [];
-          if (c.modsLarga & 1) mm.push('Ctrl');
-          if (c.modsLarga & 2) mm.push('Shift');
-          if (c.modsLarga & 4) mm.push('Alt');
-          if (c.modsLarga & 8) mm.push(S.osMode === 'mac' ? '⌘' : 'Win');
-          larga = 'tecla ' + ch + (mm.length ? ' + ' + mm.join('+') : '');
-        }
-        row += ', larga: ' + hl(larga) + ' a los ' + hl((c.umbral || Protocol.TH_DEFAULT_MS) + 'ms');
-      }
-      if (c.debounce > 0) row += ', debounce ' + hl(c.debounce + 'ms');
-      h += '<div class="cfg-row">' + row + '.</div>';
-    });
-    h += '</div>';
-  }
-  el('cfgDisplay').innerHTML = h;
-  openModal('cfgModal');
 }
 
 /** Código numérico de tecla → texto del campo "Tecla" (token, carácter o `#código`). */

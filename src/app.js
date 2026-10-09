@@ -6,28 +6,17 @@
  *
  * Selección de producto / tipo de conexión / modo de modificadores →
  * src/ui/product.js. Todo lo demás vive en su módulo (cards, connection,
- * actions, presets, tour, drawer, dom, state).
+ * actions, drawer, dom, state).
  *
  * Requiere servir por http(s): con file:// fallan los import.
  */
 
 import * as Protocol from './protocol.js';
 import * as Transport from './transport.js';
-import * as Csv from './csv.js';
-import * as PresetsStore from './presets-store.js';
 import * as ProductData from './products.js';
 import { isIOS, isMacOS } from './ui/platform.js';
 import { addLog, clearLog, closeModal, closeBd, openModal } from './ui/dom.js';
 import { openDrawer, closeDrawer, toggleDrawer } from './ui/drawer.js';
-import {
-  showWelcome,
-  startTour,
-  skipTour,
-  neverShowTour,
-  restartTour,
-  nextStep,
-  prevStep,
-} from './ui/tour.js';
 import {
   buildGrid,
   onType,
@@ -45,9 +34,7 @@ import {
   toggleConn,
   openConnModal,
   sendLogCmd,
-  getAllConfig,
   saveConfig,
-  resetDevice,
   pingDevice,
 } from './ui/connection.js';
 import {
@@ -58,34 +45,16 @@ import {
   applyDishubCenter,
   applyDevCfgToCards,
 } from './ui/actions.js';
-import {
-  renderCustom,
-  renderPresetTabs,
-  buildFactoryPresets,
-  openPresetsModal,
-  downloadCSV,
-  importCSV,
-  confirmSave,
-  confirmEditPreset,
-  openSaveModal,
-  openEditPreset,
-  applyCustom,
-  delCustom,
-  _PR,
-} from './ui/presets.js';
 import { selectProd, selectConnType, selectOsMode, confirmToggleOsMode } from './ui/product.js';
 
 // Módulos de lógica: se exponen en window.* para el código que todavía los usa así.
 const w = /** @type {any} */ (window);
 w.Protocol = Protocol;
 w.Transport = Transport;
-w.Csv = Csv;
-w.PresetsStore = PresetsStore;
-// PRODUCTS, PRESET_TABS, LATEST_FW, FACTORY_CMDS/CARDS, TIP_CONTENT, DEV_* como globales sueltos.
+// PRODUCTS, LATEST_FW, TIP_CONTENT, DEV_* como globales sueltos.
 Object.assign(window, ProductData);
 
 // connection.js llama a estos módulos vía `connectionHooks` (evita ciclos de import).
-connectionHooks.renderPresetTabs = renderPresetTabs;
 connectionHooks.applyDevCfgToCards = applyDevCfgToCards;
 connectionHooks.selectProd = selectProd;
 connectionHooks.onArrowMode = onArrowMode;
@@ -104,10 +73,8 @@ function init() {
   const def = ProductData.PRODUCTS['dismouse'];
   buildGrid('mainGrid', def.mainBtns);
   buildGrid('arrowGrid', def.arrowBtns);
-  buildFactoryPresets(def.presets);
   setSections(false);
   onArrowMode();
-  renderCustom();
 
   let savedOsMode = null;
   try {
@@ -131,10 +98,9 @@ function init() {
     if (iosBlock) iosBlock.style.display = '';
     addLog('iOS/iPadOS detectado — opción BLE deshabilitada.', 'w');
   }
-  setTimeout(showWelcome, 800);
 
   // Limpieza única: las cuentas se quitaron (08/10/2026). Borra del navegador la sesión
-  // vieja de Supabase (tokens), que ya no sirve para nada. Los presets locales NO se tocan.
+  // vieja de Supabase (tokens), que ya no sirve para nada.
   try {
     Object.keys(localStorage)
       .filter((k) => k.startsWith('sb-lhpewyblvjijpmcxzcod-'))
@@ -155,49 +121,31 @@ function init() {
 Object.assign(window, {
   applyArrows,
   applyBtn,
-  applyCustom,
   applyDishubCenter,
   captureFromInput,
   clearLog,
   closeBd,
   closeDrawer,
   closeModal,
-  confirmEditPreset,
-  confirmSave,
   confirmToggleOsMode,
-  delCustom,
-  downloadCSV,
-  getAllConfig,
-  importCSV,
-  neverShowTour,
-  nextStep,
   onArrowMode,
   onDishubCenterMode,
   onMode,
   onType,
   openConnModal,
   openDrawer,
-  openEditPreset,
   openModal,
-  openPresetsModal,
-  openSaveModal,
   pingDevice,
-  prevStep,
-  resetDevice,
-  restartTour,
   saveConfig,
   selectConnType,
   selectProd,
   sendLogCmd,
   setCapturedKey,
-  skipTour,
   startCap,
-  startTour,
   stopCap,
   toggleAdv,
   toggleConn,
   toggleDrawer,
-  _PR,
 });
 
 if (document.readyState === 'loading') {
